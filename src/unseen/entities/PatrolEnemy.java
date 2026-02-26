@@ -1,11 +1,13 @@
 package unseen.entities;
 
+import java.util.List;
+
 import unseen.ai.Node;
 import unseen.ai.Pathfinder;
 import unseen.map.Map;
 import unseen.utils.Constants;
+import unseen.game.Smoke;
 
-import java.util.List;
 
 public class PatrolEnemy extends Enemy {
 
@@ -14,9 +16,9 @@ public class PatrolEnemy extends Enemy {
     }
 
     @Override
-    public void takeTurn(Map map, Player player) {
+    public void takeTurn(Map map, Player player,List<Smoke> smokes) {
 
-        if (canSeePlayer(map, player)) {
+        if (canSeePlayer(map, player, player.getActiveSmokes())) {
             state = State.CHASE;
             lastKnownX = player.getX();
             lastKnownY = player.getY();

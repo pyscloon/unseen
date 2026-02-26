@@ -5,5 +5,6 @@ public enum Tile {
     FLOOR,
     START,
     EXIT,
-    ITEM
+    ITEM,
+    TORCH
 }

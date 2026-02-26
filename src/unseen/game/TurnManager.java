@@ -3,7 +3,6 @@ package unseen.game;
 import unseen.entities.Enemy;
 import unseen.entities.Player;
 import unseen.map.Map;
-
 import java.util.List;
 
 public class TurnManager {
@@ -11,12 +10,13 @@ public class TurnManager {
     public static GameState processTurn(
             Player player,
             List<Enemy> enemies,
-            Map map) {
+            Map map,
+            List<Smoke> smokes) { // add smoke list
 
         // Enemies move after player
         for (Enemy enemy : enemies) {
 
-            enemy.takeTurn(map, player);
+            enemy.takeTurn(map, player, smokes); // pass smokes
 
             if (enemy.getX() == player.getX()
                     && enemy.getY() == player.getY()) {

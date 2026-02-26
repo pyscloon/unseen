@@ -12,6 +12,8 @@ import unseen.game.GameState;
 import unseen.ai.AStar;
 import unseen.ai.LineOfSight;
 import unseen.game.TurnManager;
+import unseen.items.*;
+import unseen.game.Smoke;
 
 public class GamePanel extends JPanel implements Runnable {
 
@@ -22,6 +24,7 @@ public class GamePanel extends JPanel implements Runnable {
     private Player player;
     private List<Enemy> enemies;
     private boolean[][] visible;
+    private List<Smoke> smokes = new ArrayList<>();
 
     public GamePanel() {
         this.setPreferredSize(
@@ -48,6 +51,10 @@ public class GamePanel extends JPanel implements Runnable {
         enemies.add(new PatrolEnemy(10, 10, pathfinder));
         enemies.add(new HunterEnemy(15, 15, pathfinder));
         enemies.add(new SentryEnemy(5, 14, pathfinder));
+
+        player.addItem(new NoiseMaker());
+        player.addItem(new SmokeBomb());
+        player.setPanel(this);
     }
 
     private void updateVisibility() {
@@ -62,14 +69,57 @@ public class GamePanel extends JPanel implements Runnable {
         int px = player.getX();
         int py = player.getY();
 
+        // Player vision (range 6)
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
 
-                if (LineOfSight.hasLineOfSight(map, px, py, x, y, 6)) {
+                if (LineOfSight.hasLineOfSight(map, px, py, x, y, 6, smokes)) {
                     visible[y][x] = true;
                 }
             }
         }
+
+        //  Torch illumination (range 2)
+        for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+            for (int x = 0; x < Constants.GRID_WIDTH; x++) {
+
+                if (map.getTile(x, y) == Tile.TORCH) {
+
+                    for (int dy = -2; dy <= 2; dy++) {
+                        for (int dx = -2; dx <= 2; dx++) {
+
+                            int nx = x + dx;
+                            int ny = y + dy;
+
+                            if (nx >= 0 && ny >= 0 &&
+                                    nx < Constants.GRID_WIDTH &&
+                                    ny < Constants.GRID_HEIGHT) {
+
+                                visible[ny][nx] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void updateSmoke() {
+
+        List<Smoke> expired = new ArrayList<>();
+
+        for (Smoke smoke : smokes) {
+            smoke.decrease();
+            if (smoke.isExpired()) {
+                expired.add(smoke);
+            }
+        }
+
+        smokes.removeAll(expired);
+    }
+
+    public void spawnSmoke(int x, int y) {
+        smokes.add(new Smoke(x, y, 2, 5)); // radius 2, lasts 5 turns
     }
 
     public void startGame() {
@@ -144,6 +194,9 @@ public class GamePanel extends JPanel implements Runnable {
                     case EXIT:
                         g2.setColor(Color.YELLOW);
                         break;
+                    case TORCH:
+                        g2.setColor(new Color(255, 140, 0));
+                        break;
                     default:
                         g2.setColor(floorColor);
                 }
@@ -199,4 +252,5 @@ public class GamePanel extends JPanel implements Runnable {
 
     public Player getPlayer() { return player; }
     public Map getMap() { return map; }
+    public List<Smoke> getSmokes() { return smokes; }
 }
