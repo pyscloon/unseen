@@ -58,11 +58,11 @@ public class PatrolEnemy extends Enemy {
             int nx = x + d[0];
             int ny = y + d[1];
             if (map.isPassable(nx, ny)) {
-                // Set direction based on movement
-                if (d[0] == 1) setDirection(Direction.RIGHT);
-                else if (d[0] == -1) setDirection(Direction.LEFT);
-                else if (d[1] == 1) setDirection(Direction.DOWN);
-                else if (d[1] == -1) setDirection(Direction.UP);
+                // Set direction based on intended movement
+                if (nx > x) setDirection(Direction.RIGHT);
+                else if (nx < x) setDirection(Direction.LEFT);
+                else if (ny > y) setDirection(Direction.DOWN);
+                else if (ny < y) setDirection(Direction.UP);
                 x = nx; y = ny;
                 break;
             }
@@ -77,13 +77,11 @@ public class PatrolEnemy extends Enemy {
 
         if (path != null && path.size() > 1) {
             Node next = path.get(1);
-            // Set direction based on movement
-            int dx = next.x - x;
-            int dy = next.y - y;
-            if (dx == 1) setDirection(Direction.RIGHT);
-            else if (dx == -1) setDirection(Direction.LEFT);
-            else if (dy == 1) setDirection(Direction.DOWN);
-            else if (dy == -1) setDirection(Direction.UP);
+            // Set direction based on intended movement
+            if (next.x > x) setDirection(Direction.RIGHT);
+            else if (next.x < x) setDirection(Direction.LEFT);
+            else if (next.y > y) setDirection(Direction.DOWN);
+            else if (next.y < y) setDirection(Direction.UP);
             x = next.x;
             y = next.y;
         } else {
