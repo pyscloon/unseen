@@ -1,7 +1,6 @@
 package unseen.ai;
 
 import unseen.map.Map;
-import unseen.utils.Constants;
 
 import java.util.*;
 

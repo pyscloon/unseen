@@ -7,6 +7,15 @@ import unseen.ai.LineOfSight;
 import unseen.game.Smoke;
 
 public abstract class Enemy extends Entity {
+    public enum Direction { UP, DOWN, LEFT, RIGHT }
+    protected Direction direction = Direction.DOWN;
+    protected java.awt.Image upImage;
+    protected java.awt.Image downImage;
+    protected java.awt.Image leftImage;
+    protected java.awt.Image rightImage;
+    protected java.awt.Image enemyImage;
+    public enum EnemyType { PATROL, HUNTER, SENTRY }
+    protected EnemyType type;
 
     public enum State { PATROL, CHASE, SEARCH }
 
@@ -19,10 +28,47 @@ public abstract class Enemy extends Entity {
 
     public Enemy(int x, int y, int detectionRange, Pathfinder pathfinder) {
         super(x, y);
+        this.direction = Direction.DOWN;
         this.detectionRange = detectionRange;
         this.pathfinder = pathfinder;
+        // Image loaded in subclasses
     }
 
+    public java.awt.Image getSlimeImage() {
+        return enemyImage;
+    }
+    public java.awt.Image getEnemyImage() {
+        // Return image based on direction
+        switch (direction) {
+            case UP:
+                return upImage != null ? upImage : enemyImage;
+            case DOWN:
+                return downImage != null ? downImage : enemyImage;
+            case LEFT:
+                return leftImage != null ? leftImage : enemyImage;
+            case RIGHT:
+                return rightImage != null ? rightImage : enemyImage;
+            default:
+                return enemyImage;
+        }
+    }
+
+    public void setDirection(Direction dir) {
+        this.direction = dir;
+    }
+
+    public Direction getDirection() {
+        return direction;
+    }
+
+    @Override
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+    public EnemyType getType() {
+        return type;
+    }
     public abstract void takeTurn(Map map, Player player, List<Smoke> smokes);
 
     protected boolean canSeePlayer(Map map, Player player, List<Smoke> smokes) {

@@ -1,5 +1,7 @@
 package unseen.entities;
 
+import java.awt.Image;
+
 import unseen.items.Item;
 import unseen.map.Map;
 import unseen.ui.GamePanel;
@@ -11,11 +13,28 @@ import java.util.List;
 public class Player extends Entity {
     private GamePanel panel;
     private List<Item> inventory = new ArrayList<>();
+    private Image heroImage;
 
     public Player(int x, int y) {
         super(x, y);
+        // Load hero image
+        try {
+                java.net.URL url = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/hero.png");            if (url != null) {
+                heroImage = javax.imageio.ImageIO.read(url);
+                System.out.println("Loaded hero.png successfully.");
+            } else {
+                System.out.println("hero.png not found in unseen/assets folder.");
+                heroImage = null;
+            }
+        } catch (Exception e) {
+            System.out.println("Error loading hero.png: " + e.getMessage());
+            heroImage = null;
+        }
     }
 
+    public Image getHeroImage() {
+        return heroImage;
+    }
     public void addItem(Item item) {
         inventory.add(item);
     }

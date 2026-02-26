@@ -16,6 +16,8 @@ import unseen.items.*;
 import unseen.game.Smoke;
 
 public class GamePanel extends JPanel implements Runnable {
+        private javax.sound.sampled.Clip backgroundClip;
+    // ...existing code...
 
     private Thread gameThread;
     private GameState state = GameState.PLAYING;
@@ -26,6 +28,27 @@ public class GamePanel extends JPanel implements Runnable {
     private boolean[][] visible;
     private List<Smoke> smokes = new ArrayList<>();
 
+    // Sprites
+    private Image wallImage;
+    private Image floorImage;
+    private Image torchTileImage;
+
+    {
+        // Load tile/wall images
+        try {
+            java.net.URL wallUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/wall.png");
+            if (wallUrl != null) wallImage = javax.imageio.ImageIO.read(wallUrl);
+            java.net.URL floorUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/tile.png");
+            if (floorUrl != null) floorImage = javax.imageio.ImageIO.read(floorUrl);
+            java.net.URL torchUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/torch.png");
+            if (torchUrl != null) torchTileImage = javax.imageio.ImageIO.read(torchUrl);
+        } catch (Exception e) {
+            wallImage = null;
+            floorImage = null;
+            torchTileImage = null;
+        }
+    }
+
     public GamePanel() {
         this.setPreferredSize(
                 new Dimension(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT));
@@ -35,6 +58,21 @@ public class GamePanel extends JPanel implements Runnable {
         this.setFocusable(true);
 
         setupGame();
+        loadAndPlayBackgroundSound();
+    }
+
+    private void loadAndPlayBackgroundSound() {
+        try {
+            java.net.URL soundURL = getClass().getClassLoader().getResource("assets/background.wav");
+            if (soundURL != null) {
+                javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem.getAudioInputStream(soundURL);
+                backgroundClip = javax.sound.sampled.AudioSystem.getClip();
+                backgroundClip.open(audioIn);
+                backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+            }
+        } catch (Exception e) {
+            backgroundClip = null;
+        }
     }
 
     private void setupGame() {
@@ -191,40 +229,50 @@ public class GamePanel extends JPanel implements Runnable {
 
         Graphics2D g2 = (Graphics2D) g;
 
-        Color wallColor  = new Color(90, 90, 90);
-        Color floorColor = new Color(170, 170, 170);
-
         // 1) draw base tiles
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
-
                 Tile tile = map.getTile(x, y);
-
-                // Draw tile normally
+                int drawX = x * Constants.TILE_SIZE;
+                int drawY = y * Constants.TILE_SIZE;
                 switch (tile) {
                     case WALL:
-                        g2.setColor(wallColor);
+                        if (wallImage != null) {
+                            g2.drawImage(wallImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        } else {
+                            g2.setColor(new Color(90, 90, 90));
+                            g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                        }
                         break;
                     case FLOOR:
                     case START:
-                        g2.setColor(floorColor);
+                        if (floorImage != null) {
+                            g2.drawImage(floorImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        } else {
+                            g2.setColor(new Color(170, 170, 170));
+                            g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                        }
+                        break;
+                    case TORCH:
+                        if (torchTileImage != null) {
+                            g2.drawImage(torchTileImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        } else {
+                            g2.setColor(new Color(255, 140, 0));
+                            g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                        }
                         break;
                     case EXIT:
                         g2.setColor(Color.YELLOW);
-                        break;
-                    case TORCH:
-                        g2.setColor(new Color(255, 140, 0));
+                        g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         break;
                     default:
-                        g2.setColor(floorColor);
+                        if (floorImage != null) {
+                            g2.drawImage(floorImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        } else {
+                            g2.setColor(new Color(170, 170, 170));
+                            g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                        }
                 }
-
-                g2.fillRect(
-                        x * Constants.TILE_SIZE,
-                        y * Constants.TILE_SIZE,
-                        Constants.TILE_SIZE,
-                        Constants.TILE_SIZE
-                );
             }
         }
 
@@ -286,27 +334,43 @@ public class GamePanel extends JPanel implements Runnable {
     private void drawEntities(Graphics g) {
 
         // Only draw if visible
-
         if (visible[player.getY()][player.getX()]) {
-            g.setColor(Color.CYAN);
-            g.fillOval(
+            if (player.getHeroImage() != null) {
+                int scaledSize = Constants.TILE_SIZE * 2;
+                int drawX = player.getX() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
+                int drawY = player.getY() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
+                g.drawImage(player.getHeroImage(),
+                    drawX,
+                    drawY,
+                    scaledSize,
+                    scaledSize,
+                    null);
+            } else {
+                g.setColor(Color.CYAN);
+                g.fillOval(
                     player.getX() * Constants.TILE_SIZE,
                     player.getY() * Constants.TILE_SIZE,
                     Constants.TILE_SIZE,
                     Constants.TILE_SIZE
-            );
+                );
+            }
         }
-
-        g.setColor(Color.RED);
-        for (Entity e : enemies) {
-
+        for (Enemy e : enemies) {
             if (visible[e.getY()][e.getX()]) {
-                g.fillOval(
+                java.awt.Image img = e.getEnemyImage();
+                if (img != null) {
+                    int drawX = e.getX() * Constants.TILE_SIZE;
+                    int drawY = e.getY() * Constants.TILE_SIZE;
+                    g.drawImage(img, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                } else {
+                    g.setColor(Color.RED);
+                    g.fillOval(
                         e.getX() * Constants.TILE_SIZE,
                         e.getY() * Constants.TILE_SIZE,
                         Constants.TILE_SIZE,
                         Constants.TILE_SIZE
-                );
+                    );
+                }
             }
         }
     }
