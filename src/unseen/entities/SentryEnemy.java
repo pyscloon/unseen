@@ -1,12 +1,9 @@
 package unseen.entities;
 
 import java.util.List;
-
 import unseen.ai.Pathfinder;
 import unseen.map.Map;
 import unseen.utils.Constants;
-import unseen.game.Smoke;
-
 
 public class SentryEnemy extends Enemy {
 
@@ -15,11 +12,12 @@ public class SentryEnemy extends Enemy {
     }
 
     @Override
-    public void takeTurn(Map map, Player player, List<Smoke> smokes) {
+    public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes) {
 
-        if (canSeePlayer(map, player, player.getActiveSmokes())) {
+        if (canSeePlayer(map, player, smokes)) {
             state = State.CHASE;
         }
 
+        // Sentry is stationary; CHASE behavior handled elsewhere if needed
     }
 }

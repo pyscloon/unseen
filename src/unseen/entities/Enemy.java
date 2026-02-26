@@ -1,7 +1,6 @@
 package unseen.entities;
 
 import java.util.List;
-
 import unseen.ai.Pathfinder;
 import unseen.map.Map;
 import unseen.ai.LineOfSight;
@@ -24,15 +23,15 @@ public abstract class Enemy extends Entity {
         this.pathfinder = pathfinder;
     }
 
-    public abstract void takeTurn(Map map, Player player,  List<Smoke> Smokes);
+    public abstract void takeTurn(Map map, Player player, List<Smoke> smokes);
 
-    protected boolean canSeePlayer(Map map, Player player, List<Smoke> Smokes) {
-
+    protected boolean canSeePlayer(Map map, Player player, List<Smoke> smokes) {
         return LineOfSight.hasLineOfSight(
                 map,
                 x, y,
                 player.getX(), player.getY(),
-                detectionRange, Smokes);
+                detectionRange,
+                smokes);
     }
 
     public void alertTo(int x, int y) {

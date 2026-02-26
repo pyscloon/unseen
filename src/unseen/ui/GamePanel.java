@@ -148,6 +148,23 @@ public class GamePanel extends JPanel implements Runnable {
         return state;
     }
 
+    public boolean attemptPickup() {
+        int px = player.getX();
+        int py = player.getY();
+        Item it = map.getItem(px, py);
+        if (it == null) return false;
+
+        player.addItem(it);
+        map.removeItem(px, py);
+        System.out.println("Picked up: " + it.getClass().getSimpleName());
+
+        // Using pickup consumes a turn — process enemy turns
+        GameState result = TurnManager.processTurn(player, enemies, map, smokes);
+        setGameState(result);
+        updateSmoke();
+        return true;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -177,6 +194,7 @@ public class GamePanel extends JPanel implements Runnable {
         Color wallColor  = new Color(90, 90, 90);
         Color floorColor = new Color(170, 170, 170);
 
+        // 1) draw base tiles
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
 
@@ -207,8 +225,52 @@ public class GamePanel extends JPanel implements Runnable {
                         Constants.TILE_SIZE,
                         Constants.TILE_SIZE
                 );
+            }
+        }
 
-                // Overlay fog if not visible
+        // 2) draw items on ground (dimmed by visibility)
+        for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+            for (int x = 0; x < Constants.GRID_WIDTH; x++) {
+                Item ground = map.getItem(x, y);
+                if (ground != null && visible[y][x]) {
+                    int tx = x * Constants.TILE_SIZE;
+                    int ty = y * Constants.TILE_SIZE;
+                    int size = Constants.TILE_SIZE / 2;
+                    int ox = (Constants.TILE_SIZE - size) / 2;
+                    int oy = (Constants.TILE_SIZE - size) / 2;
+
+                    if (ground instanceof NoiseMaker) g2.setColor(new Color(200, 180, 50)); // gold-ish
+                    else if (ground instanceof SmokeBomb) g2.setColor(new Color(180, 180, 180)); // grey smoke icon
+                    else g2.setColor(Color.MAGENTA);
+
+                    g2.fillOval(tx + ox, ty + oy, size, size);
+                }
+            }
+        }
+
+        // 3) draw smoke overlays (visible effect)
+        g2.setColor(new Color(120, 120, 120, 180)); // semi-transparent gray smoke
+        for (Smoke smoke : smokes) {
+            int r = smoke.getRadius();
+            for (int dy = -r; dy <= r; dy++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    int nx = smoke.getX() + dx;
+                    int ny = smoke.getY() + dy;
+                    if (nx >= 0 && ny >= 0 && nx < Constants.GRID_WIDTH && ny < Constants.GRID_HEIGHT) {
+                        g2.fillRect(
+                                nx * Constants.TILE_SIZE,
+                                ny * Constants.TILE_SIZE,
+                                Constants.TILE_SIZE,
+                                Constants.TILE_SIZE
+                        );
+                    }
+                }
+            }
+        }
+
+        // 4) overlay fog (darkening) for non-visible tiles
+        for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+            for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 if (!visible[y][x]) {
                     g2.setColor(new Color(0, 0, 0, 200)); // semi-transparent black
                     g2.fillRect(
@@ -221,7 +283,6 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
     }
-
     private void drawEntities(Graphics g) {
 
         // Only draw if visible

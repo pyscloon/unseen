@@ -2,7 +2,9 @@ package unseen.map;
 
 import java.util.Random;
 import unseen.utils.Constants;
-
+import unseen.items.NoiseMaker;
+import unseen.items.SmokeBomb;
+import unseen.items.Item;
 public class MapGenerator {
 
     public static Map generate() {
@@ -41,6 +43,20 @@ public class MapGenerator {
             } while (map.getTile(tx, ty) != Tile.FLOOR);
 
             map.setTile(tx, ty, Tile.TORCH);
+        }
+
+        // Place ground items (pickupable)
+        int itemCount = 6; // adjust
+        for (int i = 0; i < itemCount; i++) {
+            int tx, ty;
+            do {
+                tx = rand.nextInt(Constants.GRID_WIDTH);
+                ty = rand.nextInt(Constants.GRID_HEIGHT);
+            } while (map.getTile(tx, ty) != Tile.FLOOR || (tx==Constants.START_X && ty==Constants.START_Y) || map.getItem(tx, ty) != null);
+
+            // random between noise maker and smoke bomb
+            Item it = rand.nextDouble() < 0.6 ? new NoiseMaker() : new SmokeBomb();
+            map.setItem(tx, ty, it);
         }
 
         //  Place start tile last

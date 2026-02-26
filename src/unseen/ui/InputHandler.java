@@ -32,13 +32,27 @@ public class InputHandler extends KeyAdapter {
         // Item usage
         if (key == KeyEvent.VK_1) {
             player.useItem(0, map, panel.getEnemies());
+            // consuming a turn after using item
+            GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(), panel.getSmokes());
+            panel.setGameState(result);
             panel.updateSmoke();
             return;
         }
 
         if (key == KeyEvent.VK_2) {
             player.useItem(1, map, panel.getEnemies());
+            GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(), panel.getSmokes());
+            panel.setGameState(result);
             panel.updateSmoke();
+            return;
+        }
+
+        // Pickup key: E
+        if (key == KeyEvent.VK_E) {
+            boolean picked = panel.attemptPickup();
+            if (!picked) {
+                System.out.println("Nothing to pick up here.");
+            }
             return;
         }
 
