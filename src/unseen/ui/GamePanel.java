@@ -16,6 +16,8 @@ import unseen.items.*;
 import unseen.game.Smoke;
 
 public class GamePanel extends JPanel implements Runnable {
+            private Image noiseMakerImage;
+            private Image smokeBombImage;
         private javax.sound.sampled.Clip backgroundClip;
     // ...existing code...
 
@@ -42,10 +44,33 @@ public class GamePanel extends JPanel implements Runnable {
             if (floorUrl != null) floorImage = javax.imageio.ImageIO.read(floorUrl);
             java.net.URL torchUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/torch.png");
             if (torchUrl != null) torchTileImage = javax.imageio.ImageIO.read(torchUrl);
+
+            // Load NoiseMaker asset if present, else null
+            java.net.URL noiseUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/noise.png");
+            if (noiseUrl != null) {
+                noiseMakerImage = javax.imageio.ImageIO.read(noiseUrl);
+                System.out.println("Loaded noise.png successfully.");
+            } else {
+                noiseMakerImage = null;
+                System.out.println("noise.png not found in unseen/assets folder.");
+            }
+
+            // Load SmokeBomb asset if present, else null
+            java.net.URL smokeUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/smoke.png");
+            if (smokeUrl != null) {
+                smokeBombImage = javax.imageio.ImageIO.read(smokeUrl);
+                System.out.println("Loaded smoke.png successfully.");
+            } else {
+                smokeBombImage = null;
+                System.out.println("smoke.png not found in unseen/assets folder.");
+            }
         } catch (Exception e) {
             wallImage = null;
             floorImage = null;
             torchTileImage = null;
+            noiseMakerImage = null;
+            smokeBombImage = null;
+            System.out.println("Error loading inventory images: " + e.getMessage());
         }
     }
 
@@ -229,12 +254,10 @@ public class GamePanel extends JPanel implements Runnable {
     }
     // Draw the player's inventory at the top of the screen
     private void drawInventory(Graphics g) {
-        List<Item> inventory = player.getInventory();
         int boxSize = 44;
         int spacing = 12;
-        int minSlots = 5;
-        int slots = Math.max(minSlots, inventory.size());
-        int barWidth = Math.max(220, slots * (boxSize + spacing) + 40);
+        int slots = 2;
+        int barWidth = slots * (boxSize + spacing) + 40;
         int barHeight = boxSize + 24;
         int panelWidth = getWidth();
         int startX = (panelWidth - barWidth) / 2 + 10; // Centered horizontally
@@ -247,42 +270,52 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setColor(new Color(220, 220, 220));
         int labelWidth = g2.getFontMetrics().stringWidth("Inventory");
         int labelX = startX + (barWidth - labelWidth) / 2 - 10;
-        // Draw item slots
+        // Draw NoiseMaker slot
         int x = startX;
-        for (int i = 0; i < slots; i++) {
-            // Highlight selected slot (optional: slot 1)
-            if (i == 0) {
-                g2.setColor(new Color(255, 255, 180, 180));
-                g2.setStroke(new java.awt.BasicStroke(3f));
-                g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
-            }
-            // Draw slot background
-            g2.setColor(new Color(70, 70, 70, 220));
-            g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
-            g2.setColor(new Color(180, 180, 180));
-            g2.setStroke(new java.awt.BasicStroke(2f));
-            g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
-            // Draw item if present
-            if (i < inventory.size()) {
-                Item item = inventory.get(i);
-                String name = item.getClass().getSimpleName();
-                // Shadowed text for item name
-                g2.setFont(new Font("Arial", Font.BOLD, 13));
-                FontMetrics fm = g2.getFontMetrics();
-                int textWidth = fm.stringWidth(name);
-                int textX = x + (boxSize - textWidth) / 2;
-                int textY = y + boxSize / 2 + fm.getAscent() / 2 - 4;
-                g2.setColor(new Color(0,0,0,180));
-                g2.drawString(name, textX + 1, textY + 1);
-                g2.setColor(new Color(255,255,255));
-                g2.drawString(name, textX, textY);
-            }
-            // Draw slot number
-            g2.setFont(new Font("Arial", Font.PLAIN, 11));
-            g2.setColor(new Color(200, 200, 200, 180));
-            g2.drawString(String.valueOf(i + 1), x + boxSize - 13, y + boxSize - 6);
-            x += boxSize + spacing;
+        g2.setColor(new Color(255, 255, 180, 180));
+        g2.setStroke(new java.awt.BasicStroke(3f));
+        g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
+        g2.setColor(new Color(70, 70, 70, 220));
+        g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
+        g2.setColor(new Color(180, 180, 180));
+        g2.setStroke(new java.awt.BasicStroke(2f));
+        g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
+        // Draw NoiseMaker image or placeholder
+        int iconPad = 6;
+        if (noiseMakerImage != null) {
+            g2.drawImage(noiseMakerImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+        } else {
+            g2.setColor(new Color(200, 180, 50));
+            g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
+            g2.setColor(Color.DARK_GRAY);
+            g2.drawString("N", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
         }
+        // Draw slot number
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setColor(new Color(200, 200, 200, 180));
+        g2.drawString("1", x + boxSize - 13, y + boxSize - 6);
+        x += boxSize + spacing;
+        // Draw SmokeBomb slot
+        g2.setColor(new Color(200, 200, 255, 180));
+        g2.setStroke(new java.awt.BasicStroke(3f));
+        g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
+        g2.setColor(new Color(70, 70, 70, 220));
+        g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
+        g2.setColor(new Color(180, 180, 180));
+        g2.setStroke(new java.awt.BasicStroke(2f));
+        g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
+        // Draw SmokeBomb image or placeholder
+        if (smokeBombImage != null) {
+            g2.drawImage(smokeBombImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+        } else {
+            g2.setColor(new Color(180, 180, 180));
+            g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
+            g2.setColor(Color.DARK_GRAY);
+            g2.drawString("S", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
+        }
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setColor(new Color(200, 200, 200, 180));
+        g2.drawString("2", x + boxSize - 13, y + boxSize - 6);
     }
 
     private void drawMap(Graphics g) {
