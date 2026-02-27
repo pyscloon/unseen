@@ -457,12 +457,22 @@ public class GamePanel extends JPanel implements Runnable {
                 int scaledSize = Constants.TILE_SIZE * 2;
                 int drawX = player.getX() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
                 int drawY = player.getY() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
-                g.drawImage(player.getHeroImage(),
-                    drawX,
-                    drawY,
-                    scaledSize,
-                    scaledSize,
-                    null);
+                if (player.getFacing() == unseen.entities.Player.Facing.LEFT) {
+                    // Flip horizontally
+                    ((Graphics2D)g).drawImage(player.getHeroImage(),
+                        drawX + scaledSize,
+                        drawY,
+                        -scaledSize,
+                        scaledSize,
+                        null);
+                } else {
+                    g.drawImage(player.getHeroImage(),
+                        drawX,
+                        drawY,
+                        scaledSize,
+                        scaledSize,
+                        null);
+                }
             } else {
                 g.setColor(Color.CYAN);
                 g.fillOval(

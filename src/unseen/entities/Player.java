@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Player extends Entity {
+        public enum Facing { LEFT, RIGHT }
+        private Facing facing = Facing.RIGHT;
     private GamePanel panel;
     private List<Item> inventory = new ArrayList<>();
     private Image heroImage;
@@ -30,10 +32,18 @@ public class Player extends Entity {
             System.out.println("Error loading hero.png: " + e.getMessage());
             heroImage = null;
         }
+        facing = Facing.RIGHT;
     }
 
     public Image getHeroImage() {
         return heroImage;
+    }
+
+    public Facing getFacing() {
+        return facing;
+    }
+    public void setFacing(Facing facing) {
+        this.facing = facing;
     }
     public void addItem(Item item) {
         inventory.add(item);
