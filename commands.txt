@@ -3,11 +3,15 @@
 ## 1. Compile Java Files
 ```
 javac -d out (Get-ChildItem -Recurse -Filter *.java src/unseen | ForEach-Object { $_.FullName })
+or
+javac -d out src/unseen/**/*.java
 ```
 
 ## 2. Copy Assets
 ```
 xcopy src\unseen\assets out\assets /E /I
+or
+cp -r src/unseen/assets out/unseen/assets
 ```
 
 ## 3. Run the Game
