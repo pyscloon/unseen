@@ -16,6 +16,18 @@ import unseen.items.*;
 import unseen.game.Smoke;
 
 public class GamePanel extends JPanel implements Runnable {
+
+                // Restart the game after death
+                public void restartGame() {
+                    setupGame();
+                    setGameState(GameState.PLAYING);
+                    requestFocusInWindow();
+                    if (backgroundClip != null) {
+                        backgroundClip.setFramePosition(0);
+                        backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+                    }
+                    repaint();
+                }
             private Image noiseMakerImage;
             private Image smokeBombImage;
         private javax.sound.sampled.Clip backgroundClip;

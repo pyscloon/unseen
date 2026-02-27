@@ -18,6 +18,13 @@ public class InputHandler extends KeyAdapter {
 
     @Override
     public void keyPressed(KeyEvent e) {
+        int key = e.getKeyCode();
+
+        // Retry after death: Press R to restart
+        if (panel.getGameState() == GameState.LOSE && key == KeyEvent.VK_R) {
+            panel.restartGame();
+            return;
+        }
 
         if (panel.getGameState() != GameState.PLAYING) return;
 
@@ -26,8 +33,6 @@ public class InputHandler extends KeyAdapter {
 
         int x = player.getX();
         int y = player.getY();
-
-        int key = e.getKeyCode();
 
         // Item usage
         if (key == KeyEvent.VK_1) {
