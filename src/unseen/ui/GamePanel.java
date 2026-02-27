@@ -304,6 +304,11 @@ public class GamePanel extends JPanel implements Runnable {
                 g2.setColor(Color.DARK_GRAY);
                 g2.drawString("N", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
             }
+            // Draw small label above icon
+            g2.setFont(new Font("Arial", Font.PLAIN, 10));
+            g2.setColor(new Color(220, 220, 180));
+            int noiseLabelWidth = g2.getFontMetrics().stringWidth("Noise");
+            g2.drawString("Noise", x + (boxSize - noiseLabelWidth) / 2, y - 6);
         }
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
@@ -329,6 +334,11 @@ public class GamePanel extends JPanel implements Runnable {
                 g2.setColor(Color.DARK_GRAY);
                 g2.drawString("S", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
             }
+            // Draw small label above icon
+            g2.setFont(new Font("Arial", Font.PLAIN, 10));
+            g2.setColor(new Color(200, 200, 255));
+            int smokeLabelWidth = g2.getFontMetrics().stringWidth("Smoke");
+            g2.drawString("Smoke", x + (boxSize - smokeLabelWidth) / 2, y - 6);
         }
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
