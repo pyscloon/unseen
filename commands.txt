@@ -1,0 +1,19 @@
+# Commands to Get Item, Copy Assets, and Run the Game
+
+## 1. Compile Java Files
+```
+javac -d out (Get-ChildItem -Recurse -Filter *.java src/unseen | ForEach-Object { $_.FullName })
+```
+
+## 2. Copy Assets
+```
+xcopy src\unseen\assets out\assets /E /I
+```
+
+## 3. Run the Game
+```
+java -cp out unseen.game.Game
+```
+
+---
+These commands are for manual compilation and running, as used by your teammate in IntelliJ. Make sure the `out` directory exists or is created by the `javac` command. Adjust paths if your structure changes.
