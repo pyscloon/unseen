@@ -261,7 +261,7 @@ public class GamePanel extends JPanel implements Runnable {
             g.drawString("GAME OVER", 250, 300);
         }
 
-        // Draw inventory at the top
+        // Always draw inventory bar
         drawInventory(g);
     }
     // Draw the player's inventory at the top of the screen
@@ -292,17 +292,19 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setColor(new Color(180, 180, 180));
         g2.setStroke(new java.awt.BasicStroke(2f));
         g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
-        // Draw NoiseMaker image or placeholder
         int iconPad = 6;
-        if (noiseMakerImage != null) {
-            g2.drawImage(noiseMakerImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
-        } else {
-            g2.setColor(new Color(200, 180, 50));
-            g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
-            g2.setColor(Color.DARK_GRAY);
-            g2.drawString("N", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
+        // Only show NoiseMaker if in inventory
+        boolean hasNoiseMaker = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.NoiseMaker);
+        if (hasNoiseMaker) {
+            if (noiseMakerImage != null) {
+                g2.drawImage(noiseMakerImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            } else {
+                g2.setColor(new Color(200, 180, 50));
+                g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawString("N", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
+            }
         }
-        // Draw slot number
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
         g2.drawString("1", x + boxSize - 13, y + boxSize - 6);
@@ -316,14 +318,17 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setColor(new Color(180, 180, 180));
         g2.setStroke(new java.awt.BasicStroke(2f));
         g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
-        // Draw SmokeBomb image or placeholder
-        if (smokeBombImage != null) {
-            g2.drawImage(smokeBombImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
-        } else {
-            g2.setColor(new Color(180, 180, 180));
-            g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
-            g2.setColor(Color.DARK_GRAY);
-            g2.drawString("S", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
+        // Only show SmokeBomb if in inventory
+        boolean hasSmokeBomb = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.SmokeBomb);
+        if (hasSmokeBomb) {
+            if (smokeBombImage != null) {
+                g2.drawImage(smokeBombImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            } else {
+                g2.setColor(new Color(180, 180, 180));
+                g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawString("S", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
+            }
         }
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
