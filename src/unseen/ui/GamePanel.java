@@ -223,6 +223,66 @@ public class GamePanel extends JPanel implements Runnable {
             g.setFont(new Font("Arial", Font.BOLD, 36));
             g.drawString("GAME OVER", 250, 300);
         }
+
+        // Draw inventory at the top
+        drawInventory(g);
+    }
+    // Draw the player's inventory at the top of the screen
+    private void drawInventory(Graphics g) {
+        List<Item> inventory = player.getInventory();
+        int boxSize = 44;
+        int spacing = 12;
+        int minSlots = 5;
+        int slots = Math.max(minSlots, inventory.size());
+        int barWidth = Math.max(220, slots * (boxSize + spacing) + 40);
+        int barHeight = boxSize + 24;
+        int panelWidth = getWidth();
+        int startX = (panelWidth - barWidth) / 2 + 10; // Centered horizontally
+        int y = 18;
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setColor(new Color(30, 30, 30, 180));
+        g2.fillRoundRect(startX - 18, y - 14, barWidth, barHeight, 18, 18);
+        // Draw label
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.setColor(new Color(220, 220, 220));
+        int labelWidth = g2.getFontMetrics().stringWidth("Inventory");
+        int labelX = startX + (barWidth - labelWidth) / 2 - 10;
+        // Draw item slots
+        int x = startX;
+        for (int i = 0; i < slots; i++) {
+            // Highlight selected slot (optional: slot 1)
+            if (i == 0) {
+                g2.setColor(new Color(255, 255, 180, 180));
+                g2.setStroke(new java.awt.BasicStroke(3f));
+                g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
+            }
+            // Draw slot background
+            g2.setColor(new Color(70, 70, 70, 220));
+            g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
+            g2.setColor(new Color(180, 180, 180));
+            g2.setStroke(new java.awt.BasicStroke(2f));
+            g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
+            // Draw item if present
+            if (i < inventory.size()) {
+                Item item = inventory.get(i);
+                String name = item.getClass().getSimpleName();
+                // Shadowed text for item name
+                g2.setFont(new Font("Arial", Font.BOLD, 13));
+                FontMetrics fm = g2.getFontMetrics();
+                int textWidth = fm.stringWidth(name);
+                int textX = x + (boxSize - textWidth) / 2;
+                int textY = y + boxSize / 2 + fm.getAscent() / 2 - 4;
+                g2.setColor(new Color(0,0,0,180));
+                g2.drawString(name, textX + 1, textY + 1);
+                g2.setColor(new Color(255,255,255));
+                g2.drawString(name, textX, textY);
+            }
+            // Draw slot number
+            g2.setFont(new Font("Arial", Font.PLAIN, 11));
+            g2.setColor(new Color(200, 200, 200, 180));
+            g2.drawString(String.valueOf(i + 1), x + boxSize - 13, y + boxSize - 6);
+            x += boxSize + spacing;
+        }
     }
 
     private void drawMap(Graphics g) {
