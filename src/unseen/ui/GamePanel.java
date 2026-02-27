@@ -396,22 +396,20 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        // 2) draw items on ground (dimmed by visibility)
+        // 2) draw items on ground (overlay inventory asset only)
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 Item ground = map.getItem(x, y);
                 if (ground != null && visible[y][x]) {
                     int tx = x * Constants.TILE_SIZE;
                     int ty = y * Constants.TILE_SIZE;
-                    int size = Constants.TILE_SIZE / 2;
-                    int ox = (Constants.TILE_SIZE - size) / 2;
-                    int oy = (Constants.TILE_SIZE - size) / 2;
-
-                    if (ground instanceof NoiseMaker) g2.setColor(new Color(200, 180, 50)); // gold-ish
-                    else if (ground instanceof SmokeBomb) g2.setColor(new Color(180, 180, 180)); // grey smoke icon
-                    else g2.setColor(Color.MAGENTA);
-
-                    g2.fillOval(tx + ox, ty + oy, size, size);
+                    int iconPad = 6;
+                    if (ground instanceof NoiseMaker && noiseMakerImage != null) {
+                        g2.drawImage(noiseMakerImage, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    } else if (ground instanceof SmokeBomb && smokeBombImage != null) {
+                        g2.drawImage(smokeBombImage, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    }
+                    // If image is missing, do not draw anything for the item.
                 }
             }
         }
