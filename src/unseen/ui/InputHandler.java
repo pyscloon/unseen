@@ -33,6 +33,7 @@ public class InputHandler extends KeyAdapter {
 
         int x = player.getX();
         int y = player.getY();
+        boolean moved = false;
 
         // Item usage
         if (key == KeyEvent.VK_1) {
@@ -63,23 +64,44 @@ public class InputHandler extends KeyAdapter {
 
         // Movement
         switch (key) {
-            case KeyEvent.VK_W: y--; break;
-            case KeyEvent.VK_S: y++; break;
-            case KeyEvent.VK_A: x--; break;
-            case KeyEvent.VK_D: x++; break;
+            case KeyEvent.VK_W: y--; moved = true; break;
+            case KeyEvent.VK_S: y++; moved = true; break;
+            case KeyEvent.VK_A:
+                if (x > 0 && map.isPassable(x - 1, y)) {
+                    x--;
+                    moved = true;
+                } else {
+                    // Look left if not moving
+                    player.setFacing(Player.Facing.LEFT);
+                    panel.repaint();
+                    return;
+                }
+                break;
+            case KeyEvent.VK_D:
+                if (x < unseen.utils.Constants.GRID_WIDTH - 1 && map.isPassable(x + 1, y)) {
+                    x++;
+                    moved = true;
+                } else {
+                    // Look right if not moving
+                    player.setFacing(Player.Facing.RIGHT);
+                    panel.repaint();
+                    return;
+                }
+                break;
             default: return;
         }
 
-        if (map.isPassable(x, y)) {
+        if (moved && map.isPassable(x, y)) {
+            // Set facing based on movement
+            if (x < player.getX()) player.setFacing(Player.Facing.LEFT);
+            else if (x > player.getX()) player.setFacing(Player.Facing.RIGHT);
             player.setPosition(x, y);
-
             GameState result = TurnManager.processTurn(
-                    player,
-                    panel.getEnemies(),
-                    panel.getMap(),
-                    panel.getSmokes()
+                player,
+                panel.getEnemies(),
+                panel.getMap(),
+                panel.getSmokes()
             );
-
             panel.setGameState(result);
             panel.updateSmoke();
         }
