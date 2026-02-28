@@ -6,15 +6,23 @@ import java.util.*;
 
 public class AStar implements Pathfinder {
 
+    private static final int[][] DIRECTIONS = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+    };
+
     @Override
     public List<Node> findPath(Map map, int startX, int startY,
                                int targetX, int targetY) {
 
+        if (startX == targetX && startY == targetY) {
+            return java.util.Collections.singletonList(new Node(startX, startY));
+        }
+
         PriorityQueue<Node> openSet =
                 new PriorityQueue<>(Comparator.comparingDouble(n -> n.fCost));
 
-        HashMap<String, Node> allNodes = new HashMap<>();
-        HashSet<String> closedSet = new HashSet<>();
+        HashMap<Long, Node> allNodes = new HashMap<>();
+        HashSet<Long> closedSet = new HashSet<>();
 
         Node start = new Node(startX, startY);
         start.gCost = 0;
@@ -27,36 +35,43 @@ public class AStar implements Pathfinder {
         while (!openSet.isEmpty()) {
 
             Node current = openSet.poll();
+            long currentKey = key(current.x, current.y);
+
+            if (closedSet.contains(currentKey)) {
+                continue;
+            }
 
             if (current.x == targetX && current.y == targetY)
                 return reconstructPath(current);
 
-            closedSet.add(key(current.x, current.y));
+            closedSet.add(currentKey);
 
-            for (int[] dir : directions()) {
+            for (int[] dir : DIRECTIONS) {
 
                 int nx = current.x + dir[0];
                 int ny = current.y + dir[1];
+                long neighborKey = key(nx, ny);
 
                 if (!map.isPassable(nx, ny)) continue;
-                if (closedSet.contains(key(nx, ny))) continue;
+                if (closedSet.contains(neighborKey)) continue;
 
                 double tentativeG = current.gCost + 1;
 
-                Node neighbor = allNodes.getOrDefault(
-                        key(nx, ny), new Node(nx, ny));
+                Node neighbor = allNodes.get(neighborKey);
 
-                if (!allNodes.containsKey(key(nx, ny))
-                        || tentativeG < neighbor.gCost) {
+                if (neighbor == null) {
+                    neighbor = new Node(nx, ny);
+                    neighbor.gCost = Double.POSITIVE_INFINITY;
+                    allNodes.put(neighborKey, neighbor);
+                }
+
+                if (tentativeG < neighbor.gCost) {
 
                     neighbor.gCost = tentativeG;
                     neighbor.hCost = manhattan(nx, ny, targetX, targetY);
                     neighbor.fCost = neighbor.gCost + neighbor.hCost;
                     neighbor.parent = current;
 
-                    allNodes.put(key(nx, ny), neighbor);
-
-                    openSet.remove(neighbor);
                     openSet.add(neighbor);
                 }
             }
@@ -66,9 +81,9 @@ public class AStar implements Pathfinder {
     }
 
     private List<Node> reconstructPath(Node node) {
-        List<Node> path = new ArrayList<>();
+        java.util.LinkedList<Node> path = new java.util.LinkedList<>();
         while (node != null) {
-            path.add(0, node);
+            path.addFirst(node);
             node = node.parent;
         }
         return path;
@@ -78,11 +93,7 @@ public class AStar implements Pathfinder {
         return Math.abs(x1 - x2) + Math.abs(y1 - y2);
     }
 
-    private int[][] directions() {
-        return new int[][]{{1,0},{-1,0},{0,1},{0,-1}};
-    }
-
-    private String key(int x, int y) {
-        return x + "," + y;
+    private long key(int x, int y) {
+        return (((long) x) << 32) ^ (y & 0xffffffffL);
     }
 }
