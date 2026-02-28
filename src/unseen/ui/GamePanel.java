@@ -512,6 +512,47 @@ public class GamePanel extends JPanel implements Runnable {
                     );
                 }
 
+                // After drawing the enemy sprite (still inside visible[ey][ex] block)
+                if (e instanceof unseen.entities.SentryEnemy) {
+                    unseen.entities.SentryEnemy s = (unseen.entities.SentryEnemy) e;
+                    if (s.isAlertVisualActive()) {
+                        // Draw a small circular badge with '!' above the enemy tile
+                        int tileSize = Constants.TILE_SIZE;
+                        int size = tileSize / 2; // badge size in px
+                        int centerX = ex * tileSize + tileSize / 2;
+                        int badgeX = centerX - size / 2;
+                        int badgeY = ey * tileSize - (size / 2); // above the tile
+
+                        // Clamp so badge doesn't draw off-screen
+                        if (badgeY < 2) badgeY = 2;
+
+                        // Background circle (red)
+                        g2.setColor(new Color(200, 40, 40, 220));
+                        g2.fillOval(badgeX, badgeY, size, size);
+
+                        // White border
+                        g2.setColor(new Color(255, 255, 255, 200));
+                        g2.setStroke(new BasicStroke(2f));
+                        g2.drawOval(badgeX, badgeY, size, size);
+
+                        // Draw '!' centered
+                        String mark = "!";
+                        // Choose a font size relative to badge
+                        int fontSize = Math.max(10, size / 2 + 6);
+                        Font oldFont = g2.getFont();
+                        g2.setFont(new Font("Arial", Font.BOLD, fontSize));
+                        FontMetrics fm = g2.getFontMetrics();
+                        int tx = badgeX + (size - fm.stringWidth(mark)) / 2;
+                        int ty = badgeY + (size - fm.getHeight()) / 2 + fm.getAscent();
+
+                        g2.setColor(Color.WHITE);
+                        g2.drawString(mark, tx, ty);
+
+                        // restore font
+                        g2.setFont(oldFont);
+                    }
+                }
+
                 // Draw arrow only when:
                 //  - enemy is currently CHASE
                 //  - enemy actually has line-of-sight to the player right now

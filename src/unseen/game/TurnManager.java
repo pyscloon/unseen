@@ -4,6 +4,7 @@ import unseen.entities.Enemy;
 import unseen.entities.Player;
 import unseen.map.Map;
 import java.util.List;
+import unseen.game.Smoke;
 
 public class TurnManager {
 
@@ -16,14 +17,19 @@ public class TurnManager {
         // Enemies move after player
         for (Enemy enemy : enemies) {
 
-            enemy.takeTurn(map, player, smokes);
+            // Each enemy executes its logic based on current world state
+            enemy.takeTurn(map, player, smokes); // pass smokes
 
-            // If enemy is a sentry, trigger alert system
+            // If this enemy is a sentry, let it alert nearby enemies (and set its visual)
             if (enemy instanceof unseen.entities.SentryEnemy) {
-                ((unseen.entities.SentryEnemy) enemy)
-                        .handleAlerts(enemies, player);
+                ((unseen.entities.SentryEnemy) enemy).handleAlerts(enemies, player);
+            }
+            // After performing actions, tick sentry alert visuals so they expire correctly
+            if (enemy instanceof unseen.entities.SentryEnemy) {
+                ((unseen.entities.SentryEnemy) enemy).tickAlertVisual();
             }
 
+            // Check for player capture
             if (enemy.getX() == player.getX()
                     && enemy.getY() == player.getY()) {
 

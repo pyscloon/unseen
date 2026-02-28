@@ -8,6 +8,10 @@ import unseen.game.Smoke;
 
 public class SentryEnemy extends Enemy {
 
+    // visual alert state (shows '!' for a small number of turns)
+    private boolean alertVisual = false;
+    private int alertDisplayTurns = 0; // decrement each turn
+
     public SentryEnemy(int x, int y, Pathfinder pathfinder) {
         super(x, y, Constants.SENTRY_DETECTION_RANGE, pathfinder);
         this.type = EnemyType.SENTRY;
@@ -38,6 +42,10 @@ public class SentryEnemy extends Enemy {
         // Sentry does NOT move (stationary type)
     }
 
+    /**
+     * Called by TurnManager when processing enemies so the sentry
+     * can alert nearby enemies if the player is close.
+     */
     public void handleAlerts(List<Enemy> allEnemies, Player player) {
 
         int proximity = 3;      // 360° proximity trigger
@@ -54,6 +62,33 @@ public class SentryEnemy extends Enemy {
                     alertRadius,
                     player.getX(),
                     player.getY());
+
+            // trigger the alert visual for a few turns
+            setAlertVisual(3); // show '!' for 3 turns
         }
+    }
+
+    /* ----------------- Alert visual helpers ----------------- */
+
+    // Turn on the visual indicator for `turns` turns
+    public void setAlertVisual(int turns) {
+        this.alertVisual = true;
+        this.alertDisplayTurns = Math.max(1, turns);
+    }
+
+    // Called each application turn to decrement visual timer
+    public void tickAlertVisual() {
+        if (alertDisplayTurns > 0) {
+            alertDisplayTurns--;
+            if (alertDisplayTurns <= 0) {
+                alertVisual = false;
+                alertDisplayTurns = 0;
+            }
+        }
+    }
+
+    // Query helper used by the renderer
+    public boolean isAlertVisualActive() {
+        return alertVisual;
     }
 }
