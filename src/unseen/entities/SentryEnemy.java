@@ -4,6 +4,7 @@ import java.util.List;
 import unseen.ai.Pathfinder;
 import unseen.map.Map;
 import unseen.utils.Constants;
+import unseen.game.Smoke;
 
 public class SentryEnemy extends Enemy {
 
@@ -25,12 +26,34 @@ public class SentryEnemy extends Enemy {
     }
 
     @Override
-    public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes) {
+    public void takeTurn(Map map, Player player, List<Smoke> smokes) {
 
+        // If sentry sees player directly
         if (canSeePlayer(map, player, smokes)) {
-            state = State.CHASE;
+            this.state = State.CHASE;
+            this.lastKnownX = player.getX();
+            this.lastKnownY = player.getY();
         }
 
-        // Sentry is stationary; CHASE behavior handled elsewhere if needed
+        // Sentry does NOT move (stationary type)
+    }
+
+    public void handleAlerts(List<Enemy> allEnemies, Player player) {
+
+        int proximity = 3;      // 360° proximity trigger
+        int alertRadius = 6;    // radius to alert others
+
+        int distToPlayer = manhattanDistance(
+                this.x, this.y,
+                player.getX(), player.getY());
+
+        if (distToPlayer <= proximity) {
+
+            alertNearbyEnemies(
+                    allEnemies,
+                    alertRadius,
+                    player.getX(),
+                    player.getY());
+        }
     }
 }

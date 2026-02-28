@@ -43,8 +43,8 @@ public class HunterEnemy extends Enemy {
             if (path != null && path.size() > 1) {
                 Node next = path.get(1);
                 // Set direction based on intended movement
-                if (next.x > x) setDirection(Direction.LEFT);
-                else if (next.x < x) setDirection(Direction.RIGHT);
+                if (next.x > x) setDirection(Direction.RIGHT);
+                else if (next.x < x) setDirection(Direction.LEFT);
                 else if (next.y > y) setDirection(Direction.DOWN);
                 else if (next.y < y) setDirection(Direction.UP);
                 x = next.x;

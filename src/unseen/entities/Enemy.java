@@ -90,6 +90,21 @@ public abstract class Enemy extends Entity {
         this.state = State.PATROL;
     }
 
+    protected void alertNearbyEnemies(List<Enemy> allEnemies, int radius, int targetX, int targetY) {
+        if (allEnemies == null) return;
+        for (Enemy e : allEnemies) {
+            if (e == this) continue;
+            int d = manhattanDistance(this.x, this.y, e.x, e.y);
+            if (d <= radius) {
+                e.alertTo(targetX, targetY);
+            }
+        }
+    }
+
+    protected int manhattanDistance(int x1, int y1, int x2, int y2) {
+        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+    }
+
     public java.util.List<unseen.ai.Node> getPlannedPath(Map map, Player player) {
         if (pathfinder == null) return null;
 

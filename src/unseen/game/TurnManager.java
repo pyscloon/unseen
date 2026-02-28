@@ -16,7 +16,13 @@ public class TurnManager {
         // Enemies move after player
         for (Enemy enemy : enemies) {
 
-            enemy.takeTurn(map, player, smokes); // pass smokes
+            enemy.takeTurn(map, player, smokes);
+
+            // If enemy is a sentry, trigger alert system
+            if (enemy instanceof unseen.entities.SentryEnemy) {
+                ((unseen.entities.SentryEnemy) enemy)
+                        .handleAlerts(enemies, player);
+            }
 
             if (enemy.getX() == player.getX()
                     && enemy.getY() == player.getY()) {
