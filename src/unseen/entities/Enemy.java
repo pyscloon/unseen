@@ -89,4 +89,34 @@ public abstract class Enemy extends Entity {
     public void calmDown() {
         this.state = State.PATROL;
     }
+
+    public java.util.List<unseen.ai.Node> getPlannedPath(Map map, Player player) {
+        if (pathfinder == null) return null;
+
+        return pathfinder.findPath(
+                map,
+                this.x,
+                this.y,
+                player.getX(),
+                player.getY()
+        );
+    }
+
+    public State getState() {
+        return this.state;
+    }
+
+    public boolean hasLineOfSightToPlayer(Map map, Player player, List<unseen.game.Smoke> smokes) {
+        return canSeePlayer(map, player, smokes);
+    }
+
+    public java.awt.Point getPlannedMove(Map map, Player player) {
+        if (pathfinder == null) return null;
+
+        List<unseen.ai.Node> path = pathfinder.findPath(map, this.x, this.y, player.getX(), player.getY());
+        if (path == null || path.size() < 2) return null;
+
+        unseen.ai.Node next = path.get(1);
+        return new java.awt.Point(next.x, next.y);
+    }
 }

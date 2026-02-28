@@ -4,6 +4,9 @@ import javax.swing.JPanel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.Polygon;
+import java.awt.BasicStroke;
+import java.awt.Point;
 
 import unseen.map.*;
 import unseen.entities.*;
@@ -451,53 +454,100 @@ public class GamePanel extends JPanel implements Runnable {
     }
     private void drawEntities(Graphics g) {
 
-        // Only draw if visible
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Player
         if (visible[player.getY()][player.getX()]) {
             if (player.getHeroImage() != null) {
                 int scaledSize = Constants.TILE_SIZE * 2;
                 int drawX = player.getX() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
                 int drawY = player.getY() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
                 if (player.getFacing() == unseen.entities.Player.Facing.LEFT) {
-                    // Flip horizontally
-                    ((Graphics2D)g).drawImage(player.getHeroImage(),
-                        drawX + scaledSize,
-                        drawY,
-                        -scaledSize,
-                        scaledSize,
-                        null);
+                    ((Graphics2D) g).drawImage(player.getHeroImage(),
+                            drawX + scaledSize,
+                            drawY,
+                            -scaledSize,
+                            scaledSize,
+                            null);
                 } else {
-                    g.drawImage(player.getHeroImage(),
-                        drawX,
-                        drawY,
-                        scaledSize,
-                        scaledSize,
-                        null);
+                    g2.drawImage(player.getHeroImage(),
+                            drawX,
+                            drawY,
+                            scaledSize,
+                            scaledSize,
+                            null);
                 }
             } else {
-                g.setColor(Color.CYAN);
-                g.fillOval(
-                    player.getX() * Constants.TILE_SIZE,
-                    player.getY() * Constants.TILE_SIZE,
-                    Constants.TILE_SIZE,
-                    Constants.TILE_SIZE
+                g2.setColor(Color.CYAN);
+                g2.fillOval(
+                        player.getX() * Constants.TILE_SIZE,
+                        player.getY() * Constants.TILE_SIZE,
+                        Constants.TILE_SIZE,
+                        Constants.TILE_SIZE
                 );
             }
         }
+
+        // Enemies + chase arrows
         for (Enemy e : enemies) {
-            if (visible[e.getY()][e.getX()]) {
+
+            int ex = e.getX();
+            int ey = e.getY();
+
+            // Draw enemy only if visible
+            if (visible[ey][ex]) {
                 java.awt.Image img = e.getEnemyImage();
                 if (img != null) {
-                    int drawX = e.getX() * Constants.TILE_SIZE;
-                    int drawY = e.getY() * Constants.TILE_SIZE;
-                    g.drawImage(img, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                    int drawX = ex * Constants.TILE_SIZE;
+                    int drawY = ey * Constants.TILE_SIZE;
+                    g2.drawImage(img, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                 } else {
-                    g.setColor(Color.RED);
-                    g.fillOval(
-                        e.getX() * Constants.TILE_SIZE,
-                        e.getY() * Constants.TILE_SIZE,
-                        Constants.TILE_SIZE,
-                        Constants.TILE_SIZE
+                    g2.setColor(Color.RED);
+                    g2.fillOval(
+                            ex * Constants.TILE_SIZE,
+                            ey * Constants.TILE_SIZE,
+                            Constants.TILE_SIZE,
+                            Constants.TILE_SIZE
                     );
+                }
+
+                // Draw arrow only when:
+                //  - enemy is currently CHASE
+                //  - enemy actually has line-of-sight to the player right now
+// Draw faint dotted path preview
+                if (e.getState() == Enemy.State.CHASE
+                        && e.hasLineOfSightToPlayer(map, player, smokes)) {
+
+                    java.util.List<unseen.ai.Node> path =
+                            e.getPlannedPath(map, player);
+
+                    if (path != null && path.size() > 1) {
+
+                        Graphics2D g2d = (Graphics2D) g;
+                        g2d.setColor(new Color(255, 255, 120, 90)); // soft yellow, faint
+
+                        for (int i = 1; i < path.size(); i++) {
+
+                            unseen.ai.Node n = path.get(i);
+
+                            // Only draw dots if tile is visible to player
+                            if (visible[n.y][n.x]) {
+
+                                int dotSize = Math.max(4, Constants.TILE_SIZE / 5);
+
+                                int dx = n.x * Constants.TILE_SIZE
+                                        + Constants.TILE_SIZE / 2
+                                        - dotSize / 2;
+
+                                int dy = n.y * Constants.TILE_SIZE
+                                        + Constants.TILE_SIZE / 2
+                                        - dotSize / 2;
+
+                                g2d.fillOval(dx, dy, dotSize, dotSize);
+                            }
+                        }
+                    }
                 }
             }
         }
