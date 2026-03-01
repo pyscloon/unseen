@@ -4,9 +4,13 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 import unseen.entities.Player;
+import unseen.items.Item;
+import unseen.items.NoiseMaker;
+import unseen.items.SmokeBomb;
 import unseen.map.Map;
 import unseen.game.TurnManager;
 import unseen.game.GameState;
+import java.util.List;
 
 public class InputHandler extends KeyAdapter {
 
@@ -32,7 +36,19 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
+        // Escape cancels targeting mode
+        if (key == KeyEvent.VK_ESCAPE) {
+            panel.cancelTargeting();
+            return;
+        }
+
         if (panel.getGameState() != GameState.PLAYING) return;
+
+        // Any key while targeting (other than Escape above) also cancels
+        if (panel.isTargetingNoiseMaker()) {
+            panel.cancelTargeting();
+            return;
+        }
 
         Player player = panel.getPlayer();
         Map map = panel.getMap();
@@ -41,21 +57,26 @@ public class InputHandler extends KeyAdapter {
         int y = player.getY();
         boolean moved = false;
 
-        // Item usage
+        // Item usage — find items by type so slot order doesn't matter after consumption
         if (key == KeyEvent.VK_1) {
-            player.useItem(0, map, panel.getEnemies());
-            // consuming a turn after using item
-            GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(), panel.getSmokes());
-            panel.setGameState(result);
-            panel.updateSmoke();
+            // Enter targeting mode: the player clicks where the noise should land
+            boolean hasNoise = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
+            if (hasNoise) panel.enterNoiseMakerTargeting();
             return;
         }
 
         if (key == KeyEvent.VK_2) {
-            player.useItem(1, map, panel.getEnemies());
-            GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(), panel.getSmokes());
-            panel.setGameState(result);
-            panel.updateSmoke();
+            List<Item> inv = player.getInventory();
+            int idx = -1;
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.get(i) instanceof SmokeBomb) { idx = i; break; }
+            }
+            if (idx >= 0) {
+                player.useItem(idx, map, panel.getEnemies());
+                GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(), panel.getSmokes());
+                panel.setGameState(result);
+                panel.updateSmoke();
+            }
             return;
         }
 

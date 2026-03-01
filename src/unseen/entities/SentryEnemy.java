@@ -21,12 +21,15 @@ public class SentryEnemy extends Enemy {
     }
 
     @Override
-    public void takeTurn(Map map, Player player, List<Smoke> smokes) {
+    public void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> allEnemies) {
         // Tick alert visual at the start so it doesn't decrement the same turn it's set
         tickAlertVisual();
         // Sentry is stationary — it only raises an alert when it spots the player.
         if (canSeePlayer(map, player, smokes)) {
             this.state = State.CHASE;
+            // Record the real player position so handleAlerts broadcasts the correct target.
+            this.lastKnownX = player.getX();
+            this.lastKnownY = player.getY();
         }
     }
 
@@ -36,8 +39,9 @@ public class SentryEnemy extends Enemy {
      */
     public void handleAlerts(List<Enemy> allEnemies, Player player) {
         if (state == State.CHASE) {
-            // Alert ALL enemies on the floor — a raised sentry alarm is heard everywhere
-            alertNearbyEnemies(allEnemies, Integer.MAX_VALUE, player.getX(), player.getY());
+            // Use lastKnownX/Y — set to the player position when the sentry spots them
+            // directly, or to the decoy position when alertTo() was called by an item.
+            alertNearbyEnemies(allEnemies, Integer.MAX_VALUE, lastKnownX, lastKnownY);
             setAlertVisual(3);
         }
     }

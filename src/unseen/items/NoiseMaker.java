@@ -15,6 +15,9 @@ public class NoiseMaker extends Item {
     /** Minimum Manhattan distance from the player for the decoy noise source. */
     private static final int MIN_DECOY_DIST = 5;
 
+    /** Stores the last tile chosen as the decoy target so the UI can show a flash. */
+    private int[] lastDecoyTarget = null;
+
     @Override
     public void use(Player player, Map map, List<Enemy> enemies) {
 
@@ -37,8 +40,25 @@ public class NoiseMaker extends Item {
 
         // Pick a random distant tile as the decoy noise source
         int[] target = candidates.get(RNG.nextInt(candidates.size()));
+        lastDecoyTarget = target;
         for (Enemy e : enemies) {
             e.alertTo(target[0], target[1]);
         }
+    }
+
+    /**
+     * Use the NoiseMaker at a specific player-chosen tile.
+     * Enemies are alerted to that exact position.
+     */
+    public void useAt(Player player, Map map, List<Enemy> enemies, int targetX, int targetY) {
+        lastDecoyTarget = new int[]{targetX, targetY};
+        for (Enemy e : enemies) {
+            e.alertTo(targetX, targetY);
+        }
+    }
+
+    /** Returns the tile coordinates [x, y] of the last decoy placed, or null if unused. */
+    public int[] getLastDecoyTarget() {
+        return lastDecoyTarget;
     }
 }

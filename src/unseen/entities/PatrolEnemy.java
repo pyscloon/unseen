@@ -53,7 +53,7 @@ public class PatrolEnemy extends Enemy {
     }
 
     @Override
-    public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes) {
+    public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes, List<Enemy> allEnemies) {
 
         if (canSeePlayer(map, player, smokes)) {
             state = State.CHASE;
@@ -64,7 +64,7 @@ public class PatrolEnemy extends Enemy {
         switch (state) {
 
             case CHASE:
-                chase(map, player);
+                chase(map, allEnemies);
                 break;
 
             case SEARCH:
@@ -73,12 +73,12 @@ public class PatrolEnemy extends Enemy {
 
             case PATROL:
             default:
-                patrol(map);
+                patrol(map, allEnemies);
                 break;
         }
     }
 
-    private void patrol(Map map) {
+    private void patrol(Map map, List<Enemy> allEnemies) {
         // Shuffle directions so patrol movement is unpredictable
         Integer[] indices = {0, 1, 2, 3};
         Collections.shuffle(Arrays.asList(indices), RNG);
@@ -86,7 +86,7 @@ public class PatrolEnemy extends Enemy {
         for (int i : indices) {
             int nx = x + dirs[i][0];
             int ny = y + dirs[i][1];
-            if (map.isPassable(nx, ny)) {
+            if (map.isPassable(nx, ny) && !isTileOccupied(nx, ny, allEnemies)) {
                 if      (nx > x) setDirection(Direction.RIGHT);
                 else if (nx < x) setDirection(Direction.LEFT);
                 else if (ny > y) setDirection(Direction.DOWN);
@@ -98,7 +98,7 @@ public class PatrolEnemy extends Enemy {
         }
     }
 
-    private void chase(Map map, Player player) {
+    private void chase(Map map, List<Enemy> allEnemies) {
 
         List<Node> path =
                 pathfinder.findPath(map, x, y,
@@ -106,6 +106,7 @@ public class PatrolEnemy extends Enemy {
 
         if (path != null && path.size() > 1) {
             Node next = path.get(1);
+            if (isTileOccupied(next.x, next.y, allEnemies)) return; // blocked by another enemy
             // Set direction based on intended movement
             if (next.x > x) setDirection(Direction.RIGHT);
             else if (next.x < x) setDirection(Direction.LEFT);

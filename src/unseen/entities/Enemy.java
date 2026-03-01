@@ -70,7 +70,16 @@ public abstract class Enemy extends Entity {
     public EnemyType getType() {
         return type;
     }
-    public abstract void takeTurn(Map map, Player player, List<Smoke> smokes);
+    public abstract void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> allEnemies);
+
+    /** Returns true if another enemy already occupies tile (tx, ty). */
+    protected boolean isTileOccupied(int tx, int ty, List<Enemy> allEnemies) {
+        if (allEnemies == null) return false;
+        for (Enemy e : allEnemies) {
+            if (e != this && e.getX() == tx && e.getY() == ty) return true;
+        }
+        return false;
+    }
 
     protected boolean canSeePlayer(Map map, Player player, List<Smoke> smokes) {
         return LineOfSight.hasLineOfSight(
@@ -120,6 +129,11 @@ public abstract class Enemy extends Entity {
 
     public State getState() {
         return this.state;
+    }
+
+    /** Legacy single-arg takeTurn kept for compatibility; delegates with null enemy list. */
+    public final void takeTurn(Map map, Player player, List<Smoke> smokes) {
+        takeTurn(map, player, smokes, null);
     }
 
     public boolean hasLineOfSightToPlayer(Map map, Player player, List<unseen.game.Smoke> smokes) {

@@ -43,6 +43,19 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private List<Enemy> enemies;
     private boolean[][] visible;
     private List<Smoke> smokes = new ArrayList<>();
+    private List<FlashEffect> noiseFlashes = new ArrayList<>();
+
+    // Noise-maker targeting mode
+    private boolean targetingNoiseMaker = false;
+    private int mouseGridX = 0;
+    private int mouseGridY = 0;
+
+    /** Ripple/pulse effect drawn at the NoiseMaker decoy tile for a few turns. */
+    private static class FlashEffect {
+        final int x, y;
+        int countdown;
+        FlashEffect(int x, int y, int countdown) { this.x = x; this.y = y; this.countdown = countdown; }
+    }
 
     // All sprites are loaded once via AssetLoader singleton
 
@@ -53,6 +66,23 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         this.setDoubleBuffered(true);
         this.addKeyListener(new InputHandler(this));
         this.setFocusable(true);
+
+        this.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(java.awt.event.MouseEvent e) {
+                mouseGridX = e.getX() / Constants.TILE_SIZE;
+                mouseGridY = e.getY() / Constants.TILE_SIZE;
+                if (targetingNoiseMaker) repaint();
+            }
+        });
+        this.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (targetingNoiseMaker) {
+                    confirmNoiseTarget(mouseGridX, mouseGridY);
+                }
+            }
+        });
 
         setupGame();
         loadAndPlayBackgroundSound();
@@ -187,12 +217,74 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         smokes.removeAll(expired);
 
+        // Decrement noise-flash countdowns, remove expired flashes
+        List<FlashEffect> expiredFlashes = new ArrayList<>();
+        for (FlashEffect f : noiseFlashes) {
+            f.countdown--;
+            if (f.countdown <= 0) expiredFlashes.add(f);
+        }
+        noiseFlashes.removeAll(expiredFlashes);
+
         // Always refresh FOV after a turn so rendering reflects the new state
         updateVisibility();
     }
 
     public void spawnSmoke(int x, int y) {
         smokes.add(new Smoke(x, y, 2, 5)); // radius 2, lasts 5 turns
+    }
+
+    /** Register a NoiseMaker ripple effect at the given tile for 4 turns. */
+    public void addNoiseFlash(int x, int y) {
+        noiseFlashes.add(new FlashEffect(x, y, 4));
+    }
+
+    /** Enter noise-maker targeting mode — the next mouse click will place the decoy. */
+    public void enterNoiseMakerTargeting() {
+        targetingNoiseMaker = true;
+        repaint();
+    }
+
+    /** Cancel targeting mode without using the item. */
+    public void cancelTargeting() {
+        targetingNoiseMaker = false;
+        repaint();
+    }
+
+    public boolean isTargetingNoiseMaker() {
+        return targetingNoiseMaker;
+    }
+
+    /** Called when the player clicks a tile while in targeting mode. */
+    private void confirmNoiseTarget(int gx, int gy) {
+        // Must be within bounds and on a passable tile
+        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT) return;
+        if (!map.isPassable(gx, gy)) return;
+
+        // Find the NoiseMaker in inventory
+        java.util.List<unseen.items.Item> inv = player.getInventory();
+        int idx = -1;
+        unseen.items.NoiseMaker nm = null;
+        for (int i = 0; i < inv.size(); i++) {
+            if (inv.get(i) instanceof unseen.items.NoiseMaker) {
+                idx = i;
+                nm = (unseen.items.NoiseMaker) inv.get(i);
+                break;
+            }
+        }
+        if (nm == null) { targetingNoiseMaker = false; repaint(); return; }
+
+        // Fire at the chosen tile
+        nm.useAt(player, map, enemies, gx, gy);
+        inv.remove(idx);
+        addNoiseFlash(gx, gy);
+
+        targetingNoiseMaker = false;
+
+        GameState result = TurnManager.processTurn(player, enemies, map, smokes);
+        setGameState(result);
+        updateSmoke();
+        requestFocusInWindow();
+        repaint();
     }
 
     public void startGame() {
@@ -245,6 +337,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         drawMap(g);
         drawEntities(g);
+        drawNoiseFlashes(g);
+        if (targetingNoiseMaker) drawTargetingOverlay(g);
 
         if (state == GameState.WIN) {
             // Dim overlay
@@ -451,25 +545,28 @@ if (AssetLoader.get().floor != null) {
             }
         }
 
-        // 3) draw smoke overlays (visible effect)
-        g2.setColor(new Color(120, 120, 120, 180)); // semi-transparent gray smoke
+        // 3) draw smoke clouds as semi-transparent filled circles with a gentle pulse
+        java.awt.Stroke savedStroke = g2.getStroke();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        long smokeNow = System.currentTimeMillis();
         for (Smoke smoke : smokes) {
-            int r = smoke.getRadius();
-            for (int dy = -r; dy <= r; dy++) {
-                for (int dx = -r; dx <= r; dx++) {
-                    int nx = smoke.getX() + dx;
-                    int ny = smoke.getY() + dy;
-                    if (nx >= 0 && ny >= 0 && nx < Constants.GRID_WIDTH && ny < Constants.GRID_HEIGHT) {
-                        g2.fillRect(
-                                nx * Constants.TILE_SIZE,
-                                ny * Constants.TILE_SIZE,
-                                Constants.TILE_SIZE,
-                                Constants.TILE_SIZE
-                        );
-                    }
-                }
-            }
+            int cx = smoke.getX() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
+            int cy = smoke.getY() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
+            // pixel radius covers all tiles within smoke.getRadius() grid tiles
+            int pr = (int)((smoke.getRadius() + 0.5f) * Constants.TILE_SIZE);
+            // gentle alpha pulse between 120 and 170
+            float pulse = (float)(0.5 + 0.5 * Math.sin(smokeNow / 450.0));
+            int alpha = (int)(120 + 50 * pulse);
+            // filled grey-green circle
+            g2.setColor(new Color(100, 130, 100, alpha));
+            g2.fillOval(cx - pr, cy - pr, pr * 2, pr * 2);
+            // slightly darker border ring
+            int borderAlpha = Math.min(255, alpha + 40);
+            g2.setColor(new Color(60, 90, 60, borderAlpha));
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.drawOval(cx - pr, cy - pr, pr * 2, pr * 2);
         }
+        g2.setStroke(savedStroke);
 
         // 4) overlay fog (darkening) for non-visible tiles
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
@@ -631,6 +728,97 @@ if (AssetLoader.get().floor != null) {
                 }
             }
         }
+    }
+
+    /**
+     * Draw expanding ripple rings at each active NoiseMaker flash position.
+     * Two concentric orange/yellow rings radiate outward and fade over the
+     * flash's lifetime. Drawn on top of everything so the player always sees
+     * where the decoy was placed.
+     */
+    private void drawNoiseFlashes(Graphics g) {
+        if (noiseFlashes.isEmpty()) return;
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        java.awt.Stroke saved = g2.getStroke();
+        long now = System.currentTimeMillis();
+        int ts = Constants.TILE_SIZE;
+        for (FlashEffect f : noiseFlashes) {
+            int cx = f.x * ts + ts / 2;
+            int cy = f.y * ts + ts / 2;
+            // Base alpha decreases as the flash ages (countdown 4 → 1)
+            int baseAlpha = f.countdown * 55; // 220, 165, 110, 55
+            // Ring 1: inner ring, period 600 ms
+            float t1 = (float)((now % 600) / 600.0);
+            int r1 = ts / 4 + (int)(ts * 0.9f * t1);
+            int a1 = Math.min(255, (int)(baseAlpha * (1.0f - t1 * 0.5f)));
+            g2.setColor(new Color(255, 210, 50, a1));
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawOval(cx - r1, cy - r1, r1 * 2, r1 * 2);
+            // Ring 2: outer ring, 200 ms behind ring 1
+            float t2 = (float)(((now + 200) % 600) / 600.0);
+            int r2 = ts / 4 + (int)(ts * 0.9f * t2);
+            int a2 = Math.min(255, (int)(baseAlpha * (1.0f - t2 * 0.5f)));
+            g2.setColor(new Color(255, 130, 20, a2));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawOval(cx - r2, cy - r2, r2 * 2, r2 * 2);
+        }
+        g2.setStroke(saved);
+    }
+
+    /** Draws the NoiseMaker targeting overlay: dim, highlighted hover tile, and instructions. */
+    private void drawTargetingOverlay(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        int ts = Constants.TILE_SIZE;
+
+        // Slight dim over the whole map
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.fillRect(0, 0, getWidth(), getHeight());
+
+        // Highlight hovered tile
+        boolean validTile = mouseGridX >= 0 && mouseGridY >= 0
+                && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT
+                && map.isPassable(mouseGridX, mouseGridY);
+
+        int tx = mouseGridX * ts;
+        int ty = mouseGridY * ts;
+
+        if (validTile) {
+            g2.setColor(new Color(255, 200, 50, 130));
+            g2.fillRect(tx, ty, ts, ts);
+            g2.setColor(new Color(255, 220, 80, 220));
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.drawRect(tx, ty, ts, ts);
+
+            // Crosshair lines
+            int cx = tx + ts / 2, cy = ty + ts / 2;
+            g2.setColor(new Color(255, 220, 80, 200));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawLine(cx - ts / 2, cy, cx + ts / 2, cy);
+            g2.drawLine(cx, cy - ts / 2, cx, cy + ts / 2);
+        } else if (mouseGridX >= 0 && mouseGridY >= 0
+                && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT) {
+            // Invalid tile — red tint
+            g2.setColor(new Color(200, 50, 50, 100));
+            g2.fillRect(tx, ty, ts, ts);
+            g2.setColor(new Color(200, 80, 80, 180));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawRect(tx, ty, ts, ts);
+        }
+
+        // Instruction banner at the bottom
+        String msg = validTile ? "Click to throw noise  |  Esc to cancel"
+                               : "Invalid tile  |  Esc to cancel";
+        g2.setFont(new Font("Arial", Font.BOLD, 16));
+        FontMetrics fm = g2.getFontMetrics();
+        int msgW = fm.stringWidth(msg);
+        int bx = (getWidth() - msgW) / 2 - 12;
+        int by = getHeight() - 42;
+        g2.setColor(new Color(20, 20, 20, 190));
+        g2.fillRoundRect(bx, by, msgW + 24, 28, 10, 10);
+        g2.setColor(validTile ? new Color(255, 220, 80) : new Color(220, 100, 100));
+        g2.drawString(msg, bx + 12, by + 20);
     }
 
     public Player getPlayer() { return player; }

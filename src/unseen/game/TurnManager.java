@@ -17,7 +17,7 @@ public class TurnManager {
         for (Enemy enemy : enemies) {
 
             // Each enemy executes its logic based on current world state
-            enemy.takeTurn(map, player, smokes); // pass smokes
+            enemy.takeTurn(map, player, smokes, enemies); // pass smokes + full enemy list for collision
 
             // If this enemy is a sentry, let it alert nearby enemies (and set its visual)
             if (enemy instanceof unseen.entities.SentryEnemy) {
