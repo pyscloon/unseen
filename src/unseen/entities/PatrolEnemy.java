@@ -55,7 +55,7 @@ public class PatrolEnemy extends Enemy {
     @Override
     public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes, List<Enemy> allEnemies) {
 
-        if (canSeePlayer(map, player, smokes)) {
+        if (!isDistracted() && canSeePlayer(map, player, smokes)) {
             state = State.CHASE;
             lastKnownX = player.getX();
             lastKnownY = player.getY();
