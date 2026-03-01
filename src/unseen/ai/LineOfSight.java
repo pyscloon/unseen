@@ -37,18 +37,29 @@ public class LineOfSight {
             if (e2 > -ady) { err -= ady; cx += sx; }
             if (e2 <  adx) { err += adx; cy += sy; }
 
-            if (cx == x2 && cy == y2) break;
+            // Wall blocks sight (skip destination — the target entity stands there)
+            if (cx != x2 || cy != y2) {
+                if (!map.isPassable(cx, cy)) return false;
+            }
 
-            // Wall blocks sight
-            if (!map.isPassable(cx, cy)) return false;
-
-            // Smoke blocks sight
+            // Smoke blocks sight — check every tile including the destination
             for (Smoke smoke : smokes) {
                 int dxS = cx - smoke.getX();
                 int dyS = cy - smoke.getY();
                 if (dxS * dxS + dyS * dyS <= smoke.getRadius() * smoke.getRadius()) {
                     return false;
                 }
+            }
+
+            if (cx == x2 && cy == y2) break;
+        }
+
+        // Also check whether the source tile (observer) itself is inside smoke
+        for (Smoke smoke : smokes) {
+            int dxS = x1 - smoke.getX();
+            int dyS = y1 - smoke.getY();
+            if (dxS * dxS + dyS * dyS <= smoke.getRadius() * smoke.getRadius()) {
+                return false;
             }
         }
 
