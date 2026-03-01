@@ -635,7 +635,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         x += boxSize + spacing;
 
         // Draw Flare slot
-        g2.setColor(new Color(255, 200, 200, 180));
+        g2.setColor(new Color(255, 255, 180, 180));
         g2.setStroke(new java.awt.BasicStroke(3f));
         g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
         g2.setColor(new Color(70, 70, 70, 220));
@@ -650,16 +650,16 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 g2.drawImage(AssetLoader.get().flare, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
                         boxSize - 2 * iconPad, null);
             } else {
-                g2.setColor(new Color(255, 100, 50));
+                g2.setColor(new Color(255, 255, 150));
                 g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
-                g2.setColor(Color.WHITE);
+                g2.setColor(Color.DARK_GRAY);
                 g2.drawString("F", x + boxSize / 2 - 4, y + boxSize / 2 + 5);
             }
             // Draw small label above icon
             g2.setFont(new Font("Arial", Font.PLAIN, 10));
-            g2.setColor(new Color(255, 150, 150));
-            int flareLabelWidth = g2.getFontMetrics().stringWidth("Flare");
-            g2.drawString("Flare", x + (boxSize - flareLabelWidth) / 2, y - 6);
+            g2.setColor(new Color(255, 255, 180));
+            int flareLabelWidth = g2.getFontMetrics().stringWidth("Light");
+            g2.drawString("Light", x + (boxSize - flareLabelWidth) / 2, y - 6);
         }
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
@@ -959,23 +959,88 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             int cx = f.getX() * ts + ts / 2;
             int cy = f.getY() * ts + ts / 2;
 
-            // Small "flare" core on the ground
-            g2.setColor(new Color(255, 100, 100)); // Red flare
-            g2.fillRoundRect(cx - 6, cy - 2, 12, 4, 2, 2);
-            g2.setColor(Color.WHITE);
-            g2.fillRoundRect(cx - 3, cy - 1, 6, 2, 1, 1);
+            // 8-frame animation cycle based on system time (approx 1200ms total)
+            // Frames: 0 (tiny square) -> 1 (small star) -> 2 (med star) -> 3 (large star)
+            // -> 4 (expanding with detached particles) -> 5 (smaller core, particles
+            // further) -> 6 (even smaller core, particles fading) -> 7 (tiny core,
+            // particles gone)
+            float animCycle = (float) ((now % 1200) / 1200.0);
+            int frame = (int) (animCycle * 8);
 
-            // Pulsing light aura
-            float pulse = (float) (0.5 + 0.5 * Math.sin(now / 150.0)); // fast flicker
-            int alpha = (int) (80 + 30 * pulse);
-            int r = (int) (ts * 0.8f);
+            // Base glow aura
+            int alpha = 40;
+            if (frame >= 2 && frame <= 4)
+                alpha = 60; // Brighter in middle frames
+            int auraR = (int) (ts * 1.5f + (ts * 0.2f * (frame == 3 || frame == 4 ? 1.0 : 0.0)));
+            g2.setColor(new Color(255, 255, 100, alpha));
+            g2.fillOval(cx - auraR, cy - auraR, auraR * 2, auraR * 2);
 
-            g2.setColor(new Color(255, 120, 100, alpha));
-            g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+            // Inner aura
+            int innerR = (int) (ts * 0.8f);
+            g2.setColor(new Color(255, 255, 180, alpha * 2));
+            g2.fillOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
 
-            r = (int) (ts * 1.5f);
-            g2.setColor(new Color(255, 80, 80, alpha / 3));
-            g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+            // Draw the star core based on the frame
+            java.awt.geom.Path2D.Double star = new java.awt.geom.Path2D.Double();
+            double r = 0;
+            double innerCore = 0;
+
+            if (frame == 0 || frame == 7) {
+                // Tiny square/dot
+                r = ts * 0.1;
+                star.moveTo(cx - r, cy - r);
+                star.lineTo(cx + r, cy - r);
+                star.lineTo(cx + r, cy + r);
+                star.lineTo(cx - r, cy + r);
+                star.closePath();
+            } else {
+                // Determine star size
+                if (frame == 1 || frame == 6) {
+                    r = ts * 0.2;
+                    innerCore = r * 0.15;
+                } else if (frame == 2 || frame == 5) {
+                    r = ts * 0.4;
+                    innerCore = r * 0.15;
+                } else if (frame == 3) {
+                    r = ts * 0.6;
+                    innerCore = r * 0.15;
+                } else if (frame == 4) {
+                    r = ts * 0.4;
+                    innerCore = r * 0.15;
+                } // Core shrinks slightly while detaching
+
+                star.moveTo(cx, cy - r); // Top
+                star.quadTo(cx + innerCore, cy - innerCore, cx + r, cy); // Right
+                star.quadTo(cx + innerCore, cy + innerCore, cx, cy + r); // Bottom
+                star.quadTo(cx - innerCore, cy + innerCore, cx - r, cy); // Left
+                star.quadTo(cx - innerCore, cy - innerCore, cx, cy - r); // Top (to close the loop with a curve)
+                star.closePath();
+            }
+
+            g2.setColor(new Color(255, 255, 220, 240));
+            g2.fill(star);
+
+            // Flakes/particles detaching in frames 4, 5, 6
+            if (frame >= 4 && frame <= 6) {
+                float partDist = 0;
+                int pSize = 0;
+                if (frame == 4) {
+                    partDist = ts * 0.45f;
+                    pSize = 3;
+                } else if (frame == 5) {
+                    partDist = ts * 0.65f;
+                    pSize = 2;
+                } else if (frame == 6) {
+                    partDist = ts * 0.8f;
+                    pSize = 1;
+                }
+
+                // Diagonal particles
+                g2.fillOval(cx - (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2); // Top-left
+                g2.fillOval(cx + (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2); // Top-right
+                g2.fillOval(cx - (int) partDist - pSize, cy + (int) partDist - pSize, pSize * 2, pSize * 2); // Bottom-left
+                g2.fillOval(cx + (int) partDist - pSize, cy + (int) partDist - pSize, pSize * 2, pSize * 2); // Bottom-right
+            }
         }
     }
 
@@ -1039,15 +1104,15 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         if (validTile) {
             if (targetingFlare) {
-                g2.setColor(new Color(255, 100, 100, 130));
+                g2.setColor(new Color(255, 240, 100, 130));
                 g2.fillRect(tx, ty, ts, ts);
-                g2.setColor(new Color(255, 150, 150, 220));
+                g2.setColor(new Color(255, 255, 150, 220));
                 g2.setStroke(new BasicStroke(2.5f));
                 g2.drawRect(tx, ty, ts, ts);
 
                 // Crosshair lines
                 int cx = tx + ts / 2, cy = ty + ts / 2;
-                g2.setColor(new Color(255, 150, 150, 200));
+                g2.setColor(new Color(255, 255, 150, 200));
                 g2.setStroke(new BasicStroke(1.5f));
                 g2.drawLine(cx - ts / 2, cy, cx + ts / 2, cy);
                 g2.drawLine(cx, cy - ts / 2, cx, cy + ts / 2);
@@ -1090,7 +1155,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         // Colors for valid tile
         Color validColor;
         if (targetingFlare) {
-            validColor = new Color(255, 100, 100);
+            validColor = new Color(255, 255, 120);
         } else {
             validColor = new Color(255, 220, 80);
         }
