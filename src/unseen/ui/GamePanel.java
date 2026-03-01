@@ -310,7 +310,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     @Override
     public void spawnFlare(int x, int y) {
-        flares.add(new unseen.game.ActiveFlare(x, y, 5, 20)); // radius 5, lasts 20 turns
+        flares.add(new unseen.game.ActiveFlare(x, y, 5, 10)); // radius 5, lasts 10 turns
     }
 
     /** Register a NoiseMaker ripple effect at the given tile for 4 turns. */
@@ -723,8 +723,13 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                         }
                         break;
                     case EXIT:
-                        g2.setColor(Color.YELLOW);
-                        g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                        if (AssetLoader.get().nextFloor != null) {
+                            g2.drawImage(AssetLoader.get().nextFloor, drawX, drawY, Constants.TILE_SIZE,
+                                    Constants.TILE_SIZE, null);
+                        } else {
+                            g2.setColor(Color.YELLOW);
+                            g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                        }
                         break;
                     default:
                         if (AssetLoader.get().floor != null) {
@@ -751,6 +756,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                     } else if (ground instanceof SmokeBomb && AssetLoader.get().smokeBomb != null) {
                         g2.drawImage(AssetLoader.get().smokeBomb, tx + iconPad, ty + iconPad,
+                                Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    } else if (ground instanceof unseen.items.Flare && AssetLoader.get().flare != null) {
+                        g2.drawImage(AssetLoader.get().flare, tx + iconPad, ty + iconPad,
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                     }
                     // If image is missing, do not draw anything for the item.

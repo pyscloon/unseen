@@ -5,6 +5,7 @@ import unseen.utils.Constants;
 import unseen.items.NoiseMaker;
 import unseen.items.SmokeBomb;
 import unseen.items.Item;
+
 public class MapGenerator {
 
     public static Map generate() {
@@ -41,8 +42,8 @@ public class MapGenerator {
         for (int attempt = 0; attempt < 400; attempt++) {
             int qxMin = (quadrant % 2 == 0) ? margin : halfW;
             int qxMax = (quadrant % 2 == 0) ? halfW - 1 : Constants.GRID_WIDTH - margin - 1;
-            int qyMin = (quadrant < 2)       ? margin : halfH;
-            int qyMax = (quadrant < 2)       ? halfH - 1 : Constants.GRID_HEIGHT - margin - 1;
+            int qyMin = (quadrant < 2) ? margin : halfH;
+            int qyMax = (quadrant < 2) ? halfH - 1 : Constants.GRID_HEIGHT - margin - 1;
             int cx = qxMin + rand.nextInt(Math.max(1, qxMax - qxMin));
             int cy = qyMin + rand.nextInt(Math.max(1, qyMax - qyMin));
             if (map.getTile(cx, cy) == Tile.FLOOR) {
@@ -75,7 +76,15 @@ public class MapGenerator {
             } while (map.getTile(tx, ty) != Tile.FLOOR
                     || (tx == Constants.START_X && ty == Constants.START_Y)
                     || map.getItem(tx, ty) != null);
-            Item it = rand.nextDouble() < 0.6 ? new NoiseMaker() : new SmokeBomb();
+            double roll = rand.nextDouble();
+            Item it;
+            if (roll < 0.33) {
+                it = new NoiseMaker();
+            } else if (roll < 0.66) {
+                it = new SmokeBomb();
+            } else {
+                it = new unseen.items.Flare();
+            }
             map.setItem(tx, ty, it);
         }
 
