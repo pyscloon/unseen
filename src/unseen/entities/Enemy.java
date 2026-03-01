@@ -25,6 +25,7 @@ public abstract class Enemy extends Entity {
 
     protected int lastKnownX, lastKnownY;
     protected int searchTurns = 0;
+    protected int distractedTurns = 0;
 
     public Enemy(int x, int y, int detectionRange, Pathfinder pathfinder) {
         super(x, y);
@@ -148,5 +149,22 @@ public abstract class Enemy extends Entity {
 
         unseen.ai.Node next = path.get(1);
         return new java.awt.Point(next.x, next.y);
+    }
+
+    public void redirectToNoise(int x, int y) {
+        this.lastKnownX = x;
+        this.lastKnownY = y;
+        this.state = State.SEARCH;
+        this.searchTurns = unseen.utils.Constants.SEARCH_TURNS;
+        this.distractedTurns = 2; // blocks LOS re-detection for 2 turns
+    }
+
+    // Add this helper:
+    protected boolean isDistracted() {
+        if (distractedTurns > 0) {
+            distractedTurns--;
+            return true;
+        }
+        return false;
     }
 }

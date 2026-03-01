@@ -42,7 +42,7 @@ public class NoiseMaker extends Item {
         int[] target = candidates.get(RNG.nextInt(candidates.size()));
         lastDecoyTarget = target;
         for (Enemy e : enemies) {
-            e.alertTo(target[0], target[1]);
+            e.redirectToNoise(target[0], target[1]);
         }
     }
 
@@ -53,7 +53,7 @@ public class NoiseMaker extends Item {
     public void useAt(Player player, Map map, List<Enemy> enemies, int targetX, int targetY) {
         lastDecoyTarget = new int[]{targetX, targetY};
         for (Enemy e : enemies) {
-            e.alertTo(targetX, targetY);
+            e.redirectToNoise(targetX, targetY);
         }
     }
 
