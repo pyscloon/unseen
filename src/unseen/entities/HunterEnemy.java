@@ -23,30 +23,46 @@ public class HunterEnemy extends Enemy {
     @Override
     public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes) {
 
-        // use the passed smokes list
         if (canSeePlayer(map, player, smokes)) {
             state = State.CHASE;
             lastKnownX = player.getX();
             lastKnownY = player.getY();
         }
 
-        if (state == State.CHASE) {
-            List<Node> path =
-                    pathfinder.findPath(map, x, y,
-                            lastKnownX, lastKnownY);
-
-            if (path != null && path.size() > 1) {
-                Node next = path.get(1);
-                if      (next.x > x) setDirection(Direction.RIGHT);
-                else if (next.x < x) setDirection(Direction.LEFT);
-                else if (next.y > y) setDirection(Direction.DOWN);
-                else if (next.y < y) setDirection(Direction.UP);
-                x = next.x;
-                y = next.y;
-            } else {
-                // Reached last known position — give up chase
-                state = State.PATROL;
-            }
+        switch (state) {
+            case CHASE:
+                chase(map);
+                break;
+            case SEARCH:
+                search();
+                break;
+            default:
+                break;
         }
+    }
+
+    private void chase(Map map) {
+        List<Node> path = pathfinder.findPath(map, x, y, lastKnownX, lastKnownY);
+        if (path != null && path.size() > 1) {
+            Node next = path.get(1);
+            if      (next.x > x) setDirection(Direction.RIGHT);
+            else if (next.x < x) setDirection(Direction.LEFT);
+            else if (next.y > y) setDirection(Direction.DOWN);
+            else if (next.y < y) setDirection(Direction.UP);
+            x = next.x;
+            y = next.y;
+        } else {
+            // Reached last known position — search for a few turns before giving up
+            state = State.SEARCH;
+            searchTurns = Constants.SEARCH_TURNS;
+        }
+    }
+
+    private void search() {
+        if (searchTurns <= 0) {
+            state = State.PATROL;
+            return;
+        }
+        searchTurns--;
     }
 }

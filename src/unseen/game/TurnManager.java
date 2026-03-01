@@ -23,10 +23,7 @@ public class TurnManager {
             if (enemy instanceof unseen.entities.SentryEnemy) {
                 ((unseen.entities.SentryEnemy) enemy).handleAlerts(enemies, player);
             }
-            // After performing actions, tick sentry alert visuals so they expire correctly
-            if (enemy instanceof unseen.entities.SentryEnemy) {
-                ((unseen.entities.SentryEnemy) enemy).tickAlertVisual();
-            }
+            // tickAlertVisual is now called at the start of SentryEnemy.takeTurn() each turn
 
             // Check for player capture
             if (enemy.getX() == player.getX()

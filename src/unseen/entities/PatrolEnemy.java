@@ -102,7 +102,7 @@ public class PatrolEnemy extends Enemy {
 
         List<Node> path =
                 pathfinder.findPath(map, x, y,
-                        player.getX(), player.getY());
+                        lastKnownX, lastKnownY);
 
         if (path != null && path.size() > 1) {
             Node next = path.get(1);
