@@ -26,6 +26,12 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
+        // Any key on the win screen advances to the next floor
+        if (panel.getGameState() == GameState.WIN) {
+            panel.nextFloor();
+            return;
+        }
+
         if (panel.getGameState() != GameState.PLAYING) return;
 
         Player player = panel.getPlayer();

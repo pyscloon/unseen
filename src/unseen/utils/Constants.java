@@ -5,8 +5,8 @@ public class Constants {
     public static final int GRID_HEIGHT = 25;
     public static final int TILE_SIZE = 32;
 
-    public static final int START_X = 2;
-    public static final int START_Y = 2;
+    public static int START_X = 2;
+    public static int START_Y = 2;
 
     public static final int MIN_ENEMIES = 5;
     public static final int MAX_ENEMIES = 10;

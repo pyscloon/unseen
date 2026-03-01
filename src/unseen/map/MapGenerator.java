@@ -30,36 +30,56 @@ public class MapGenerator {
             }
         }
 
+        // Randomly pick one of 4 corner quadrants for the start position
+        // so entry and exit are always on opposite ends of the map.
+        int margin = 3;
+        int halfW = Constants.GRID_WIDTH / 2;
+        int halfH = Constants.GRID_HEIGHT / 2;
+        int quadrant = rand.nextInt(4); // 0=TL, 1=TR, 2=BL, 3=BR
+
+        int sx = 2, sy = 2; // safe fallback
+        for (int attempt = 0; attempt < 400; attempt++) {
+            int qxMin = (quadrant % 2 == 0) ? margin : halfW;
+            int qxMax = (quadrant % 2 == 0) ? halfW - 1 : Constants.GRID_WIDTH - margin - 1;
+            int qyMin = (quadrant < 2)       ? margin : halfH;
+            int qyMax = (quadrant < 2)       ? halfH - 1 : Constants.GRID_HEIGHT - margin - 1;
+            int cx = qxMin + rand.nextInt(Math.max(1, qxMax - qxMin));
+            int cy = qyMin + rand.nextInt(Math.max(1, qyMax - qyMin));
+            if (map.getTile(cx, cy) == Tile.FLOOR) {
+                sx = cx;
+                sy = cy;
+                break;
+            }
+        }
+        Constants.START_X = sx;
+        Constants.START_Y = sy;
+
         // Place torches
         int torchCount = 5;
-
         for (int i = 0; i < torchCount; i++) {
-
             int tx, ty;
-
             do {
                 tx = rand.nextInt(Constants.GRID_WIDTH);
                 ty = rand.nextInt(Constants.GRID_HEIGHT);
             } while (map.getTile(tx, ty) != Tile.FLOOR);
-
             map.setTile(tx, ty, Tile.TORCH);
         }
 
-        // Place ground items (pickupable)
-        int itemCount = 6; // adjust
+        // Place ground items (pickupable) — never on the start tile
+        int itemCount = 6;
         for (int i = 0; i < itemCount; i++) {
             int tx, ty;
             do {
                 tx = rand.nextInt(Constants.GRID_WIDTH);
                 ty = rand.nextInt(Constants.GRID_HEIGHT);
-            } while (map.getTile(tx, ty) != Tile.FLOOR || (tx==Constants.START_X && ty==Constants.START_Y) || map.getItem(tx, ty) != null);
-
-            // random between noise maker and smoke bomb
+            } while (map.getTile(tx, ty) != Tile.FLOOR
+                    || (tx == Constants.START_X && ty == Constants.START_Y)
+                    || map.getItem(tx, ty) != null);
             Item it = rand.nextDouble() < 0.6 ? new NoiseMaker() : new SmokeBomb();
             map.setItem(tx, ty, it);
         }
 
-        //  Place start tile last
+        // Place start tile
         map.setTile(Constants.START_X, Constants.START_Y, Tile.START);
 
         return map;

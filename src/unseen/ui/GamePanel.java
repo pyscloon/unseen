@@ -4,6 +4,7 @@ import javax.swing.JPanel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import unseen.map.*;
 import unseen.entities.*;
@@ -34,6 +35,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     private Thread gameThread;
     private GameState state = GameState.PLAYING;
+
+    private int floorNumber = 1;
 
     private Map map;
     private Player player;
@@ -69,27 +72,64 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
     }
 
-    private void setupGame() {
-
-        map = MapGenerator.generate();
+    /**
+     * Generates a new map and places enemies randomly.
+     * Does NOT touch the player or call updateVisibility — caller must do that.
+     */
+    private void buildFloor() {
+        map = MapGenerator.generate(); // also updates Constants.START_X/Y
         ExitPlacer.placeExit(map);
-
-        player = new Player(Constants.START_X, Constants.START_Y);
         visible = new boolean[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
+        smokes.clear();
         enemies = new ArrayList<>();
 
+        Random rand = new Random();
         AStar pathfinder = new AStar();
+        int minDist = 6;
+        List<int[]> placed = new ArrayList<>();
+        String[] types = {"patrol", "hunter", "sentry"};
+        for (String type : types) {
+            int ex = Constants.START_X, ey = Constants.START_Y;
+            for (int attempt = 0; attempt < 500; attempt++) {
+                int cx = 1 + rand.nextInt(Constants.GRID_WIDTH - 2);
+                int cy = 1 + rand.nextInt(Constants.GRID_HEIGHT - 2);
+                int dist = Math.abs(cx - Constants.START_X) + Math.abs(cy - Constants.START_Y);
+                if (map.getTile(cx, cy) == unseen.map.Tile.FLOOR && dist >= minDist) {
+                    boolean overlap = placed.stream().anyMatch(p -> p[0] == cx && p[1] == cy);
+                    if (!overlap) { ex = cx; ey = cy; placed.add(new int[]{cx, cy}); break; }
+                }
+            }
+            switch (type) {
+                case "patrol": enemies.add(new PatrolEnemy(ex, ey, pathfinder)); break;
+                case "hunter": enemies.add(new HunterEnemy(ex, ey, pathfinder)); break;
+                case "sentry": enemies.add(new SentryEnemy(ex, ey, pathfinder)); break;
+            }
+        }
+    }
 
-        enemies.add(new PatrolEnemy(10, 10, pathfinder));
-        enemies.add(new HunterEnemy(15, 15, pathfinder));
-        enemies.add(new SentryEnemy(5, 14, pathfinder));
-
+    private void setupGame() {
+        floorNumber = 1;
+        buildFloor();
+        player = new Player(Constants.START_X, Constants.START_Y);
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
         player.setSmokeSpawner(this);
-
-        // Compute initial visibility after map is ready
         updateVisibility();
+    }
+
+    /** Advance to the next floor: increment counter, regenerate map, reposition player. */
+    public void nextFloor() {
+        floorNumber++;
+        buildFloor();
+        player.setPosition(Constants.START_X, Constants.START_Y);
+        // Refill items for the new floor
+        player.getInventory().clear();
+        player.addItem(new NoiseMaker());
+        player.addItem(new SmokeBomb());
+        updateVisibility();
+        setGameState(GameState.PLAYING);
+        requestFocusInWindow();
+        repaint();
     }
 
     private void updateVisibility() {
@@ -207,15 +247,39 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         drawEntities(g);
 
         if (state == GameState.WIN) {
+            // Dim overlay
+            g.setColor(new Color(0, 0, 0, 160));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            String line1 = "Floor " + floorNumber + " Complete!";
             g.setColor(Color.GREEN);
-            g.setFont(new Font("Arial", Font.BOLD, 36));
-            g.drawString("YOU WIN!", 250, 300);
+            g.setFont(new Font("Arial", Font.BOLD, 42));
+            int w1 = g.getFontMetrics().stringWidth(line1);
+            g.drawString(line1, (getWidth() - w1) / 2, getHeight() / 2 - 30);
+
+            String line2 = "Press any key for Floor " + (floorNumber + 1);
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.PLAIN, 22));
+            int w2 = g.getFontMetrics().stringWidth(line2);
+            g.drawString(line2, (getWidth() - w2) / 2, getHeight() / 2 + 20);
         }
 
         if (state == GameState.LOSE) {
             g.setColor(Color.RED);
             g.setFont(new Font("Arial", Font.BOLD, 36));
             g.drawString("GAME OVER", 250, 300);
+        }
+
+        // Floor number in top-right corner
+        if (state == GameState.PLAYING) {
+            String floorLabel = "Floor " + floorNumber;
+            g.setFont(new Font("Arial", Font.BOLD, 18));
+            int lw = g.getFontMetrics().stringWidth(floorLabel);
+            int rx = getWidth() - lw - 14;
+            g.setColor(new Color(0, 0, 0, 140));
+            g.fillRoundRect(rx - 6, 10, lw + 12, 26, 8, 8);
+            g.setColor(new Color(255, 220, 100));
+            g.drawString(floorLabel, rx, 28);
         }
 
         // Always draw inventory bar
