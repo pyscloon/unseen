@@ -322,7 +322,25 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                     case FLOOR:
                     case START:
                         if (AssetLoader.get().floor != null) {
-                            g2.drawImage(AssetLoader.get().floor, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                            // Deterministic flip variant per tile so the floor isn't repetitive.
+                            // variant bits: bit0 = flipH, bit1 = flipV  →  0=normal,1=H,2=V,3=HV
+                            int variant = (x * 31 + y * 17) & 3;
+                            int ts = Constants.TILE_SIZE;
+                            java.awt.geom.AffineTransform saved = g2.getTransform();
+                            boolean flipH = (variant & 1) != 0;
+                            boolean flipV = (variant & 2) != 0;
+                            if (flipH) {
+                                g2.translate(drawX + ts, drawY);
+                                g2.scale(-1, 1);
+                            } else {
+                                g2.translate(drawX, drawY);
+                            }
+                            if (flipV) {
+                                g2.translate(0, ts);
+                                g2.scale(1, -1);
+                            }
+                            g2.drawImage(AssetLoader.get().floor, 0, 0, ts, ts, null);
+                            g2.setTransform(saved);
                         } else {
                             g2.setColor(new Color(170, 170, 170));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
