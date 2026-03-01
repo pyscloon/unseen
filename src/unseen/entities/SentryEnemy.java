@@ -31,6 +31,8 @@ public class SentryEnemy extends Enemy {
             // target.
             this.lastKnownX = player.getX();
             this.lastKnownY = player.getY();
+        } else {
+            this.state = State.PATROL;
         }
     }
 
