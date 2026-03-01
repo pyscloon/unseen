@@ -1,5 +1,8 @@
 package unseen.entities;
 
+import java.awt.image.BufferedImage;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -13,15 +16,40 @@ public class PatrolEnemy extends Enemy {
 
     private static final java.util.Random RNG = new java.util.Random();
 
+    // Pre-flipped (horizontal mirror) version of the patrol sprite for rightward movement
+    private final java.awt.Image patrolFlipped;
+
     public PatrolEnemy(int x, int y, Pathfinder pathfinder) {
         super(x, y, Constants.PATROL_DETECTION_RANGE, pathfinder);
         this.type = EnemyType.PATROL;
         AssetLoader assets = AssetLoader.get();
-        upImage    = assets.enemyUp;
-        downImage  = assets.enemyDown;
-        leftImage  = assets.enemyLeft;
-        rightImage = assets.enemyRight;
-        enemyImage = assets.enemyBase;
+        enemyImage   = assets.patrol;
+        patrolFlipped = buildFlipped(assets.patrol);
+    }
+
+    /** Creates a horizontally flipped copy of the source image. */
+    private static java.awt.Image buildFlipped(java.awt.Image src) {
+        if (src == null) return null;
+        int w = src.getWidth(null);
+        int h = src.getHeight(null);
+        if (w <= 0 || h <= 0) return src;
+        BufferedImage buf = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        AffineTransform tx = AffineTransform.getScaleInstance(-1, 1);
+        tx.translate(-w, 0);
+        AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        // draw original into buf first so we have a BufferedImage to operate on
+        java.awt.Graphics2D g = buf.createGraphics();
+        g.drawImage(src, 0, 0, null);
+        g.dispose();
+        return op.filter(buf, null);
+    }
+
+    @Override
+    public java.awt.Image getEnemyImage() {
+        if (direction == Direction.RIGHT && patrolFlipped != null) {
+            return patrolFlipped;
+        }
+        return enemyImage; // patrol.png faces left by default
     }
 
     @Override

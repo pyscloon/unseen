@@ -469,9 +469,14 @@ if (AssetLoader.get().floor != null) {
             if (visible[ey][ex]) {
                 java.awt.Image img = e.getEnemyImage();
                 if (img != null) {
-                    int drawX = ex * Constants.TILE_SIZE;
-                    int drawY = ey * Constants.TILE_SIZE;
-                    g2.drawImage(img, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                    int ts = Constants.TILE_SIZE;
+                    int spriteSize = (e instanceof unseen.entities.PatrolEnemy)
+                            ? (int) (ts * 0.75)   // patrol is 75% of tile size
+                            : ts;
+                    int offset = (ts - spriteSize) / 2;
+                    int drawX = ex * ts + offset;
+                    int drawY = ey * ts + offset;
+                    g2.drawImage(img, drawX, drawY, spriteSize, spriteSize, null);
                 } else {
                     g2.setColor(Color.RED);
                     g2.fillOval(
