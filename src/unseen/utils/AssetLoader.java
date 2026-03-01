@@ -18,7 +18,7 @@ public class AssetLoader {
     public final Image torch;
     public final Image noiseMaker;
     public final Image smokeBomb;
-    public final Image flare;
+    public final Image lantern;
     public final Image nextFloor;
 
     public final Image hero;
@@ -37,7 +37,7 @@ public class AssetLoader {
         torch = load("unseen/assets/torch.png");
         noiseMaker = load("unseen/assets/noise.png");
         smokeBomb = load("unseen/assets/smoke.png");
-        flare = load("unseen/assets/flare.png");
+        lantern = load("unseen/assets/lantern.png");
         nextFloor = load("unseen/assets/next_floor.png");
 
         hero = load("unseen/assets/hero.png");

@@ -646,8 +646,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         // Only show Flare if in inventory
         boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.Flare);
         if (hasFlare) {
-            if (AssetLoader.get().flare != null) {
-                g2.drawImage(AssetLoader.get().flare, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
+            if (AssetLoader.get().lantern != null) {
+                g2.drawImage(AssetLoader.get().lantern, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
                         boxSize - 2 * iconPad, null);
             } else {
                 g2.setColor(new Color(255, 255, 150));
@@ -658,8 +658,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             // Draw small label above icon
             g2.setFont(new Font("Arial", Font.PLAIN, 10));
             g2.setColor(new Color(255, 255, 180));
-            int flareLabelWidth = g2.getFontMetrics().stringWidth("Light");
-            g2.drawString("Light", x + (boxSize - flareLabelWidth) / 2, y - 6);
+            int flareLabelWidth = g2.getFontMetrics().stringWidth("Lantern");
+            g2.drawString("Lantern", x + (boxSize - flareLabelWidth) / 2, y - 6);
         }
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
@@ -757,8 +757,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                     } else if (ground instanceof SmokeBomb && AssetLoader.get().smokeBomb != null) {
                         g2.drawImage(AssetLoader.get().smokeBomb, tx + iconPad, ty + iconPad,
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
-                    } else if (ground instanceof unseen.items.Flare && AssetLoader.get().flare != null) {
-                        g2.drawImage(AssetLoader.get().flare, tx + iconPad, ty + iconPad,
+                    } else if (ground instanceof unseen.items.Flare && AssetLoader.get().lantern != null) {
+                        g2.drawImage(AssetLoader.get().lantern, tx + iconPad, ty + iconPad,
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                     }
                     // If image is missing, do not draw anything for the item.
