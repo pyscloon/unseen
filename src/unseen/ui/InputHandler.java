@@ -36,15 +36,31 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        // Escape cancels targeting mode
+        // Escape: cancel targeting or toggle pause
         if (key == KeyEvent.VK_ESCAPE) {
-            panel.cancelTargeting();
+            if (panel.isTargetingNoiseMaker()) {
+                panel.cancelTargeting();
+            } else if (panel.getGameState() == GameState.PLAYING) {
+                panel.pauseGame();
+            } else if (panel.getGameState() == GameState.PAUSED) {
+                panel.resumeGame();
+            }
+            return;
+        }
+
+        // P key also toggles pause
+        if (key == KeyEvent.VK_P) {
+            if (panel.getGameState() == GameState.PLAYING) {
+                panel.pauseGame();
+            } else if (panel.getGameState() == GameState.PAUSED) {
+                panel.resumeGame();
+            }
             return;
         }
 
         if (panel.getGameState() != GameState.PLAYING) return;
 
-        // Any key while targeting (other than Escape above) also cancels
+        // Any key while targeting (other than Escape/P above) also cancels
         if (panel.isTargetingNoiseMaker()) {
             panel.cancelTargeting();
             return;
