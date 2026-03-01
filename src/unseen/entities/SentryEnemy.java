@@ -27,10 +27,18 @@ public class SentryEnemy extends Enemy {
         // Sentry is stationary — it only raises an alert when it spots the player.
         if (canSeePlayer(map, player, smokes)) {
             this.state = State.CHASE;
-            // Record the real player position so handleAlerts broadcasts the correct target.
+            // Record the real player position so handleAlerts broadcasts the correct
+            // target.
             this.lastKnownX = player.getX();
             this.lastKnownY = player.getY();
         }
+    }
+
+    @Override
+    public void redirectToNoise(int x, int y) {
+        super.redirectToNoise(x, y);
+        // Sentries do not chase noise, they just get "distracted" and stop their alarm
+        this.state = State.SEARCH;
     }
 
     /**

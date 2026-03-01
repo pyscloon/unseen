@@ -154,7 +154,7 @@ public abstract class Enemy extends Entity {
     public void redirectToNoise(int x, int y) {
         this.lastKnownX = x;
         this.lastKnownY = y;
-        this.state = State.SEARCH;
+        this.state = State.CHASE;
         this.searchTurns = unseen.utils.Constants.SEARCH_TURNS;
         this.distractedTurns = 2; // blocks LOS re-detection for 2 turns
     }
