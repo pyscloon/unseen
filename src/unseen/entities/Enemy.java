@@ -38,16 +38,17 @@ public abstract class Enemy extends Entity {
         return enemyImage;
     }
     public java.awt.Image getEnemyImage() {
-        // Return image based on direction
+        // Return image based on direction.
+        // LEFT/RIGHT are swapped here because the sprite sheets use the opposite naming convention.
         switch (direction) {
             case UP:
                 return upImage != null ? upImage : enemyImage;
             case DOWN:
                 return downImage != null ? downImage : enemyImage;
             case LEFT:
-                return leftImage != null ? leftImage : enemyImage;
-            case RIGHT:
                 return rightImage != null ? rightImage : enemyImage;
+            case RIGHT:
+                return leftImage != null ? leftImage : enemyImage;
             default:
                 return enemyImage;
         }

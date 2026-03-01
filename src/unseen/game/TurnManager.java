@@ -4,7 +4,6 @@ import unseen.entities.Enemy;
 import unseen.entities.Player;
 import unseen.map.Map;
 import java.util.List;
-import unseen.game.Smoke;
 
 public class TurnManager {
 

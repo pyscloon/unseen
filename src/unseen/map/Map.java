@@ -2,7 +2,6 @@ package unseen.map;
 
 import unseen.utils.Constants;
 import unseen.items.Item;
-import unseen.utils.*;
 public class Map {
     private Tile[][] grid;
     private Item[][] items;

@@ -2,7 +2,6 @@ package unseen.game;
 
 import javax.swing.JFrame;
 import unseen.ui.GamePanel;
-import unseen.utils.Constants;
 
 public class Game {
 

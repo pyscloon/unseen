@@ -4,9 +4,6 @@ import javax.swing.JPanel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.awt.Polygon;
-import java.awt.BasicStroke;
-import java.awt.Point;
 
 import unseen.map.*;
 import unseen.entities.*;
@@ -15,10 +12,12 @@ import unseen.game.GameState;
 import unseen.ai.AStar;
 import unseen.ai.LineOfSight;
 import unseen.game.TurnManager;
+import unseen.game.SmokeSpawner;
 import unseen.items.*;
 import unseen.game.Smoke;
+import unseen.utils.AssetLoader;
 
-public class GamePanel extends JPanel implements Runnable {
+public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
                 // Restart the game after death
                 public void restartGame() {
@@ -31,10 +30,7 @@ public class GamePanel extends JPanel implements Runnable {
                     }
                     repaint();
                 }
-            private Image noiseMakerImage;
-            private Image smokeBombImage;
         private javax.sound.sampled.Clip backgroundClip;
-    // ...existing code...
 
     private Thread gameThread;
     private GameState state = GameState.PLAYING;
@@ -45,49 +41,7 @@ public class GamePanel extends JPanel implements Runnable {
     private boolean[][] visible;
     private List<Smoke> smokes = new ArrayList<>();
 
-    // Sprites
-    private Image wallImage;
-    private Image floorImage;
-    private Image torchTileImage;
-
-    {
-        // Load tile/wall images
-        try {
-            java.net.URL wallUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/wall.png");
-            if (wallUrl != null) wallImage = javax.imageio.ImageIO.read(wallUrl);
-            java.net.URL floorUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/tile.png");
-            if (floorUrl != null) floorImage = javax.imageio.ImageIO.read(floorUrl);
-            java.net.URL torchUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/torch.png");
-            if (torchUrl != null) torchTileImage = javax.imageio.ImageIO.read(torchUrl);
-
-            // Load NoiseMaker asset if present, else null
-            java.net.URL noiseUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/noise.png");
-            if (noiseUrl != null) {
-                noiseMakerImage = javax.imageio.ImageIO.read(noiseUrl);
-                System.out.println("Loaded noise.png successfully.");
-            } else {
-                noiseMakerImage = null;
-                System.out.println("noise.png not found in unseen/assets folder.");
-            }
-
-            // Load SmokeBomb asset if present, else null
-            java.net.URL smokeUrl = Thread.currentThread().getContextClassLoader().getResource("unseen/assets/smoke.png");
-            if (smokeUrl != null) {
-                smokeBombImage = javax.imageio.ImageIO.read(smokeUrl);
-                System.out.println("Loaded smoke.png successfully.");
-            } else {
-                smokeBombImage = null;
-                System.out.println("smoke.png not found in unseen/assets folder.");
-            }
-        } catch (Exception e) {
-            wallImage = null;
-            floorImage = null;
-            torchTileImage = null;
-            noiseMakerImage = null;
-            smokeBombImage = null;
-            System.out.println("Error loading inventory images: " + e.getMessage());
-        }
-    }
+    // All sprites are loaded once via AssetLoader singleton
 
     public GamePanel() {
         this.setPreferredSize(
@@ -132,7 +86,10 @@ public class GamePanel extends JPanel implements Runnable {
 
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
-        player.setPanel(this);
+        player.setSmokeSpawner(this);
+
+        // Compute initial visibility after map is ready
+        updateVisibility();
     }
 
     private void updateVisibility() {
@@ -157,23 +114,18 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        //  Torch illumination (range 2)
+        // Torch illumination — use LOS from each torch so walls block torch light
+        final int TORCH_RANGE = 3;
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
 
                 if (map.getTile(x, y) == Tile.TORCH) {
 
-                    for (int dy = -2; dy <= 2; dy++) {
-                        for (int dx = -2; dx <= 2; dx++) {
+                    for (int ty2 = 0; ty2 < Constants.GRID_HEIGHT; ty2++) {
+                        for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
 
-                            int nx = x + dx;
-                            int ny = y + dy;
-
-                            if (nx >= 0 && ny >= 0 &&
-                                    nx < Constants.GRID_WIDTH &&
-                                    ny < Constants.GRID_HEIGHT) {
-
-                                visible[ny][nx] = true;
+                            if (LineOfSight.hasLineOfSight(map, x, y, tx2, ty2, TORCH_RANGE)) {
+                                visible[ty2][tx2] = true;
                             }
                         }
                     }
@@ -194,6 +146,9 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         smokes.removeAll(expired);
+
+        // Always refresh FOV after a turn so rendering reflects the new state
+        updateVisibility();
     }
 
     public void spawnSmoke(int x, int y) {
@@ -240,14 +195,13 @@ public class GamePanel extends JPanel implements Runnable {
         GameState result = TurnManager.processTurn(player, enemies, map, smokes);
         setGameState(result);
         updateSmoke();
+        updateVisibility();
         return true;
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-
-        updateVisibility();   // important
 
         drawMap(g);
         drawEntities(g);
@@ -283,8 +237,6 @@ public class GamePanel extends JPanel implements Runnable {
         // Draw label
         g2.setFont(new Font("Arial", Font.BOLD, 18));
         g2.setColor(new Color(220, 220, 220));
-        int labelWidth = g2.getFontMetrics().stringWidth("Inventory");
-        int labelX = startX + (barWidth - labelWidth) / 2 - 10;
         // Draw NoiseMaker slot
         int x = startX;
         g2.setColor(new Color(255, 255, 180, 180));
@@ -299,8 +251,8 @@ public class GamePanel extends JPanel implements Runnable {
         // Only show NoiseMaker if in inventory
         boolean hasNoiseMaker = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.NoiseMaker);
         if (hasNoiseMaker) {
-            if (noiseMakerImage != null) {
-                g2.drawImage(noiseMakerImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            if (AssetLoader.get().noiseMaker != null) {
+                g2.drawImage(AssetLoader.get().noiseMaker, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
             } else {
                 g2.setColor(new Color(200, 180, 50));
                 g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
@@ -329,8 +281,8 @@ public class GamePanel extends JPanel implements Runnable {
         // Only show SmokeBomb if in inventory
         boolean hasSmokeBomb = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.SmokeBomb);
         if (hasSmokeBomb) {
-            if (smokeBombImage != null) {
-                g2.drawImage(smokeBombImage, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            if (AssetLoader.get().smokeBomb != null) {
+                g2.drawImage(AssetLoader.get().smokeBomb, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
             } else {
                 g2.setColor(new Color(180, 180, 180));
                 g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
@@ -360,8 +312,8 @@ public class GamePanel extends JPanel implements Runnable {
                 int drawY = y * Constants.TILE_SIZE;
                 switch (tile) {
                     case WALL:
-                        if (wallImage != null) {
-                            g2.drawImage(wallImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        if (AssetLoader.get().wall != null) {
+                            g2.drawImage(AssetLoader.get().wall, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         } else {
                             g2.setColor(new Color(90, 90, 90));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
@@ -369,16 +321,16 @@ public class GamePanel extends JPanel implements Runnable {
                         break;
                     case FLOOR:
                     case START:
-                        if (floorImage != null) {
-                            g2.drawImage(floorImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        if (AssetLoader.get().floor != null) {
+                            g2.drawImage(AssetLoader.get().floor, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         } else {
                             g2.setColor(new Color(170, 170, 170));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         }
                         break;
                     case TORCH:
-                        if (torchTileImage != null) {
-                            g2.drawImage(torchTileImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        if (AssetLoader.get().torch != null) {
+                            g2.drawImage(AssetLoader.get().torch, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         } else {
                             g2.setColor(new Color(255, 140, 0));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
@@ -389,8 +341,8 @@ public class GamePanel extends JPanel implements Runnable {
                         g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         break;
                     default:
-                        if (floorImage != null) {
-                            g2.drawImage(floorImage, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+if (AssetLoader.get().floor != null) {
+                            g2.drawImage(AssetLoader.get().floor, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         } else {
                             g2.setColor(new Color(170, 170, 170));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
@@ -407,10 +359,10 @@ public class GamePanel extends JPanel implements Runnable {
                     int tx = x * Constants.TILE_SIZE;
                     int ty = y * Constants.TILE_SIZE;
                     int iconPad = 6;
-                    if (ground instanceof NoiseMaker && noiseMakerImage != null) {
-                        g2.drawImage(noiseMakerImage, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
-                    } else if (ground instanceof SmokeBomb && smokeBombImage != null) {
-                        g2.drawImage(smokeBombImage, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    if (ground instanceof NoiseMaker && AssetLoader.get().noiseMaker != null) {
+                        g2.drawImage(AssetLoader.get().noiseMaker, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    } else if (ground instanceof SmokeBomb && AssetLoader.get().smokeBomb != null) {
+                        g2.drawImage(AssetLoader.get().smokeBomb, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                     }
                     // If image is missing, do not draw anything for the item.
                 }

@@ -1,0 +1,65 @@
+package unseen.utils;
+
+import java.awt.Image;
+import javax.imageio.ImageIO;
+import java.net.URL;
+
+/**
+ * Singleton that loads every game sprite exactly once.
+ * All classes should reference images through AssetLoader.get()
+ * rather than performing their own ImageIO.read() calls.
+ */
+public class AssetLoader {
+
+    private static AssetLoader instance;
+
+    public final Image wall;
+    public final Image floor;
+    public final Image torch;
+    public final Image noiseMaker;
+    public final Image smokeBomb;
+
+    public final Image hero;
+
+    public final Image enemyUp;
+    public final Image enemyDown;
+    public final Image enemyLeft;
+    public final Image enemyRight;
+    public final Image enemyBase;
+
+    private AssetLoader() {
+        wall       = load("unseen/assets/wall.png");
+        floor      = load("unseen/assets/tile.png");
+        torch      = load("unseen/assets/torch.png");
+        noiseMaker = load("unseen/assets/noise.png");
+        smokeBomb  = load("unseen/assets/smoke.png");
+
+        hero       = load("unseen/assets/hero.png");
+
+        enemyUp    = load("unseen/assets/up-enemy.png");
+        enemyDown  = load("unseen/assets/down-enemy.png");
+        enemyLeft  = load("unseen/assets/left-enemy.png");
+        enemyRight = load("unseen/assets/right-enemy.png");
+        enemyBase  = load("unseen/assets/enemy.png");
+    }
+
+    private Image load(String path) {
+        try {
+            URL url = Thread.currentThread().getContextClassLoader().getResource(path);
+            if (url != null) {
+                return ImageIO.read(url);
+            }
+            System.out.println("Asset not found: " + path);
+        } catch (Exception e) {
+            System.out.println("Failed to load asset '" + path + "': " + e.getMessage());
+        }
+        return null;
+    }
+
+    public static AssetLoader get() {
+        if (instance == null) {
+            instance = new AssetLoader();
+        }
+        return instance;
+    }
+}

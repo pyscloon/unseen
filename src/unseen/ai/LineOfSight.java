@@ -7,6 +7,11 @@ import java.util.List;
 
 public class LineOfSight {
 
+    /**
+     * Bresenham line-of-sight check.
+     * Returns true when there is an unobstructed, non-smoked path from
+     * (x1,y1) to (x2,y2) within maxRange (Manhattan distance).
+     */
     public static boolean hasLineOfSight(
             Map map,
             int x1, int y1,
@@ -14,38 +19,46 @@ public class LineOfSight {
             int maxRange,
             List<Smoke> smokes) {
 
-        int dx = Integer.compare(x2, x1);
-        int dy = Integer.compare(y2, y1);
+        int manhattan = Math.abs(x1 - x2) + Math.abs(y1 - y2);
+        if (manhattan > maxRange) return false;
+        if (x1 == x2 && y1 == y2) return true;
 
-        int distance = Math.abs(x1 - x2) + Math.abs(y1 - y2);
-        if (distance > maxRange) return false;
+        int adx = Math.abs(x2 - x1);
+        int ady = Math.abs(y2 - y1);
+        int sx  = x1 < x2 ? 1 : -1;
+        int sy  = y1 < y2 ? 1 : -1;
+        int err = adx - ady;
 
         int cx = x1;
         int cy = y1;
 
-        while (cx != x2 || cy != y2) {
+        while (true) {
+            int e2 = 2 * err;
+            if (e2 > -ady) { err -= ady; cx += sx; }
+            if (e2 <  adx) { err += adx; cy += sy; }
 
-            cx += dx;
-            cy += dy;
+            if (cx == x2 && cy == y2) break;
 
-            // Wall blocks
-            if (!map.isPassable(cx, cy))
-                return false;
+            // Wall blocks sight
+            if (!map.isPassable(cx, cy)) return false;
 
-            // Smoke blocks
+            // Smoke blocks sight
             for (Smoke smoke : smokes) {
-
-                int dxSmoke = cx - smoke.getX();
-                int dySmoke = cy - smoke.getY();
-
-                if (dxSmoke * dxSmoke + dySmoke * dySmoke
-                        <= smoke.getRadius() * smoke.getRadius()) {
-
+                int dxS = cx - smoke.getX();
+                int dyS = cy - smoke.getY();
+                if (dxS * dxS + dyS * dyS <= smoke.getRadius() * smoke.getRadius()) {
                     return false;
                 }
             }
         }
 
         return true;
+    }
+
+    /**
+     * Convenience overload — no smoke list required (used for torch illumination).
+     */
+    public static boolean hasLineOfSight(Map map, int x1, int y1, int x2, int y2, int maxRange) {
+        return hasLineOfSight(map, x1, y1, x2, y2, maxRange, List.of());
     }
 }
