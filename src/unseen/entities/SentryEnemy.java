@@ -17,11 +17,7 @@ public class SentryEnemy extends Enemy {
         super(x, y, Constants.SENTRY_DETECTION_RANGE, pathfinder);
         this.type = EnemyType.SENTRY;
         AssetLoader assets = AssetLoader.get();
-        upImage    = assets.enemyUp;
-        downImage  = assets.enemyDown;
-        leftImage  = assets.enemyLeft;
-        rightImage = assets.enemyRight;
-        enemyImage = assets.enemyBase;
+        enemyImage = assets.sentry;
     }
 
     @Override

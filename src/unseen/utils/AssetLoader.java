@@ -26,6 +26,7 @@ public class AssetLoader {
     public final Image enemyLeft;
     public final Image enemyRight;
     public final Image enemyBase;
+    public final Image sentry;
 
     private AssetLoader() {
         wall       = load("unseen/assets/wall.png");
@@ -41,6 +42,7 @@ public class AssetLoader {
         enemyLeft  = load("unseen/assets/left-enemy.png");
         enemyRight = load("unseen/assets/right-enemy.png");
         enemyBase  = load("unseen/assets/enemy.png");
+        sentry     = load("unseen/assets/sentry.png");
     }
 
     private Image load(String path) {
