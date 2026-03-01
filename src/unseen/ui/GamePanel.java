@@ -20,17 +20,32 @@ import unseen.utils.AssetLoader;
 
 public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
-                // Restart the game after death
-                public void restartGame() {
-                    setupGame();
-                    setGameState(GameState.PLAYING);
-                    requestFocusInWindow();
-                    if (backgroundClip != null) {
-                        backgroundClip.setFramePosition(0);
-                        backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
-                    }
-                    repaint();
-                }
+    public void pauseGame() {
+        if (state == GameState.PLAYING) {
+            state = GameState.PAUSED;
+            repaint();
+        }
+    }
+
+    public void resumeGame() {
+        if (state == GameState.PAUSED) {
+            state = GameState.PLAYING;
+            requestFocusInWindow();
+            repaint();
+        }
+    }
+
+    // Restart the game after death
+    public void restartGame() {
+        setupGame();
+        setGameState(GameState.PLAYING);
+        requestFocusInWindow();
+        if (backgroundClip != null) {
+            backgroundClip.setFramePosition(0);
+            backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+        }
+        repaint();
+    }
         private javax.sound.sampled.Clip backgroundClip;
 
     private Thread gameThread;
@@ -117,8 +132,13 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         AStar pathfinder = new AStar();
         int minDist = 6;
         List<int[]> placed = new ArrayList<>();
-        String[] types = {"patrol", "hunter", "sentry"};
-        for (String type : types) {
+        // Scale enemy count with floor: floor 1 = 3, +1 per floor, cap at 8
+        int extraEnemies = Math.min(floorNumber - 1, 5);
+        List<String> typeList = new java.util.ArrayList<>(java.util.Arrays.asList("patrol", "hunter", "sentry"));
+        for (int i = 0; i < extraEnemies; i++) {
+            typeList.add(i % 2 == 0 ? "patrol" : "hunter");
+        }
+        for (String type : typeList) {
             int ex = Constants.START_X, ey = Constants.START_Y;
             for (int attempt = 0; attempt < 500; attempt++) {
                 int cx = 1 + rand.nextInt(Constants.GRID_WIDTH - 2);
@@ -359,9 +379,43 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
 
         if (state == GameState.LOSE) {
+            g.setColor(new Color(0, 0, 0, 160));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            String line1 = "GAME OVER";
             g.setColor(Color.RED);
-            g.setFont(new Font("Arial", Font.BOLD, 36));
-            g.drawString("GAME OVER", 250, 300);
+            g.setFont(new Font("Arial", Font.BOLD, 48));
+            int lw1 = g.getFontMetrics().stringWidth(line1);
+            g.drawString(line1, (getWidth() - lw1) / 2, getHeight() / 2 - 30);
+
+            String line2 = "Reached Floor " + floorNumber;
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.PLAIN, 24));
+            int lw2 = g.getFontMetrics().stringWidth(line2);
+            g.drawString(line2, (getWidth() - lw2) / 2, getHeight() / 2 + 20);
+
+            String line3 = "Press R to restart";
+            g.setColor(new Color(200, 200, 200));
+            g.setFont(new Font("Arial", Font.PLAIN, 18));
+            int lw3 = g.getFontMetrics().stringWidth(line3);
+            g.drawString(line3, (getWidth() - lw3) / 2, getHeight() / 2 + 55);
+        }
+
+        if (state == GameState.PAUSED) {
+            g.setColor(new Color(0, 0, 0, 150));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            String pauseText = "PAUSED";
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 48));
+            int pw = g.getFontMetrics().stringWidth(pauseText);
+            g.drawString(pauseText, (getWidth() - pw) / 2, getHeight() / 2 - 20);
+
+            String resumeHint = "Press ESC or P to resume";
+            g.setFont(new Font("Arial", Font.PLAIN, 18));
+            int rw = g.getFontMetrics().stringWidth(resumeHint);
+            g.setColor(new Color(200, 200, 200));
+            g.drawString(resumeHint, (getWidth() - rw) / 2, getHeight() / 2 + 25);
         }
 
         // Floor number in top-right corner
