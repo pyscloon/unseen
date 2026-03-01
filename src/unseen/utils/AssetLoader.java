@@ -18,6 +18,7 @@ public class AssetLoader {
     public final Image torch;
     public final Image noiseMaker;
     public final Image smokeBomb;
+    public final Image flare;
 
     public final Image hero;
 
@@ -30,21 +31,22 @@ public class AssetLoader {
     public final Image patrol;
 
     private AssetLoader() {
-        wall       = load("unseen/assets/wall.png");
-        floor      = load("unseen/assets/tile.png");
-        torch      = load("unseen/assets/torch.png");
+        wall = load("unseen/assets/wall.png");
+        floor = load("unseen/assets/tile.png");
+        torch = load("unseen/assets/torch.png");
         noiseMaker = load("unseen/assets/noise.png");
-        smokeBomb  = load("unseen/assets/smoke.png");
+        smokeBomb = load("unseen/assets/smoke.png");
+        flare = load("unseen/assets/flare.png");
 
-        hero       = load("unseen/assets/hero.png");
+        hero = load("unseen/assets/hero.png");
 
-        enemyUp    = load("unseen/assets/up-enemy.png");
-        enemyDown  = load("unseen/assets/down-enemy.png");
-        enemyLeft  = load("unseen/assets/left-enemy.png");
+        enemyUp = load("unseen/assets/up-enemy.png");
+        enemyDown = load("unseen/assets/down-enemy.png");
+        enemyLeft = load("unseen/assets/left-enemy.png");
         enemyRight = load("unseen/assets/right-enemy.png");
-        enemyBase  = load("unseen/assets/enemy.png");
-        sentry     = load("unseen/assets/sentry.png");
-        patrol     = load("unseen/assets/patrol.png");
+        enemyBase = load("unseen/assets/enemy.png");
+        sentry = load("unseen/assets/sentry.png");
+        patrol = load("unseen/assets/patrol.png");
     }
 
     private Image load(String path) {

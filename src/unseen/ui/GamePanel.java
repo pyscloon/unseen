@@ -46,7 +46,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
         repaint();
     }
-        private javax.sound.sampled.Clip backgroundClip;
+
+    private javax.sound.sampled.Clip backgroundClip;
 
     private Thread gameThread;
     private GameState state = GameState.PLAYING;
@@ -59,9 +60,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private boolean[][] visible;
     private List<Smoke> smokes = new ArrayList<>();
     private List<FlashEffect> noiseFlashes = new ArrayList<>();
+    private List<unseen.game.ActiveFlare> flares = new ArrayList<>();
 
     // Noise-maker targeting mode
     private boolean targetingNoiseMaker = false;
+    // Flare targeting mode
+    private boolean targetingFlare = false;
     private int mouseGridX = 0;
     private int mouseGridY = 0;
 
@@ -69,7 +73,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private static class FlashEffect {
         final int x, y;
         int countdown;
-        FlashEffect(int x, int y, int countdown) { this.x = x; this.y = y; this.countdown = countdown; }
+
+        FlashEffect(int x, int y, int countdown) {
+            this.x = x;
+            this.y = y;
+            this.countdown = countdown;
+        }
     }
 
     // All sprites are loaded once via AssetLoader singleton
@@ -87,7 +96,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             public void mouseMoved(java.awt.event.MouseEvent e) {
                 mouseGridX = e.getX() / Constants.TILE_SIZE;
                 mouseGridY = e.getY() / Constants.TILE_SIZE;
-                if (targetingNoiseMaker) repaint();
+                if (targetingNoiseMaker || targetingFlare)
+                    repaint();
             }
         });
         this.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -95,6 +105,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 if (targetingNoiseMaker) {
                     confirmNoiseTarget(mouseGridX, mouseGridY);
+                } else if (targetingFlare) {
+                    confirmFlareTarget(mouseGridX, mouseGridY);
                 }
             }
         });
@@ -107,7 +119,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         try {
             java.net.URL soundURL = getClass().getClassLoader().getResource("assets/background.wav");
             if (soundURL != null) {
-                javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem.getAudioInputStream(soundURL);
+                javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem
+                        .getAudioInputStream(soundURL);
                 backgroundClip = javax.sound.sampled.AudioSystem.getClip();
                 backgroundClip.open(audioIn);
                 backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
@@ -126,6 +139,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         ExitPlacer.placeExit(map);
         visible = new boolean[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         smokes.clear();
+        flares.clear();
         enemies = new ArrayList<>();
 
         Random rand = new Random();
@@ -146,13 +160,24 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 int dist = Math.abs(cx - Constants.START_X) + Math.abs(cy - Constants.START_Y);
                 if (map.getTile(cx, cy) == unseen.map.Tile.FLOOR && dist >= minDist) {
                     boolean overlap = placed.stream().anyMatch(p -> p[0] == cx && p[1] == cy);
-                    if (!overlap) { ex = cx; ey = cy; placed.add(new int[]{cx, cy}); break; }
+                    if (!overlap) {
+                        ex = cx;
+                        ey = cy;
+                        placed.add(new int[] { cx, cy });
+                        break;
+                    }
                 }
             }
             switch (type) {
-                case "patrol": enemies.add(new PatrolEnemy(ex, ey, pathfinder)); break;
-                case "hunter": enemies.add(new HunterEnemy(ex, ey, pathfinder)); break;
-                case "sentry": enemies.add(new SentryEnemy(ex, ey, pathfinder)); break;
+                case "patrol":
+                    enemies.add(new PatrolEnemy(ex, ey, pathfinder));
+                    break;
+                case "hunter":
+                    enemies.add(new HunterEnemy(ex, ey, pathfinder));
+                    break;
+                case "sentry":
+                    enemies.add(new SentryEnemy(ex, ey, pathfinder));
+                    break;
             }
         }
     }
@@ -163,11 +188,15 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         player = new Player(Constants.START_X, Constants.START_Y);
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
+        player.addItem(new Flare());
         player.setSmokeSpawner(this);
         updateVisibility();
     }
 
-    /** Advance to the next floor: increment counter, regenerate map, reposition player. */
+    /**
+     * Advance to the next floor: increment counter, regenerate map, reposition
+     * player.
+     */
     public void nextFloor() {
         floorNumber++;
         buildFloor();
@@ -176,6 +205,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         player.getInventory().clear();
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
+        player.addItem(new Flare());
         updateVisibility();
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
@@ -222,6 +252,20 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 }
             }
         }
+
+        // Active flares
+        for (unseen.game.ActiveFlare flare : flares) {
+            int cx = flare.getX();
+            int cy = flare.getY();
+            int fr = flare.getRadius();
+            for (int ty2 = 0; ty2 < Constants.GRID_HEIGHT; ty2++) {
+                for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
+                    if (LineOfSight.hasLineOfSight(map, cx, cy, tx2, ty2, fr)) {
+                        visible[ty2][tx2] = true;
+                    }
+                }
+            }
+        }
     }
 
     public void updateSmoke() {
@@ -241,16 +285,32 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         List<FlashEffect> expiredFlashes = new ArrayList<>();
         for (FlashEffect f : noiseFlashes) {
             f.countdown--;
-            if (f.countdown <= 0) expiredFlashes.add(f);
+            if (f.countdown <= 0)
+                expiredFlashes.add(f);
         }
         noiseFlashes.removeAll(expiredFlashes);
+
+        // Update flares
+        List<unseen.game.ActiveFlare> expiredFlares = new ArrayList<>();
+        for (unseen.game.ActiveFlare flare : flares) {
+            flare.decrease();
+            if (flare.isExpired())
+                expiredFlares.add(flare);
+        }
+        flares.removeAll(expiredFlares);
 
         // Always refresh FOV after a turn so rendering reflects the new state
         updateVisibility();
     }
 
+    @Override
     public void spawnSmoke(int x, int y) {
         smokes.add(new Smoke(x, y, 2, 5)); // radius 2, lasts 5 turns
+    }
+
+    @Override
+    public void spawnFlare(int x, int y) {
+        flares.add(new unseen.game.ActiveFlare(x, y, 5, 20)); // radius 5, lasts 20 turns
     }
 
     /** Register a NoiseMaker ripple effect at the given tile for 4 turns. */
@@ -258,7 +318,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         noiseFlashes.add(new FlashEffect(x, y, 4));
     }
 
-    /** Enter noise-maker targeting mode — the next mouse click will place the decoy. */
+    /**
+     * Enter noise-maker targeting mode — the next mouse click will place the decoy.
+     */
     public void enterNoiseMakerTargeting() {
         targetingNoiseMaker = true;
         repaint();
@@ -267,6 +329,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     /** Cancel targeting mode without using the item. */
     public void cancelTargeting() {
         targetingNoiseMaker = false;
+        targetingFlare = false;
         repaint();
     }
 
@@ -274,11 +337,22 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         return targetingNoiseMaker;
     }
 
+    public void enterFlareTargeting() {
+        targetingFlare = true;
+        repaint();
+    }
+
+    public boolean isTargetingFlare() {
+        return targetingFlare;
+    }
+
     /** Called when the player clicks a tile while in targeting mode. */
     private void confirmNoiseTarget(int gx, int gy) {
         // Must be within bounds and on a passable tile
-        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT) return;
-        if (!map.isPassable(gx, gy)) return;
+        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
+            return;
+        if (!map.isPassable(gx, gy))
+            return;
 
         // Find the NoiseMaker in inventory
         java.util.List<unseen.items.Item> inv = player.getInventory();
@@ -291,7 +365,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 break;
             }
         }
-        if (nm == null) { targetingNoiseMaker = false; repaint(); return; }
+        if (nm == null) {
+            targetingNoiseMaker = false;
+            repaint();
+            return;
+        }
 
         // Fire at the chosen tile
         nm.useAt(player, map, enemies, gx, gy);
@@ -299,6 +377,42 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         addNoiseFlash(gx, gy);
 
         targetingNoiseMaker = false;
+
+        GameState result = TurnManager.processTurn(player, enemies, map, smokes);
+        setGameState(result);
+        updateSmoke();
+        requestFocusInWindow();
+        repaint();
+    }
+
+    private void confirmFlareTarget(int gx, int gy) {
+        // Must be within bounds and on a passable tile
+        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
+            return;
+        if (!map.isPassable(gx, gy))
+            return;
+
+        // Find the Flare in inventory
+        java.util.List<unseen.items.Item> inv = player.getInventory();
+        int idx = -1;
+        unseen.items.Flare flareItem = null;
+        for (int i = 0; i < inv.size(); i++) {
+            if (inv.get(i) instanceof unseen.items.Flare) {
+                idx = i;
+                flareItem = (unseen.items.Flare) inv.get(i);
+                break;
+            }
+        }
+        if (flareItem == null) {
+            targetingFlare = false;
+            repaint();
+            return;
+        }
+
+        flareItem.useAt(player, map, gx, gy);
+        inv.remove(idx);
+
+        targetingFlare = false;
 
         GameState result = TurnManager.processTurn(player, enemies, map, smokes);
         setGameState(result);
@@ -316,8 +430,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     public void run() {
         while (gameThread != null) {
             repaint();
-            try { Thread.sleep(100); }
-            catch (InterruptedException ignored) {}
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {
+            }
         }
     }
 
@@ -337,7 +453,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         int px = player.getX();
         int py = player.getY();
         Item it = map.getItem(px, py);
-        if (it == null) return false;
+        if (it == null)
+            return false;
 
         player.addItem(it);
         map.removeItem(px, py);
@@ -357,8 +474,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         drawMap(g);
         drawEntities(g);
+        drawFlares(g);
         drawNoiseFlashes(g);
-        if (targetingNoiseMaker) drawTargetingOverlay(g);
+        if (targetingNoiseMaker || targetingFlare)
+            drawTargetingOverlay(g);
 
         if (state == GameState.WIN) {
             // Dim overlay
@@ -433,11 +552,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         // Always draw inventory bar
         drawInventory(g);
     }
+
     // Draw the player's inventory at the top of the screen
     private void drawInventory(Graphics g) {
         int boxSize = 44;
         int spacing = 12;
-        int slots = 2;
+        int slots = 3;
         int barWidth = slots * (boxSize + spacing) + 40;
         int barHeight = boxSize + 24;
         int panelWidth = getWidth();
@@ -464,7 +584,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         boolean hasNoiseMaker = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.NoiseMaker);
         if (hasNoiseMaker) {
             if (AssetLoader.get().noiseMaker != null) {
-                g2.drawImage(AssetLoader.get().noiseMaker, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+                g2.drawImage(AssetLoader.get().noiseMaker, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
+                        boxSize - 2 * iconPad, null);
             } else {
                 g2.setColor(new Color(200, 180, 50));
                 g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
@@ -494,7 +615,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         boolean hasSmokeBomb = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.SmokeBomb);
         if (hasSmokeBomb) {
             if (AssetLoader.get().smokeBomb != null) {
-                g2.drawImage(AssetLoader.get().smokeBomb, x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+                g2.drawImage(AssetLoader.get().smokeBomb, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
+                        boxSize - 2 * iconPad, null);
             } else {
                 g2.setColor(new Color(180, 180, 180));
                 g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
@@ -510,6 +632,38 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
         g2.drawString("2", x + boxSize - 13, y + boxSize - 6);
+        x += boxSize + spacing;
+
+        // Draw Flare slot
+        g2.setColor(new Color(255, 200, 200, 180));
+        g2.setStroke(new java.awt.BasicStroke(3f));
+        g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
+        g2.setColor(new Color(70, 70, 70, 220));
+        g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
+        g2.setColor(new Color(180, 180, 180));
+        g2.setStroke(new java.awt.BasicStroke(2f));
+        g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
+        // Only show Flare if in inventory
+        boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.Flare);
+        if (hasFlare) {
+            if (AssetLoader.get().flare != null) {
+                g2.drawImage(AssetLoader.get().flare, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
+                        boxSize - 2 * iconPad, null);
+            } else {
+                g2.setColor(new Color(255, 100, 50));
+                g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
+                g2.setColor(Color.WHITE);
+                g2.drawString("F", x + boxSize / 2 - 4, y + boxSize / 2 + 5);
+            }
+            // Draw small label above icon
+            g2.setFont(new Font("Arial", Font.PLAIN, 10));
+            g2.setColor(new Color(255, 150, 150));
+            int flareLabelWidth = g2.getFontMetrics().stringWidth("Flare");
+            g2.drawString("Flare", x + (boxSize - flareLabelWidth) / 2, y - 6);
+        }
+        g2.setFont(new Font("Arial", Font.PLAIN, 11));
+        g2.setColor(new Color(200, 200, 200, 180));
+        g2.drawString("3", x + boxSize - 13, y + boxSize - 6);
     }
 
     private void drawMap(Graphics g) {
@@ -525,7 +679,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 switch (tile) {
                     case WALL:
                         if (AssetLoader.get().wall != null) {
-                            g2.drawImage(AssetLoader.get().wall, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                            g2.drawImage(AssetLoader.get().wall, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE,
+                                    null);
                         } else {
                             g2.setColor(new Color(90, 90, 90));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
@@ -535,7 +690,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                     case START:
                         if (AssetLoader.get().floor != null) {
                             // Deterministic flip variant per tile so the floor isn't repetitive.
-                            // variant bits: bit0 = flipH, bit1 = flipV  →  0=normal,1=H,2=V,3=HV
+                            // variant bits: bit0 = flipH, bit1 = flipV → 0=normal,1=H,2=V,3=HV
                             int variant = (x * 31 + y * 17) & 3;
                             int ts = Constants.TILE_SIZE;
                             java.awt.geom.AffineTransform saved = g2.getTransform();
@@ -560,7 +715,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                         break;
                     case TORCH:
                         if (AssetLoader.get().torch != null) {
-                            g2.drawImage(AssetLoader.get().torch, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                            g2.drawImage(AssetLoader.get().torch, drawX, drawY, Constants.TILE_SIZE,
+                                    Constants.TILE_SIZE, null);
                         } else {
                             g2.setColor(new Color(255, 140, 0));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
@@ -571,8 +727,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                         g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         break;
                     default:
-if (AssetLoader.get().floor != null) {
-                            g2.drawImage(AssetLoader.get().floor, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        if (AssetLoader.get().floor != null) {
+                            g2.drawImage(AssetLoader.get().floor, drawX, drawY, Constants.TILE_SIZE,
+                                    Constants.TILE_SIZE, null);
                         } else {
                             g2.setColor(new Color(170, 170, 170));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
@@ -590,9 +747,11 @@ if (AssetLoader.get().floor != null) {
                     int ty = y * Constants.TILE_SIZE;
                     int iconPad = 6;
                     if (ground instanceof NoiseMaker && AssetLoader.get().noiseMaker != null) {
-                        g2.drawImage(AssetLoader.get().noiseMaker, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                        g2.drawImage(AssetLoader.get().noiseMaker, tx + iconPad, ty + iconPad,
+                                Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                     } else if (ground instanceof SmokeBomb && AssetLoader.get().smokeBomb != null) {
-                        g2.drawImage(AssetLoader.get().smokeBomb, tx + iconPad, ty + iconPad, Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                        g2.drawImage(AssetLoader.get().smokeBomb, tx + iconPad, ty + iconPad,
+                                Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                     }
                     // If image is missing, do not draw anything for the item.
                 }
@@ -607,10 +766,10 @@ if (AssetLoader.get().floor != null) {
             int cx = smoke.getX() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
             int cy = smoke.getY() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
             // pixel radius covers all tiles within smoke.getRadius() grid tiles
-            int pr = (int)((smoke.getRadius() + 0.5f) * Constants.TILE_SIZE);
+            int pr = (int) ((smoke.getRadius() + 0.5f) * Constants.TILE_SIZE);
             // gentle alpha pulse between 120 and 170
-            float pulse = (float)(0.5 + 0.5 * Math.sin(smokeNow / 450.0));
-            int alpha = (int)(120 + 50 * pulse);
+            float pulse = (float) (0.5 + 0.5 * Math.sin(smokeNow / 450.0));
+            int alpha = (int) (120 + 50 * pulse);
             // filled grey-green circle
             g2.setColor(new Color(100, 130, 100, alpha));
             g2.fillOval(cx - pr, cy - pr, pr * 2, pr * 2);
@@ -631,12 +790,12 @@ if (AssetLoader.get().floor != null) {
                             x * Constants.TILE_SIZE,
                             y * Constants.TILE_SIZE,
                             Constants.TILE_SIZE,
-                            Constants.TILE_SIZE
-                    );
+                            Constants.TILE_SIZE);
                 }
             }
         }
     }
+
     private void drawEntities(Graphics g) {
 
         Graphics2D g2 = (Graphics2D) g;
@@ -669,8 +828,7 @@ if (AssetLoader.get().floor != null) {
                         player.getX() * Constants.TILE_SIZE,
                         player.getY() * Constants.TILE_SIZE,
                         Constants.TILE_SIZE,
-                        Constants.TILE_SIZE
-                );
+                        Constants.TILE_SIZE);
             }
         }
 
@@ -686,7 +844,7 @@ if (AssetLoader.get().floor != null) {
                 if (img != null) {
                     int ts = Constants.TILE_SIZE;
                     int spriteSize = (e instanceof unseen.entities.PatrolEnemy)
-                            ? (int) (ts * 0.75)   // patrol is 75% of tile size
+                            ? (int) (ts * 0.75) // patrol is 75% of tile size
                             : ts;
                     int offset = (ts - spriteSize) / 2;
                     int drawX = ex * ts + offset;
@@ -698,8 +856,7 @@ if (AssetLoader.get().floor != null) {
                             ex * Constants.TILE_SIZE,
                             ey * Constants.TILE_SIZE,
                             Constants.TILE_SIZE,
-                            Constants.TILE_SIZE
-                    );
+                            Constants.TILE_SIZE);
                 }
 
                 // After drawing the enemy sprite (still inside visible[ey][ex] block)
@@ -714,7 +871,8 @@ if (AssetLoader.get().floor != null) {
                         int badgeY = ey * tileSize - (size / 2); // above the tile
 
                         // Clamp so badge doesn't draw off-screen
-                        if (badgeY < 2) badgeY = 2;
+                        if (badgeY < 2)
+                            badgeY = 2;
 
                         // Background circle (red)
                         g2.setColor(new Color(200, 40, 40, 220));
@@ -744,14 +902,13 @@ if (AssetLoader.get().floor != null) {
                 }
 
                 // Draw arrow only when:
-                //  - enemy is currently CHASE
-                //  - enemy actually has line-of-sight to the player right now
-// Draw faint dotted path preview
+                // - enemy is currently CHASE
+                // - enemy actually has line-of-sight to the player right now
+                // Draw faint dotted path preview
                 if (e.getState() == Enemy.State.CHASE
                         && e.hasLineOfSightToPlayer(map, player, smokes)) {
 
-                    java.util.List<unseen.ai.Node> path =
-                            e.getPlannedPath(map, player);
+                    java.util.List<unseen.ai.Node> path = e.getPlannedPath(map, player);
 
                     if (path != null && path.size() > 1) {
 
@@ -785,13 +942,52 @@ if (AssetLoader.get().floor != null) {
     }
 
     /**
+     * Draw glowing auras around each active Flare.
+     */
+    private void drawFlares(Graphics g) {
+        if (flares.isEmpty())
+            return;
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        long now = System.currentTimeMillis();
+        int ts = Constants.TILE_SIZE;
+        for (unseen.game.ActiveFlare f : flares) {
+            // Only draw if within player FOV/visible
+            if (!visible[f.getY()][f.getX()])
+                continue;
+
+            int cx = f.getX() * ts + ts / 2;
+            int cy = f.getY() * ts + ts / 2;
+
+            // Small "flare" core on the ground
+            g2.setColor(new Color(255, 100, 100)); // Red flare
+            g2.fillRoundRect(cx - 6, cy - 2, 12, 4, 2, 2);
+            g2.setColor(Color.WHITE);
+            g2.fillRoundRect(cx - 3, cy - 1, 6, 2, 1, 1);
+
+            // Pulsing light aura
+            float pulse = (float) (0.5 + 0.5 * Math.sin(now / 150.0)); // fast flicker
+            int alpha = (int) (80 + 30 * pulse);
+            int r = (int) (ts * 0.8f);
+
+            g2.setColor(new Color(255, 120, 100, alpha));
+            g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+
+            r = (int) (ts * 1.5f);
+            g2.setColor(new Color(255, 80, 80, alpha / 3));
+            g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+        }
+    }
+
+    /**
      * Draw expanding ripple rings at each active NoiseMaker flash position.
      * Two concentric orange/yellow rings radiate outward and fade over the
      * flash's lifetime. Drawn on top of everything so the player always sees
      * where the decoy was placed.
      */
     private void drawNoiseFlashes(Graphics g) {
-        if (noiseFlashes.isEmpty()) return;
+        if (noiseFlashes.isEmpty())
+            return;
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         java.awt.Stroke saved = g2.getStroke();
@@ -803,16 +999,16 @@ if (AssetLoader.get().floor != null) {
             // Base alpha decreases as the flash ages (countdown 4 → 1)
             int baseAlpha = f.countdown * 55; // 220, 165, 110, 55
             // Ring 1: inner ring, period 600 ms
-            float t1 = (float)((now % 600) / 600.0);
-            int r1 = ts / 4 + (int)(ts * 0.9f * t1);
-            int a1 = Math.min(255, (int)(baseAlpha * (1.0f - t1 * 0.5f)));
+            float t1 = (float) ((now % 600) / 600.0);
+            int r1 = ts / 4 + (int) (ts * 0.9f * t1);
+            int a1 = Math.min(255, (int) (baseAlpha * (1.0f - t1 * 0.5f)));
             g2.setColor(new Color(255, 210, 50, a1));
             g2.setStroke(new BasicStroke(3f));
             g2.drawOval(cx - r1, cy - r1, r1 * 2, r1 * 2);
             // Ring 2: outer ring, 200 ms behind ring 1
-            float t2 = (float)(((now + 200) % 600) / 600.0);
-            int r2 = ts / 4 + (int)(ts * 0.9f * t2);
-            int a2 = Math.min(255, (int)(baseAlpha * (1.0f - t2 * 0.5f)));
+            float t2 = (float) (((now + 200) % 600) / 600.0);
+            int r2 = ts / 4 + (int) (ts * 0.9f * t2);
+            int a2 = Math.min(255, (int) (baseAlpha * (1.0f - t2 * 0.5f)));
             g2.setColor(new Color(255, 130, 20, a2));
             g2.setStroke(new BasicStroke(2f));
             g2.drawOval(cx - r2, cy - r2, r2 * 2, r2 * 2);
@@ -820,7 +1016,10 @@ if (AssetLoader.get().floor != null) {
         g2.setStroke(saved);
     }
 
-    /** Draws the NoiseMaker targeting overlay: dim, highlighted hover tile, and instructions. */
+    /**
+     * Draws the NoiseMaker targeting overlay: dim, highlighted hover tile, and
+     * instructions.
+     */
     private void drawTargetingOverlay(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -839,18 +1038,33 @@ if (AssetLoader.get().floor != null) {
         int ty = mouseGridY * ts;
 
         if (validTile) {
-            g2.setColor(new Color(255, 200, 50, 130));
-            g2.fillRect(tx, ty, ts, ts);
-            g2.setColor(new Color(255, 220, 80, 220));
-            g2.setStroke(new BasicStroke(2.5f));
-            g2.drawRect(tx, ty, ts, ts);
+            if (targetingFlare) {
+                g2.setColor(new Color(255, 100, 100, 130));
+                g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(255, 150, 150, 220));
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRect(tx, ty, ts, ts);
 
-            // Crosshair lines
-            int cx = tx + ts / 2, cy = ty + ts / 2;
-            g2.setColor(new Color(255, 220, 80, 200));
-            g2.setStroke(new BasicStroke(1.5f));
-            g2.drawLine(cx - ts / 2, cy, cx + ts / 2, cy);
-            g2.drawLine(cx, cy - ts / 2, cx, cy + ts / 2);
+                // Crosshair lines
+                int cx = tx + ts / 2, cy = ty + ts / 2;
+                g2.setColor(new Color(255, 150, 150, 200));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawLine(cx - ts / 2, cy, cx + ts / 2, cy);
+                g2.drawLine(cx, cy - ts / 2, cx, cy + ts / 2);
+            } else {
+                g2.setColor(new Color(255, 200, 50, 130));
+                g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(255, 220, 80, 220));
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRect(tx, ty, ts, ts);
+
+                // Crosshair lines
+                int cx = tx + ts / 2, cy = ty + ts / 2;
+                g2.setColor(new Color(255, 220, 80, 200));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawLine(cx - ts / 2, cy, cx + ts / 2, cy);
+                g2.drawLine(cx, cy - ts / 2, cx, cy + ts / 2);
+            }
         } else if (mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT) {
             // Invalid tile — red tint
@@ -862,8 +1076,9 @@ if (AssetLoader.get().floor != null) {
         }
 
         // Instruction banner at the bottom
-        String msg = validTile ? "Click to throw noise  |  Esc to cancel"
-                               : "Invalid tile  |  Esc to cancel";
+        String actionName = targetingFlare ? "flare" : "noise";
+        String msg = validTile ? "Click to throw " + actionName + "  |  Esc to cancel"
+                : "Invalid tile  |  Esc to cancel";
         g2.setFont(new Font("Arial", Font.BOLD, 16));
         FontMetrics fm = g2.getFontMetrics();
         int msgW = fm.stringWidth(msg);
@@ -871,11 +1086,28 @@ if (AssetLoader.get().floor != null) {
         int by = getHeight() - 42;
         g2.setColor(new Color(20, 20, 20, 190));
         g2.fillRoundRect(bx, by, msgW + 24, 28, 10, 10);
-        g2.setColor(validTile ? new Color(255, 220, 80) : new Color(220, 100, 100));
+
+        // Colors for valid tile
+        Color validColor;
+        if (targetingFlare) {
+            validColor = new Color(255, 100, 100);
+        } else {
+            validColor = new Color(255, 220, 80);
+        }
+
+        g2.setColor(validTile ? validColor : new Color(220, 100, 100));
         g2.drawString(msg, bx + 12, by + 20);
     }
 
-    public Player getPlayer() { return player; }
-    public Map getMap() { return map; }
-    public List<Smoke> getSmokes() { return smokes; }
+    public Player getPlayer() {
+        return player;
+    }
+
+    public Map getMap() {
+        return map;
+    }
+
+    public List<Smoke> getSmokes() {
+        return smokes;
+    }
 }

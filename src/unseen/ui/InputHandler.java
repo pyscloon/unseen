@@ -38,7 +38,7 @@ public class InputHandler extends KeyAdapter {
 
         // Escape: cancel targeting or toggle pause
         if (key == KeyEvent.VK_ESCAPE) {
-            if (panel.isTargetingNoiseMaker()) {
+            if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare()) {
                 panel.cancelTargeting();
             } else if (panel.getGameState() == GameState.PLAYING) {
                 panel.pauseGame();
@@ -58,10 +58,11 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        if (panel.getGameState() != GameState.PLAYING) return;
+        if (panel.getGameState() != GameState.PLAYING)
+            return;
 
         // Any key while targeting (other than Escape/P above) also cancels
-        if (panel.isTargetingNoiseMaker()) {
+        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare()) {
             panel.cancelTargeting();
             return;
         }
@@ -73,11 +74,21 @@ public class InputHandler extends KeyAdapter {
         int y = player.getY();
         boolean moved = false;
 
-        // Item usage — find items by type so slot order doesn't matter after consumption
+        // Item usage — find items by type so slot order doesn't matter after
+        // consumption
         if (key == KeyEvent.VK_1) {
             // Enter targeting mode: the player clicks where the noise should land
             boolean hasNoise = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
-            if (hasNoise) panel.enterNoiseMakerTargeting();
+            if (hasNoise)
+                panel.enterNoiseMakerTargeting();
+            return;
+        }
+
+        if (key == KeyEvent.VK_3) {
+            // Enter targeting mode: the player clicks where the flare should land
+            boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.Flare);
+            if (hasFlare)
+                panel.enterFlareTargeting();
             return;
         }
 
@@ -85,11 +96,15 @@ public class InputHandler extends KeyAdapter {
             List<Item> inv = player.getInventory();
             int idx = -1;
             for (int i = 0; i < inv.size(); i++) {
-                if (inv.get(i) instanceof SmokeBomb) { idx = i; break; }
+                if (inv.get(i) instanceof SmokeBomb) {
+                    idx = i;
+                    break;
+                }
             }
             if (idx >= 0) {
                 player.useItem(idx, map, panel.getEnemies());
-                GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(), panel.getSmokes());
+                GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(),
+                        panel.getSmokes());
                 panel.setGameState(result);
                 panel.updateSmoke();
             }
@@ -107,8 +122,14 @@ public class InputHandler extends KeyAdapter {
 
         // Movement
         switch (key) {
-            case KeyEvent.VK_W: y--; moved = true; break;
-            case KeyEvent.VK_S: y++; moved = true; break;
+            case KeyEvent.VK_W:
+                y--;
+                moved = true;
+                break;
+            case KeyEvent.VK_S:
+                y++;
+                moved = true;
+                break;
             case KeyEvent.VK_A:
                 if (x > 0 && map.isPassable(x - 1, y)) {
                     x--;
@@ -131,20 +152,22 @@ public class InputHandler extends KeyAdapter {
                     return;
                 }
                 break;
-            default: return;
+            default:
+                return;
         }
 
         if (moved && map.isPassable(x, y)) {
             // Set facing based on movement
-            if (x < player.getX()) player.setFacing(Player.Facing.LEFT);
-            else if (x > player.getX()) player.setFacing(Player.Facing.RIGHT);
+            if (x < player.getX())
+                player.setFacing(Player.Facing.LEFT);
+            else if (x > player.getX())
+                player.setFacing(Player.Facing.RIGHT);
             player.setPosition(x, y);
             GameState result = TurnManager.processTurn(
-                player,
-                panel.getEnemies(),
-                panel.getMap(),
-                panel.getSmokes()
-            );
+                    player,
+                    panel.getEnemies(),
+                    panel.getMap(),
+                    panel.getSmokes());
             panel.setGameState(result);
             panel.updateSmoke();
         }
