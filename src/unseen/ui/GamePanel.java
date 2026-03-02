@@ -135,15 +135,42 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
      * Does NOT touch the player or call updateVisibility — caller must do that.
      */
     private void buildFloor() {
-        map = MapGenerator.generate(); // also updates Constants.START_X/Y
-        ExitPlacer.placeExit(map);
+        AStar pathfinder = new AStar();
+        boolean validMap = false;
+
+        while (!validMap) {
+            map = MapGenerator.generate(); // also updates Constants.START_X/Y
+            ExitPlacer.placeExit(map);
+
+            // Find the exit coordinates for validation
+            int exitX = -1;
+            int exitY = -1;
+            for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+                for (int x = 0; x < Constants.GRID_WIDTH; x++) {
+                    if (map.getTile(x, y) == Tile.EXIT) {
+                        exitX = x;
+                        exitY = y;
+                        break;
+                    }
+                }
+                if (exitX != -1)
+                    break;
+            }
+
+            // Map validation: run A* to ensure a path exists from start to exit
+            if (pathfinder.findPath(map, Constants.START_X, Constants.START_Y, exitX, exitY) != null) {
+                validMap = true;
+            } else {
+                System.out.println("Generated invalid map (no path to exit), regenerating...");
+            }
+        }
+
         visible = new boolean[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         smokes.clear();
         flares.clear();
         enemies = new ArrayList<>();
 
         Random rand = new Random();
-        AStar pathfinder = new AStar();
         int minDist = 6;
         List<int[]> placed = new ArrayList<>();
         // Scale enemy count with floor: floor 1 = 3, +1 per floor, cap at 8
