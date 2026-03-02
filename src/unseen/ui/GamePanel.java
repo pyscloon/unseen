@@ -1,22 +1,29 @@
 package unseen.ui;
 
-import javax.swing.JPanel;
+import unseen.ai.AStar;
+import unseen.ai.LineOfSight;
+import unseen.ai.PathValidator;
+import unseen.entities.*;
+import unseen.game.GameState;
+import unseen.game.Smoke;
+import unseen.game.SmokeSpawner;
+import unseen.game.TurnManager;
+import unseen.items.Flare;
+import unseen.items.Item;
+import unseen.items.NoiseMaker;
+import unseen.items.SmokeBomb;
+import unseen.map.ExitPlacer;
+import unseen.map.Map;
+import unseen.map.MapGenerator;
+import unseen.map.Tile;
+import unseen.utils.AssetLoader;
+import unseen.utils.Constants;
+
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import unseen.map.*;
-import unseen.entities.*;
-import unseen.utils.Constants;
-import unseen.game.GameState;
-import unseen.ai.AStar;
-import unseen.ai.LineOfSight;
-import unseen.game.TurnManager;
-import unseen.game.SmokeSpawner;
-import unseen.items.*;
-import unseen.game.Smoke;
-import unseen.utils.AssetLoader;
 
 public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
@@ -136,8 +143,16 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
      * Does NOT touch the player or call updateVisibility — caller must do that.
      */
     private void buildFloor() {
-        map = MapGenerator.generate(); // also updates Constants.START_X/Y
-        ExitPlacer.placeExit(map);
+
+        PathValidator validator = new PathValidator();
+
+        // Keep generating until valid
+        do {
+            map = MapGenerator.generate(); // also updates Constants.START_X/Y
+            ExitPlacer.placeExit(map);
+        }
+        while (!validator.isValid(map));
+
         visible = new boolean[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         lightLevel = new float[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         smokes.clear();
@@ -148,35 +163,56 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         AStar pathfinder = new AStar();
         int minDist = 6;
         List<int[]> placed = new ArrayList<>();
+
         // Scale enemy count with floor: floor 1 = 3, +1 per floor, cap at 8
         int extraEnemies = Math.min(floorNumber - 1, 5);
-        List<String> typeList = new java.util.ArrayList<>(java.util.Arrays.asList("patrol", "hunter", "sentry"));
+
+        List<String> typeList =
+                new ArrayList<>(java.util.Arrays.asList("patrol", "hunter", "sentry"));
+
         for (int i = 0; i < extraEnemies; i++) {
             typeList.add(i % 2 == 0 ? "patrol" : "hunter");
         }
+
         for (String type : typeList) {
-            int ex = Constants.START_X, ey = Constants.START_Y;
+
+            int ex = Constants.START_X;
+            int ey = Constants.START_Y;
+
             for (int attempt = 0; attempt < 500; attempt++) {
+
                 int cx = 1 + rand.nextInt(Constants.GRID_WIDTH - 2);
                 int cy = 1 + rand.nextInt(Constants.GRID_HEIGHT - 2);
-                int dist = Math.abs(cx - Constants.START_X) + Math.abs(cy - Constants.START_Y);
-                if (map.getTile(cx, cy) == unseen.map.Tile.FLOOR && dist >= minDist) {
-                    boolean overlap = placed.stream().anyMatch(p -> p[0] == cx && p[1] == cy);
+
+                int dist =
+                        Math.abs(cx - Constants.START_X)
+                                + Math.abs(cy - Constants.START_Y);
+
+                if (map.getTile(cx, cy) == unseen.map.Tile.FLOOR
+                        && dist >= minDist) {
+
+                    boolean overlap =
+                            placed.stream().anyMatch(p -> p[0] == cx && p[1] == cy);
+
                     if (!overlap) {
                         ex = cx;
                         ey = cy;
-                        placed.add(new int[] { cx, cy });
+                        placed.add(new int[]{cx, cy});
                         break;
                     }
                 }
             }
+
             switch (type) {
+
                 case "patrol":
                     enemies.add(new PatrolEnemy(ex, ey, pathfinder));
                     break;
+
                 case "hunter":
                     enemies.add(new HunterEnemy(ex, ey, pathfinder));
                     break;
+
                 case "sentry":
                     enemies.add(new SentryEnemy(ex, ey, pathfinder));
                     break;
