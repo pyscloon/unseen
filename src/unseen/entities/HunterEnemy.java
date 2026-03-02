@@ -13,9 +13,10 @@ public class HunterEnemy extends Enemy {
         super(x, y, Constants.HUNTER_DETECTION_RANGE, pathfinder);
         this.type = EnemyType.HUNTER;
         AssetLoader assets = AssetLoader.get();
-        upImage    = assets.enemyUp;
-        downImage  = assets.enemyDown;
-        leftImage  = assets.enemyLeft;
+        upImage = assets.enemyUp;
+        // Use enemyBase (enemy.png) when facing down so it faces the camera by default
+        downImage = assets.enemyBase;
+        leftImage = assets.enemyLeft;
         rightImage = assets.enemyRight;
         enemyImage = assets.enemyBase;
     }
@@ -45,11 +46,16 @@ public class HunterEnemy extends Enemy {
         List<Node> path = pathfinder.findPath(map, x, y, lastKnownX, lastKnownY);
         if (path != null && path.size() > 1) {
             Node next = path.get(1);
-            if (isTileOccupied(next.x, next.y, allEnemies)) return; // blocked by another enemy
-            if      (next.x > x) setDirection(Direction.RIGHT);
-            else if (next.x < x) setDirection(Direction.LEFT);
-            else if (next.y > y) setDirection(Direction.DOWN);
-            else if (next.y < y) setDirection(Direction.UP);
+            if (isTileOccupied(next.x, next.y, allEnemies))
+                return; // blocked by another enemy
+            if (next.x > x)
+                setDirection(Direction.RIGHT);
+            else if (next.x < x)
+                setDirection(Direction.LEFT);
+            else if (next.y > y)
+                setDirection(Direction.DOWN);
+            else if (next.y < y)
+                setDirection(Direction.UP);
             x = next.x;
             y = next.y;
         } else {
