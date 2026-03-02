@@ -58,6 +58,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private Player player;
     private List<Enemy> enemies;
     private boolean[][] visible;
+    private float[][] lightLevel;
     private List<Smoke> smokes = new ArrayList<>();
     private List<FlashEffect> noiseFlashes = new ArrayList<>();
     private List<unseen.game.ActiveFlare> flares = new ArrayList<>();
@@ -138,6 +139,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         map = MapGenerator.generate(); // also updates Constants.START_X/Y
         ExitPlacer.placeExit(map);
         visible = new boolean[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
+        lightLevel = new float[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         smokes.clear();
         flares.clear();
         enemies = new ArrayList<>();
@@ -218,6 +220,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 visible[y][x] = false;
+                lightLevel[y][x] = 0.0f;
             }
         }
 
@@ -230,6 +233,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
                 if (LineOfSight.hasLineOfSight(map, px, py, x, y, 6, smokes)) {
                     visible[y][x] = true;
+                    double dist = Math.hypot(px - x, py - y);
+                    float light = (float) Math.max(0, 1.0 - (dist / 6.0));
+                    lightLevel[y][x] = Math.max(lightLevel[y][x], light);
                 }
             }
         }
@@ -246,6 +252,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
                             if (LineOfSight.hasLineOfSight(map, x, y, tx2, ty2, TORCH_RANGE)) {
                                 visible[ty2][tx2] = true;
+                                double dist = Math.hypot(x - tx2, y - ty2);
+                                float light = (float) Math.max(0, 1.0 - (dist / TORCH_RANGE));
+                                lightLevel[ty2][tx2] = Math.max(lightLevel[ty2][tx2], light);
                             }
                         }
                     }
@@ -262,6 +271,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
                     if (LineOfSight.hasLineOfSight(map, cx, cy, tx2, ty2, fr)) {
                         visible[ty2][tx2] = true;
+                        double dist = Math.hypot(cx - tx2, cy - ty2);
+                        float light = (float) Math.max(0, 1.0 - (dist / fr));
+                        lightLevel[ty2][tx2] = Math.max(lightLevel[ty2][tx2], light);
                     }
                 }
             }
@@ -789,7 +801,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
         g2.setStroke(savedStroke);
 
-        // 4) overlay fog (darkening) for non-visible tiles
+        // 4) overlay fog (darkening) for tiles
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 if (!visible[y][x]) {
@@ -799,6 +811,18 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                             y * Constants.TILE_SIZE,
                             Constants.TILE_SIZE,
                             Constants.TILE_SIZE);
+                } else {
+                    float light = lightLevel[y][x];
+                    int alpha = (int) ((1.0f - light) * 200);
+                    alpha = Math.max(0, Math.min(200, alpha));
+                    if (alpha > 0) {
+                        g2.setColor(new Color(0, 0, 0, alpha));
+                        g2.fillRect(
+                                x * Constants.TILE_SIZE,
+                                y * Constants.TILE_SIZE,
+                                Constants.TILE_SIZE,
+                                Constants.TILE_SIZE);
+                    }
                 }
             }
         }
