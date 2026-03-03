@@ -15,6 +15,9 @@ public class Player extends Entity {
     public enum Facing { LEFT, RIGHT }
     private Facing facing = Facing.RIGHT;
 
+    /** Turns remaining where the player is stuck in a sticky trap. */
+    private int trappedTurns = 0;
+
     /** Narrow interface — Player no longer depends on GamePanel directly. */
     private SmokeSpawner smokeSpawner;
 
@@ -45,4 +48,8 @@ public class Player extends Entity {
 
     public void setSmokeSpawner(SmokeSpawner spawner) { this.smokeSpawner = spawner; }
     public SmokeSpawner getSmokeSpawner() { return smokeSpawner; }
+
+    public boolean isTrapped() { return trappedTurns > 0; }
+    public void setTrapped(int turns) { this.trappedTurns = turns; }
+    public void decrementTrapped() { if (trappedTurns > 0) trappedTurns--; }
 }

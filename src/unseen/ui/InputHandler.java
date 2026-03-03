@@ -120,6 +120,16 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
+        // If the player is stuck in a sticky trap, this move is spent escaping
+        if (isMovementKey(key) && player.isTrapped()) {
+            player.decrementTrapped();
+            GameState result = TurnManager.processTurn(player, panel.getEnemies(), panel.getMap(),
+                    panel.getSmokes());
+            panel.setGameState(result);
+            panel.updateSmoke();
+            return;
+        }
+
         // Movement
         switch (key) {
             case KeyEvent.VK_W:
@@ -163,6 +173,18 @@ public class InputHandler extends KeyAdapter {
             else if (x > player.getX())
                 player.setFacing(Player.Facing.RIGHT);
             player.setPosition(x, y);
+
+            // Check if the player stepped onto a sticky trap
+            final int movedX = x;
+            final int movedY = y;
+            panel.getTraps().removeIf(trap -> {
+                if (trap.getX() == movedX && trap.getY() == movedY) {
+                    player.setTrapped(1);
+                    return true;
+                }
+                return false;
+            });
+
             GameState result = TurnManager.processTurn(
                     player,
                     panel.getEnemies(),
@@ -171,5 +193,11 @@ public class InputHandler extends KeyAdapter {
             panel.setGameState(result);
             panel.updateSmoke();
         }
+    }
+
+    /** Returns true if the key is a directional movement key. */
+    private static boolean isMovementKey(int key) {
+        return key == KeyEvent.VK_W || key == KeyEvent.VK_S
+                || key == KeyEvent.VK_A || key == KeyEvent.VK_D;
     }
 }

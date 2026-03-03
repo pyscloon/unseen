@@ -109,6 +109,18 @@ public class GameRenderer {
             g.fillRoundRect(rx - 6, 10, lw + 12, 26, 8, 8);
             g.setColor(new Color(255, 220, 100));
             g.drawString(floorLabel, rx, 28);
+
+            // "TRAPPED!" indicator when the player is stuck in a sticky trap
+            if (levelManager.getPlayer().isTrapped()) {
+                String trapLabel = "TRAPPED!";
+                g.setFont(new Font("Arial", Font.BOLD, 18));
+                int tw = g.getFontMetrics().stringWidth(trapLabel);
+                int tx = (panel.getWidth() - tw) / 2;
+                g.setColor(new Color(0, 0, 0, 160));
+                g.fillRoundRect(tx - 8, panel.getHeight() - 48, tw + 16, 28, 8, 8);
+                g.setColor(new Color(220, 80, 20));
+                g.drawString(trapLabel, tx, panel.getHeight() - 28);
+            }
         }
 
         // Always draw inventory bar
@@ -332,8 +344,26 @@ public class GameRenderer {
             }
         }
 
-        // 3) draw smoke clouds as semi-transparent filled circles with a gentle pulse
+        // 3) draw sticky traps as brown X marks
         java.awt.Stroke savedStroke = g2.getStroke();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        int ts = Constants.TILE_SIZE;
+        for (unseen.game.StickyTrap trap : levelManager.getTraps()) {
+            int tx = trap.getX();
+            int ty = trap.getY();
+            if (!visible[ty][tx]) continue;
+            int drawX = tx * ts;
+            int drawY = ty * ts;
+            int pad = ts / 5;
+            g2.setColor(new Color(139, 80, 20, 210));
+            g2.drawLine(drawX + pad, drawY + pad, drawX + ts - pad, drawY + ts - pad);
+            g2.drawLine(drawX + ts - pad, drawY + pad, drawX + pad, drawY + ts - pad);
+        }
+        g2.setStroke(savedStroke);
+
+        // 4) draw smoke clouds as semi-transparent filled circles with a gentle pulse
+        savedStroke = g2.getStroke();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         long smokeNow = System.currentTimeMillis();
         for (Smoke smoke : smokes) {
@@ -355,7 +385,7 @@ public class GameRenderer {
         }
         g2.setStroke(savedStroke);
 
-        // 4) overlay fog (darkening) for tiles
+        // 5) overlay fog (darkening) for tiles
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 if (!visible[y][x]) {
