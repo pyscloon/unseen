@@ -3,15 +3,26 @@ package unseen.entities;
 import java.util.List;
 import unseen.ai.Node;
 import unseen.ai.Pathfinder;
+import unseen.game.StickyTrap;
 import unseen.map.Map;
 import unseen.utils.AssetLoader;
 import unseen.utils.Constants;
 
 public class HunterEnemy extends Enemy {
 
+    /** Traps list shared with LevelManager; null when floor ≤ 5. */
+    private List<StickyTrap> traps;
+    /** Cooldown (in turns) before the hunter can drop another trap. */
+    private int trapCooldown = 0;
+
     public HunterEnemy(int x, int y, Pathfinder pathfinder) {
+        this(x, y, pathfinder, null);
+    }
+
+    public HunterEnemy(int x, int y, Pathfinder pathfinder, List<StickyTrap> traps) {
         super(x, y, Constants.HUNTER_DETECTION_RANGE, pathfinder);
         this.type = EnemyType.HUNTER;
+        this.traps = traps;
         AssetLoader assets = AssetLoader.get();
         upImage = assets.enemyUp;
         // Use enemyBase (enemy.png) when facing down so it faces the camera by default
@@ -48,6 +59,21 @@ public class HunterEnemy extends Enemy {
             Node next = path.get(1);
             if (isTileOccupied(next.x, next.y, allEnemies))
                 return; // blocked by another enemy
+
+            // Drop a sticky trap on the tile the hunter is leaving (floor > 5)
+            if (traps != null) {
+                if (trapCooldown > 0) {
+                    trapCooldown--;
+                } else {
+                    boolean alreadyTrapped = traps.stream()
+                            .anyMatch(t -> t.getX() == x && t.getY() == y);
+                    if (!alreadyTrapped) {
+                        traps.add(new StickyTrap(x, y));
+                        trapCooldown = 3;
+                    }
+                }
+            }
+
             if (next.x > x)
                 setDirection(Direction.RIGHT);
             else if (next.x < x)

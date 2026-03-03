@@ -39,6 +39,7 @@ public class LevelManager implements SmokeSpawner {
     private List<Smoke> smokes = new ArrayList<>();
     private List<FlashEffect> noiseFlashes = new ArrayList<>();
     private List<ActiveFlare> flares = new ArrayList<>();
+    private List<unseen.game.StickyTrap> traps = new ArrayList<>();
     private int floorNumber = 1;
 
     // -------------------------------------------------------------------------
@@ -60,6 +61,8 @@ public class LevelManager implements SmokeSpawner {
     public List<FlashEffect> getNoiseFlashes() { return noiseFlashes; }
 
     public List<ActiveFlare> getFlares() { return flares; }
+
+    public List<unseen.game.StickyTrap> getTraps() { return traps; }
 
     public int getFloorNumber() { return floorNumber; }
 
@@ -86,6 +89,7 @@ public class LevelManager implements SmokeSpawner {
         lightLevel = new float[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         smokes.clear();
         flares.clear();
+        traps.clear();
         enemies = new ArrayList<>();
 
         Random rand = new Random();
@@ -139,7 +143,8 @@ public class LevelManager implements SmokeSpawner {
                     break;
 
                 case "hunter":
-                    enemies.add(new HunterEnemy(ex, ey, pathfinder));
+                    enemies.add(new HunterEnemy(ex, ey, pathfinder,
+                            floorNumber > 5 ? traps : null));
                     break;
 
                 case "sentry":

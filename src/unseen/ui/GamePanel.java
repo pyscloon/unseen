@@ -329,6 +329,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         return levelManager.getSmokes();
     }
 
+    public java.util.List<unseen.game.StickyTrap> getTraps() {
+        return levelManager.getTraps();
+    }
+
     public int getMouseGridX() {
         return mouseGridX;
     }
