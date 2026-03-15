@@ -24,6 +24,19 @@ public class InputHandler extends KeyAdapter {
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
 
+        // Main menu controls
+        if (panel.getGameState() == GameState.MENU) {
+            if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
+                panel.startFromMenu();
+                return;
+            }
+            if (key == KeyEvent.VK_ESCAPE || key == KeyEvent.VK_Q) {
+                System.exit(0);
+                return;
+            }
+            return;
+        }
+
         // Retry after death: Press R to restart
         if (panel.getGameState() == GameState.LOSE && key == KeyEvent.VK_R) {
             panel.restartGame();

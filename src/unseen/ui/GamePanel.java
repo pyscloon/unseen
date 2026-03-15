@@ -21,7 +21,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private javax.sound.sampled.Clip backgroundClip;
 
     private Thread gameThread;
-    private GameState state = GameState.PLAYING;
+    private GameState state = GameState.MENU;
 
     // Noise-maker targeting mode
     private boolean targetingNoiseMaker = false;
@@ -63,6 +63,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         levelManager = new LevelManager();
         renderer = new GameRenderer(this, levelManager);
+        // Build a preview floor so the main menu can render an in-game backdrop.
         levelManager.setupGame();
         loadAndPlayBackgroundSound();
     }
@@ -110,6 +111,14 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             backgroundClip.setFramePosition(0);
             backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
         }
+        repaint();
+    }
+
+    /** Starts a new run from the main menu. */
+    public void startFromMenu() {
+        levelManager.setupGame();
+        setGameState(GameState.PLAYING);
+        requestFocusInWindow();
         repaint();
     }
 

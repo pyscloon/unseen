@@ -34,6 +34,11 @@ public class GameRenderer {
 
     /** Entry point called from {@link GamePanel#paintComponent}. */
     public void render(Graphics g) {
+        if (panel.getGameState() == GameState.MENU) {
+            drawMainMenu(g);
+            return;
+        }
+
         drawMap(g);
         drawEntities(g);
         drawFlares(g);
@@ -125,6 +130,176 @@ public class GameRenderer {
 
         // Always draw inventory bar
         drawInventory(g);
+    }
+
+    private void drawMainMenu(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        int w = panel.getWidth();
+        int h = panel.getHeight();
+        long now = System.currentTimeMillis();
+
+        // --- Animated dungeon backdrop with subtle pan ---
+        Graphics2D bg = (Graphics2D) g2.create();
+        double panX = Math.sin(now / 5000.0) * 5.0;
+        double panY = Math.cos(now / 6500.0) * 3.5;
+        double zoom = 1.02 + 0.008 * Math.sin(now / 7200.0);
+        bg.translate(panX - (w * (zoom - 1.0)) / 2.0, panY - (h * (zoom - 1.0)) / 2.0);
+        bg.scale(zoom, zoom);
+        drawMap(bg);
+        drawMenuTorchFlicker(bg, now);
+        bg.dispose();
+
+        // --- Dark vignette: atmospheric overlay, keep dungeon visible ---
+        g2.setColor(new Color(0, 0, 0, 155));
+        g2.fillRect(0, 0, w, h);
+
+        // Radial vignette: corners even darker
+        java.awt.RadialGradientPaint vignette = new java.awt.RadialGradientPaint(
+                w / 2f, h / 2f, Math.max(w, h) * 0.72f,
+                new float[]{0.0f, 1.0f},
+                new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 160)});
+        g2.setPaint(vignette);
+        g2.fillRect(0, 0, w, h);
+
+        // --- Stone card panel (no rounded rect — harsh stone edges) ---
+        int cardW = w - 160;
+        int cardH = h - 230;
+        int cardX = (w - cardW) / 2;
+        int cardY = (h - cardH) / 2;
+
+        // Stone fill: very dark warm grey-brown
+        g2.setColor(new Color(14, 11, 9, 210));
+        g2.fillRect(cardX, cardY, cardW, cardH);
+
+        // Outer border: dim amber — like torchlight catching stone edges
+        g2.setColor(new Color(90, 58, 18, 180));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawRect(cardX, cardY, cardW, cardH);
+
+        // Inner inset border: hairline, darker
+        g2.setColor(new Color(50, 33, 10, 120));
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRect(cardX + 5, cardY + 5, cardW - 10, cardH - 10);
+
+        // Corner stone marks — small filled squares at each corner
+        int cs = 7;
+        g2.setColor(new Color(110, 72, 22, 200));
+        g2.fillRect(cardX - 2,           cardY - 2,           cs, cs);
+        g2.fillRect(cardX + cardW - cs + 2, cardY - 2,        cs, cs);
+        g2.fillRect(cardX - 2,           cardY + cardH - cs + 2, cs, cs);
+        g2.fillRect(cardX + cardW - cs + 2, cardY + cardH - cs + 2, cs, cs);
+
+        // --- Title: UNSEEN ---
+        float pulse = (float) (0.5 + 0.5 * Math.sin(now / 820.0));
+        String title = "UNSEEN";
+        Font titleFont = new Font("Serif", Font.BOLD, 68);
+        g2.setFont(titleFont);
+        int tw = g2.getFontMetrics().stringWidth(title);
+        int titleX = (w - tw) / 2;
+        int titleY = cardY + 115;
+
+        // Deep shadow
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.drawString(title, titleX + 4, titleY + 4);
+
+        // Blood-amber outer glow (pulses)
+        int glowAlpha = 55 + (int) (55 * pulse);
+        g2.setColor(new Color(200, 110, 20, glowAlpha));
+        for (int r = 5; r >= 1; r--) {
+            g2.drawString(title, titleX - r, titleY);
+            g2.drawString(title, titleX + r, titleY);
+            g2.drawString(title, titleX, titleY - r);
+            g2.drawString(title, titleX, titleY + r);
+        }
+
+        // Main title fill: warm amber-gold
+        g2.setColor(new Color(220, 170, 60));
+        g2.drawString(title, titleX, titleY);
+
+        // --- Decorative separator below title ---
+        int sepY = titleY + 18;
+        int sepInset = 60;
+        g2.setColor(new Color(90, 58, 18, 180));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawLine(cardX + sepInset, sepY, cardX + cardW - sepInset, sepY);
+        // Centre diamond
+        int dx = w / 2, dy = sepY;
+        int ds = 5;
+        int[] dpx = {dx, dx + ds, dx, dx - ds};
+        int[] dpy = {dy - ds, dy, dy + ds, dy};
+        g2.setColor(new Color(140, 90, 25, 220));
+        g2.fillPolygon(dpx, dpy, 4);
+
+        // --- Menu options ---
+        int optY = sepY + 52;
+
+        // Start — brighter, amber tone
+        String start = "SPACE  to  Start";
+        g2.setFont(new Font("Serif", Font.BOLD, 22));
+        int sw = g2.getFontMetrics().stringWidth(start);
+        g2.setColor(new Color(0, 0, 0, 130));
+        g2.drawString(start, (w - sw) / 2 + 1, optY + 1);
+        g2.setColor(new Color(210, 175, 90));
+        g2.drawString(start, (w - sw) / 2, optY);
+
+        // Quit — dimmer stone-grey
+        String quit = "Q  to Quit";
+        g2.setFont(new Font("Serif", Font.PLAIN, 18));
+        int qw = g2.getFontMetrics().stringWidth(quit);
+        g2.setColor(new Color(118, 100, 72));
+        g2.drawString(quit, (w - qw) / 2, optY + 38);
+
+        // --- Footer controls ---
+        String hint = "WASD - Move     E - Pick up     1 / 2 / 3 - Items";
+        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
+        int hw = g2.getFontMetrics().stringWidth(hint);
+        // Shadow
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.drawString(hint, (w - hw) / 2 + 1, h - 36);
+        // Bright amber-white so it reads clearly on the dark tile bg
+        g2.setColor(new Color(210, 190, 140));
+        g2.drawString(hint, (w - hw) / 2, h - 37);
+
+        // --- Version label ---
+        String version = "v0.1 Alpha";
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        int vw = g2.getFontMetrics().stringWidth(version);
+        g2.setColor(new Color(150, 135, 100));
+        g2.drawString(version, w - vw - 12, h - 14);
+
+        g2.dispose();
+    }
+
+    private void drawMenuTorchFlicker(Graphics2D g2, long now) {
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        for (int ty = 0; ty < Constants.GRID_HEIGHT; ty++) {
+            for (int tx = 0; tx < Constants.GRID_WIDTH; tx++) {
+                if (levelManager.getMap().getTile(tx, ty) != Tile.TORCH) continue;
+
+                float phase = (float) ((tx * 17 + ty * 23) * 0.21);
+                float flicker = (float) (0.5 + 0.5 * Math.sin(now / 155.0 + phase));
+
+                int cx = tx * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
+                int cy = ty * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
+
+                // Three-layer glow: large diffuse → mid warm → hot core
+                int outer = (int) (Constants.TILE_SIZE * (2.8 + 0.8 * flicker));
+                int mid   = (int) (Constants.TILE_SIZE * (1.6 + 0.5 * flicker));
+                int core  = (int) (Constants.TILE_SIZE * (0.7 + 0.2 * flicker));
+
+                g2.setColor(new Color(160, 80, 10, 18 + (int) (14 * flicker)));
+                g2.fillOval(cx - outer / 2, cy - outer / 2, outer, outer);
+
+                g2.setColor(new Color(230, 130, 30, 28 + (int) (22 * flicker)));
+                g2.fillOval(cx - mid / 2, cy - mid / 2, mid, mid);
+
+                g2.setColor(new Color(255, 210, 100, 50 + (int) (30 * flicker)));
+                g2.fillOval(cx - core / 2, cy - core / 2, core, core);
+            }
+        }
     }
 
     // Draw the player's inventory at the top of the screen

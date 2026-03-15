@@ -7,7 +7,7 @@ public class Game {
 
     public static void main(String[] args) {
 
-        JFrame window = new JFrame("Stealth Dungeon");
+        JFrame window = new JFrame("UNSEEN");
 
         GamePanel panel = new GamePanel();
 
