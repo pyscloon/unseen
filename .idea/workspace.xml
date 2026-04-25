@@ -4,7 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="86345f1f-460e-4de8-8cf1-5f7444a6b5fe" name="Changes" comment="" />
+    <list default="true" id="86345f1f-460e-4de8-8cf1-5f7444a6b5fe" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/unseen/items/Shuriken.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ai/AStar.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ai/AStar.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/entities/Player.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/Player.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/map/MapGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/map/MapGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/LevelManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/LevelManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/utils/AssetLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/utils/AssetLoader.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -44,19 +58,23 @@
     <option name="sortByType" value="true" />
     <option name="sortKey" value="BY_TYPE" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.DungeonCrawler.executor": "Run",
-    "Application.Game.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.DungeonCrawler.executor&quot;: &quot;Run&quot;,
+    &quot;Application.Game.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/MSI01/code/unseen&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration default="true" type="Application" factoryName="Application">
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
@@ -81,9 +99,16 @@
       </method>
     </configuration>
   </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-26cb7f24e5b0-intellij.indexing.shared.core-IU-253.29346.138" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="292d74a6-cc56-4fff-86b5-5b4e750b0774" name="Changes" comment="" />
+      <changelist id="86345f1f-460e-4de8-8cf1-5f7444a6b5fe" name="Changes" comment="" />
       <created>1772011601794</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
@@ -91,15 +116,15 @@
     </task>
     <servers />
   </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/unseen/ui/InputHandler.java</url>
-          <line>22</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>

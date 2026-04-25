@@ -9,6 +9,7 @@ import unseen.game.GameState;
 import unseen.game.Smoke;
 import unseen.items.Flare;
 import unseen.items.NoiseMaker;
+import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
 import unseen.map.Tile;
 import unseen.ui.GamePanel;
@@ -45,9 +46,10 @@ public class GameRenderer {
         drawNoiseFlashes(g);
         if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare())
             drawTargetingOverlay(g);
+        if (panel.isTargetingShuriken())
+            drawShurikenAimOverlay(g);
 
         if (panel.getGameState() == GameState.WIN) {
-            // Dim overlay
             g.setColor(new Color(0, 0, 0, 160));
             g.fillRect(0, 0, panel.getWidth(), panel.getHeight());
 
@@ -115,7 +117,7 @@ public class GameRenderer {
             g.setColor(new Color(255, 220, 100));
             g.drawString(floorLabel, rx, 28);
 
-            // "TRAPPED!" indicator when the player is stuck in a sticky trap
+            // "TRAPPED!" indicator
             if (levelManager.getPlayer().isTrapped()) {
                 String trapLabel = "TRAPPED!";
                 g.setFont(new Font("Arial", Font.BOLD, 18));
@@ -140,7 +142,6 @@ public class GameRenderer {
         int h = panel.getHeight();
         long now = System.currentTimeMillis();
 
-        // --- Animated dungeon backdrop with subtle pan ---
         Graphics2D bg = (Graphics2D) g2.create();
         double panX = Math.sin(now / 5000.0) * 5.0;
         double panY = Math.cos(now / 6500.0) * 3.5;
@@ -151,11 +152,9 @@ public class GameRenderer {
         drawMenuTorchFlicker(bg, now);
         bg.dispose();
 
-        // --- Dark vignette: atmospheric overlay, keep dungeon visible ---
         g2.setColor(new Color(0, 0, 0, 155));
         g2.fillRect(0, 0, w, h);
 
-        // Radial vignette: corners even darker
         java.awt.RadialGradientPaint vignette = new java.awt.RadialGradientPaint(
                 w / 2f, h / 2f, Math.max(w, h) * 0.72f,
                 new float[]{0.0f, 1.0f},
@@ -163,35 +162,29 @@ public class GameRenderer {
         g2.setPaint(vignette);
         g2.fillRect(0, 0, w, h);
 
-        // --- Stone card panel (no rounded rect — harsh stone edges) ---
         int cardW = w - 160;
         int cardH = h - 230;
         int cardX = (w - cardW) / 2;
         int cardY = (h - cardH) / 2;
 
-        // Stone fill: very dark warm grey-brown
         g2.setColor(new Color(14, 11, 9, 210));
         g2.fillRect(cardX, cardY, cardW, cardH);
 
-        // Outer border: dim amber — like torchlight catching stone edges
         g2.setColor(new Color(90, 58, 18, 180));
         g2.setStroke(new BasicStroke(2f));
         g2.drawRect(cardX, cardY, cardW, cardH);
 
-        // Inner inset border: hairline, darker
         g2.setColor(new Color(50, 33, 10, 120));
         g2.setStroke(new BasicStroke(1f));
         g2.drawRect(cardX + 5, cardY + 5, cardW - 10, cardH - 10);
 
-        // Corner stone marks — small filled squares at each corner
         int cs = 7;
         g2.setColor(new Color(110, 72, 22, 200));
-        g2.fillRect(cardX - 2,           cardY - 2,           cs, cs);
-        g2.fillRect(cardX + cardW - cs + 2, cardY - 2,        cs, cs);
-        g2.fillRect(cardX - 2,           cardY + cardH - cs + 2, cs, cs);
+        g2.fillRect(cardX - 2,            cardY - 2,            cs, cs);
+        g2.fillRect(cardX + cardW - cs + 2, cardY - 2,           cs, cs);
+        g2.fillRect(cardX - 2,            cardY + cardH - cs + 2, cs, cs);
         g2.fillRect(cardX + cardW - cs + 2, cardY + cardH - cs + 2, cs, cs);
 
-        // --- Title: UNSEEN ---
         float pulse = (float) (0.5 + 0.5 * Math.sin(now / 820.0));
         String title = "UNSEEN";
         Font titleFont = new Font("Serif", Font.BOLD, 68);
@@ -200,11 +193,9 @@ public class GameRenderer {
         int titleX = (w - tw) / 2;
         int titleY = cardY + 115;
 
-        // Deep shadow
         g2.setColor(new Color(0, 0, 0, 200));
         g2.drawString(title, titleX + 4, titleY + 4);
 
-        // Blood-amber outer glow (pulses)
         int glowAlpha = 55 + (int) (55 * pulse);
         g2.setColor(new Color(200, 110, 20, glowAlpha));
         for (int r = 5; r >= 1; r--) {
@@ -214,17 +205,14 @@ public class GameRenderer {
             g2.drawString(title, titleX, titleY + r);
         }
 
-        // Main title fill: warm amber-gold
         g2.setColor(new Color(220, 170, 60));
         g2.drawString(title, titleX, titleY);
 
-        // --- Decorative separator below title ---
         int sepY = titleY + 18;
         int sepInset = 60;
         g2.setColor(new Color(90, 58, 18, 180));
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawLine(cardX + sepInset, sepY, cardX + cardW - sepInset, sepY);
-        // Centre diamond
         int dx = w / 2, dy = sepY;
         int ds = 5;
         int[] dpx = {dx, dx + ds, dx, dx - ds};
@@ -232,10 +220,8 @@ public class GameRenderer {
         g2.setColor(new Color(140, 90, 25, 220));
         g2.fillPolygon(dpx, dpy, 4);
 
-        // --- Menu options ---
         int optY = sepY + 52;
 
-        // Start — brighter, amber tone
         String start = "SPACE  to  Start";
         g2.setFont(new Font("Serif", Font.BOLD, 22));
         int sw = g2.getFontMetrics().stringWidth(start);
@@ -244,25 +230,21 @@ public class GameRenderer {
         g2.setColor(new Color(210, 175, 90));
         g2.drawString(start, (w - sw) / 2, optY);
 
-        // Quit — dimmer stone-grey
         String quit = "Q  to Quit";
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int qw = g2.getFontMetrics().stringWidth(quit);
         g2.setColor(new Color(118, 100, 72));
         g2.drawString(quit, (w - qw) / 2, optY + 38);
 
-        // --- Footer controls ---
-        String hint = "WASD - Move     E - Pick up     1 / 2 / 3 - Items";
+        // Updated hint now mentions key 4 for shuriken
+        String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
         int hw = g2.getFontMetrics().stringWidth(hint);
-        // Shadow
         g2.setColor(new Color(0, 0, 0, 180));
         g2.drawString(hint, (w - hw) / 2 + 1, h - 36);
-        // Bright amber-white so it reads clearly on the dark tile bg
         g2.setColor(new Color(210, 190, 140));
         g2.drawString(hint, (w - hw) / 2, h - 37);
 
-        // --- Version label ---
         String version = "v0.1 Alpha";
         g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
         int vw = g2.getFontMetrics().stringWidth(version);
@@ -285,7 +267,6 @@ public class GameRenderer {
                 int cx = tx * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
                 int cy = ty * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
 
-                // Three-layer glow: large diffuse → mid warm → hot core
                 int outer = (int) (Constants.TILE_SIZE * (2.8 + 0.8 * flicker));
                 int mid   = (int) (Constants.TILE_SIZE * (1.6 + 0.5 * flicker));
                 int core  = (int) (Constants.TILE_SIZE * (0.7 + 0.2 * flicker));
@@ -302,139 +283,146 @@ public class GameRenderer {
         }
     }
 
-    // Draw the player's inventory at the top of the screen
+    // -------------------------------------------------------------------------
+    // Inventory HUD — slots 1=NoiseMaker, 2=SmokeBomb, 3=Flare, 4=Shuriken
+    // -------------------------------------------------------------------------
     private void drawInventory(Graphics g) {
         int boxSize = 44;
         int spacing = 12;
-        int slots = 3;
-        int barWidth = slots * (boxSize + spacing) + 40;
+        int slots   = 4; // NOW 4 slots
+        int barWidth  = slots * (boxSize + spacing) + 40;
         int barHeight = boxSize + 24;
         int panelWidth = panel.getWidth();
-        int startX = (panelWidth - barWidth) / 2 + 10; // Centered horizontally
+        int startX = (panelWidth - barWidth) / 2 + 10;
         int y = 18;
+        int iconPad = 6;
+
         Graphics2D g2 = (Graphics2D) g;
         g2.setColor(new Color(30, 30, 30, 180));
         g2.fillRoundRect(startX - 18, y - 14, barWidth, barHeight, 18, 18);
-        // Draw label
-        g2.setFont(new Font("Arial", Font.BOLD, 18));
-        g2.setColor(new Color(220, 220, 220));
-        // Draw NoiseMaker slot
-        int x = startX;
-        g2.setColor(new Color(255, 255, 180, 180));
-        g2.setStroke(new java.awt.BasicStroke(3f));
-        g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
-        g2.setColor(new Color(70, 70, 70, 220));
-        g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
-        g2.setColor(new Color(180, 180, 180));
-        g2.setStroke(new java.awt.BasicStroke(2f));
-        g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
-        int iconPad = 6;
-        // Only show NoiseMaker if in inventory
+
         Player player = levelManager.getPlayer();
+
+        // ---- helper lambda replaced by inline blocks for Java compatibility ----
+
+        // Slot 1 — NoiseMaker
+        int x = startX;
+        drawSlotBox(g2, x, y, boxSize, new Color(255, 255, 180, 180));
         boolean hasNoiseMaker = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
         if (hasNoiseMaker) {
-            if (AssetLoader.get().noiseMaker != null) {
-                g2.drawImage(AssetLoader.get().noiseMaker, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
-                        boxSize - 2 * iconPad, null);
-            } else {
+            if (AssetLoader.get().noiseMaker != null)
+                g2.drawImage(AssetLoader.get().noiseMaker, x + iconPad, y + iconPad,
+                        boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            else {
                 g2.setColor(new Color(200, 180, 50));
                 g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
-                g2.setColor(Color.DARK_GRAY);
-                g2.drawString("N", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
             }
-            // Draw small label above icon
-            g2.setFont(new Font("Arial", Font.PLAIN, 10));
-            g2.setColor(new Color(220, 220, 180));
-            int noiseLabelWidth = g2.getFontMetrics().stringWidth("Noise");
-            g2.drawString("Noise", x + (boxSize - noiseLabelWidth) / 2, y - 6);
+            drawSlotLabel(g2, "Noise", x, y, boxSize, new Color(220, 220, 180));
         }
-        g2.setFont(new Font("Arial", Font.PLAIN, 11));
-        g2.setColor(new Color(200, 200, 200, 180));
-        g2.drawString("1", x + boxSize - 13, y + boxSize - 6);
-        x += boxSize + spacing;
-        // Draw SmokeBomb slot
-        g2.setColor(new Color(200, 200, 255, 180));
-        g2.setStroke(new java.awt.BasicStroke(3f));
-        g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
-        g2.setColor(new Color(70, 70, 70, 220));
-        g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
-        g2.setColor(new Color(180, 180, 180));
-        g2.setStroke(new java.awt.BasicStroke(2f));
-        g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
-        // Only show SmokeBomb if in inventory
-        boolean hasSmokeBomb = player.getInventory().stream().anyMatch(i -> i instanceof SmokeBomb);
-        if (hasSmokeBomb) {
-            if (AssetLoader.get().smokeBomb != null) {
-                g2.drawImage(AssetLoader.get().smokeBomb, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
-                        boxSize - 2 * iconPad, null);
-            } else {
-                g2.setColor(new Color(180, 180, 180));
-                g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
-                g2.setColor(Color.DARK_GRAY);
-                g2.drawString("S", x + boxSize / 2 - 5, y + boxSize / 2 + 5);
-            }
-            // Draw small label above icon
-            g2.setFont(new Font("Arial", Font.PLAIN, 10));
-            g2.setColor(new Color(200, 200, 255));
-            int smokeLabelWidth = g2.getFontMetrics().stringWidth("Smoke");
-            g2.drawString("Smoke", x + (boxSize - smokeLabelWidth) / 2, y - 6);
-        }
-        g2.setFont(new Font("Arial", Font.PLAIN, 11));
-        g2.setColor(new Color(200, 200, 200, 180));
-        g2.drawString("2", x + boxSize - 13, y + boxSize - 6);
+        drawSlotNumber(g2, "1", x, y, boxSize);
         x += boxSize + spacing;
 
-        // Draw Flare slot
-        g2.setColor(new Color(255, 255, 180, 180));
-        g2.setStroke(new java.awt.BasicStroke(3f));
+        // Slot 2 — SmokeBomb
+        drawSlotBox(g2, x, y, boxSize, new Color(200, 200, 255, 180));
+        boolean hasSmokeBomb = player.getInventory().stream().anyMatch(i -> i instanceof SmokeBomb);
+        if (hasSmokeBomb) {
+            if (AssetLoader.get().smokeBomb != null)
+                g2.drawImage(AssetLoader.get().smokeBomb, x + iconPad, y + iconPad,
+                        boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            else {
+                g2.setColor(new Color(180, 180, 180));
+                g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
+            }
+            drawSlotLabel(g2, "Smoke", x, y, boxSize, new Color(200, 200, 255));
+        }
+        drawSlotNumber(g2, "2", x, y, boxSize);
+        x += boxSize + spacing;
+
+        // Slot 3 — Flare / Lantern
+        drawSlotBox(g2, x, y, boxSize, new Color(255, 255, 180, 180));
+        boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof Flare);
+        if (hasFlare) {
+            if (AssetLoader.get().lantern != null)
+                g2.drawImage(AssetLoader.get().lantern, x + iconPad, y + iconPad,
+                        boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            else {
+                g2.setColor(new Color(255, 255, 150));
+                g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
+            }
+            drawSlotLabel(g2, "Lantern", x, y, boxSize, new Color(255, 255, 180));
+        }
+        drawSlotNumber(g2, "3", x, y, boxSize);
+        x += boxSize + spacing;
+
+        // Slot 4 — Shuriken (NEW)
+        drawSlotBox(g2, x, y, boxSize, new Color(180, 220, 255, 180));
+        boolean hasShuriken = player.getInventory().stream().anyMatch(i -> i instanceof Shuriken);
+        if (hasShuriken) {
+            if (AssetLoader.get().shuriken != null)
+                g2.drawImage(AssetLoader.get().shuriken, x + iconPad, y + iconPad,
+                        boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
+            else {
+                // Fallback: draw a simple star/cross shape
+                g2.setColor(new Color(160, 200, 240));
+                int cx2 = x + boxSize / 2, cy2 = y + boxSize / 2, r2 = boxSize / 2 - iconPad;
+                g2.fillOval(cx2 - r2, cy2 - r2, r2 * 2, r2 * 2);
+                g2.setColor(Color.DARK_GRAY);
+                g2.setFont(new Font("Arial", Font.BOLD, 12));
+                g2.drawString("*", cx2 - 4, cy2 + 5);
+            }
+            drawSlotLabel(g2, "Shuriken", x, y, boxSize, new Color(180, 220, 255));
+        }
+        drawSlotNumber(g2, "4", x, y, boxSize);
+    }
+
+    /** Draws the border + background for one inventory slot. */
+    private void drawSlotBox(Graphics2D g2, int x, int y, int boxSize, Color borderColor) {
+        g2.setColor(borderColor);
+        g2.setStroke(new BasicStroke(3f));
         g2.drawRoundRect(x - 2, y - 2, boxSize + 4, boxSize + 4, 12, 12);
         g2.setColor(new Color(70, 70, 70, 220));
         g2.fillRoundRect(x, y, boxSize, boxSize, 12, 12);
         g2.setColor(new Color(180, 180, 180));
-        g2.setStroke(new java.awt.BasicStroke(2f));
+        g2.setStroke(new BasicStroke(2f));
         g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
-        // Only show Flare if in inventory
-        boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof Flare);
-        if (hasFlare) {
-            if (AssetLoader.get().lantern != null) {
-                g2.drawImage(AssetLoader.get().lantern, x + iconPad, y + iconPad, boxSize - 2 * iconPad,
-                        boxSize - 2 * iconPad, null);
-            } else {
-                g2.setColor(new Color(255, 255, 150));
-                g2.fillOval(x + iconPad, y + iconPad, boxSize - 2 * iconPad, boxSize - 2 * iconPad);
-                g2.setColor(Color.DARK_GRAY);
-                g2.drawString("F", x + boxSize / 2 - 4, y + boxSize / 2 + 5);
-            }
-            // Draw small label above icon
-            g2.setFont(new Font("Arial", Font.PLAIN, 10));
-            g2.setColor(new Color(255, 255, 180));
-            int flareLabelWidth = g2.getFontMetrics().stringWidth("Lantern");
-            g2.drawString("Lantern", x + (boxSize - flareLabelWidth) / 2, y - 6);
-        }
+    }
+
+    /** Draws the small label above a slot. */
+    private void drawSlotLabel(Graphics2D g2, String label, int x, int y, int boxSize, Color color) {
+        g2.setFont(new Font("Arial", Font.PLAIN, 10));
+        g2.setColor(color);
+        int labelWidth = g2.getFontMetrics().stringWidth(label);
+        g2.drawString(label, x + (boxSize - labelWidth) / 2, y - 6);
+    }
+
+    /** Draws the key-number badge in the bottom-right of a slot. */
+    private void drawSlotNumber(Graphics2D g2, String num, int x, int y, int boxSize) {
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
-        g2.drawString("3", x + boxSize - 13, y + boxSize - 6);
+        g2.drawString(num, x + boxSize - 13, y + boxSize - 6);
     }
+
+    // -------------------------------------------------------------------------
 
     private void drawMap(Graphics g) {
 
         Graphics2D g2 = (Graphics2D) g;
-        boolean[][] visible = levelManager.getVisible();
-        float[][] lightLevel = levelManager.getLightLevel();
-        List<Smoke> smokes = levelManager.getSmokes();
+        boolean[][] visible    = levelManager.getVisible();
+        float[][]   lightLevel = levelManager.getLightLevel();
+        List<Smoke> smokes     = levelManager.getSmokes();
 
         // 1) draw base tiles
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
-                Tile tile = levelManager.getMap().getTile(x, y);
-                int drawX = x * Constants.TILE_SIZE;
-                int drawY = y * Constants.TILE_SIZE;
+                Tile tile  = levelManager.getMap().getTile(x, y);
+                int drawX  = x * Constants.TILE_SIZE;
+                int drawY  = y * Constants.TILE_SIZE;
                 switch (tile) {
                     case WALL:
-                        if (AssetLoader.get().wall != null) {
-                            g2.drawImage(AssetLoader.get().wall, drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE,
-                                    null);
-                        } else {
+                        if (AssetLoader.get().wall != null)
+                            g2.drawImage(AssetLoader.get().wall, drawX, drawY,
+                                    Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        else {
                             g2.setColor(new Color(90, 90, 90));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         }
@@ -442,8 +430,6 @@ public class GameRenderer {
                     case FLOOR:
                     case START:
                         if (AssetLoader.get().floor != null) {
-                            // Deterministic flip variant per tile so the floor isn't repetitive.
-                            // variant bits: bit0 = flipH, bit1 = flipV → 0=normal,1=H,2=V,3=HV
                             int variant = (x * 31 + y * 17) & 3;
                             int ts = Constants.TILE_SIZE;
                             java.awt.geom.AffineTransform saved = g2.getTransform();
@@ -467,28 +453,28 @@ public class GameRenderer {
                         }
                         break;
                     case TORCH:
-                        if (AssetLoader.get().torch != null) {
-                            g2.drawImage(AssetLoader.get().torch, drawX, drawY, Constants.TILE_SIZE,
-                                    Constants.TILE_SIZE, null);
-                        } else {
+                        if (AssetLoader.get().torch != null)
+                            g2.drawImage(AssetLoader.get().torch, drawX, drawY,
+                                    Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        else {
                             g2.setColor(new Color(255, 140, 0));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         }
                         break;
                     case EXIT:
-                        if (AssetLoader.get().nextFloor != null) {
-                            g2.drawImage(AssetLoader.get().nextFloor, drawX, drawY, Constants.TILE_SIZE,
-                                    Constants.TILE_SIZE, null);
-                        } else {
+                        if (AssetLoader.get().nextFloor != null)
+                            g2.drawImage(AssetLoader.get().nextFloor, drawX, drawY,
+                                    Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        else {
                             g2.setColor(Color.YELLOW);
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         }
                         break;
                     default:
-                        if (AssetLoader.get().floor != null) {
-                            g2.drawImage(AssetLoader.get().floor, drawX, drawY, Constants.TILE_SIZE,
-                                    Constants.TILE_SIZE, null);
-                        } else {
+                        if (AssetLoader.get().floor != null)
+                            g2.drawImage(AssetLoader.get().floor, drawX, drawY,
+                                    Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        else {
                             g2.setColor(new Color(170, 170, 170));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         }
@@ -496,7 +482,7 @@ public class GameRenderer {
             }
         }
 
-        // 2) draw items on ground (overlay inventory asset only)
+        // 2) draw items on ground — now includes Shuriken
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 unseen.items.Item ground = levelManager.getMap().getItem(x, y);
@@ -513,13 +499,24 @@ public class GameRenderer {
                     } else if (ground instanceof Flare && AssetLoader.get().lantern != null) {
                         g2.drawImage(AssetLoader.get().lantern, tx + iconPad, ty + iconPad,
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    } else if (ground instanceof Shuriken) { // NEW
+                        if (AssetLoader.get().shuriken != null) {
+                            g2.drawImage(AssetLoader.get().shuriken, tx + iconPad, ty + iconPad,
+                                    Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                        } else {
+                            // Fallback: small blue-grey cross
+                            g2.setColor(new Color(160, 200, 240, 200));
+                            int mid = Constants.TILE_SIZE / 2;
+                            int r = Constants.TILE_SIZE / 2 - iconPad;
+                            g2.fillOval(tx + iconPad, ty + iconPad,
+                                    Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad);
+                        }
                     }
-                    // If image is missing, do not draw anything for the item.
                 }
             }
         }
 
-        // 3) draw sticky traps as brown X marks
+        // 3) draw sticky traps
         java.awt.Stroke savedStroke = g2.getStroke();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -537,22 +534,18 @@ public class GameRenderer {
         }
         g2.setStroke(savedStroke);
 
-        // 4) draw smoke clouds as semi-transparent filled circles with a gentle pulse
+        // 4) draw smoke clouds
         savedStroke = g2.getStroke();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         long smokeNow = System.currentTimeMillis();
         for (Smoke smoke : smokes) {
             int cx = smoke.getX() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
             int cy = smoke.getY() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
-            // pixel radius covers all tiles within smoke.getRadius() grid tiles
             int pr = (int) ((smoke.getRadius() + 0.5f) * Constants.TILE_SIZE);
-            // gentle alpha pulse between 120 and 170
             float pulse = (float) (0.5 + 0.5 * Math.sin(smokeNow / 450.0));
             int alpha = (int) (120 + 50 * pulse);
-            // filled grey-green circle
             g2.setColor(new Color(100, 130, 100, alpha));
             g2.fillOval(cx - pr, cy - pr, pr * 2, pr * 2);
-            // slightly darker border ring
             int borderAlpha = Math.min(255, alpha + 40);
             g2.setColor(new Color(60, 90, 60, borderAlpha));
             g2.setStroke(new BasicStroke(2.5f));
@@ -560,27 +553,21 @@ public class GameRenderer {
         }
         g2.setStroke(savedStroke);
 
-        // 5) overlay fog (darkening) for tiles
+        // 5) fog overlay
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 if (!visible[y][x]) {
-                    g2.setColor(new Color(0, 0, 0, 200)); // semi-transparent black
-                    g2.fillRect(
-                            x * Constants.TILE_SIZE,
-                            y * Constants.TILE_SIZE,
-                            Constants.TILE_SIZE,
-                            Constants.TILE_SIZE);
+                    g2.setColor(new Color(0, 0, 0, 200));
+                    g2.fillRect(x * Constants.TILE_SIZE, y * Constants.TILE_SIZE,
+                            Constants.TILE_SIZE, Constants.TILE_SIZE);
                 } else {
                     float light = lightLevel[y][x];
                     int alpha = (int) ((1.0f - light) * 200);
                     alpha = Math.max(0, Math.min(200, alpha));
                     if (alpha > 0) {
                         g2.setColor(new Color(0, 0, 0, alpha));
-                        g2.fillRect(
-                                x * Constants.TILE_SIZE,
-                                y * Constants.TILE_SIZE,
-                                Constants.TILE_SIZE,
-                                Constants.TILE_SIZE);
+                        g2.fillRect(x * Constants.TILE_SIZE, y * Constants.TILE_SIZE,
+                                Constants.TILE_SIZE, Constants.TILE_SIZE);
                     }
                 }
             }
@@ -601,132 +588,81 @@ public class GameRenderer {
                 int drawX = player.getX() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
                 int drawY = player.getY() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
                 if (player.getFacing() == Player.Facing.LEFT) {
-                    ((Graphics2D) g).drawImage(player.getHeroImage(),
-                            drawX + scaledSize,
-                            drawY,
-                            -scaledSize,
-                            scaledSize,
-                            null);
+                    g2.drawImage(player.getHeroImage(),
+                            drawX + scaledSize, drawY, -scaledSize, scaledSize, null);
                 } else {
                     g2.drawImage(player.getHeroImage(),
-                            drawX,
-                            drawY,
-                            scaledSize,
-                            scaledSize,
-                            null);
+                            drawX, drawY, scaledSize, scaledSize, null);
                 }
             } else {
                 g2.setColor(Color.CYAN);
-                g2.fillOval(
-                        player.getX() * Constants.TILE_SIZE,
+                g2.fillOval(player.getX() * Constants.TILE_SIZE,
                         player.getY() * Constants.TILE_SIZE,
-                        Constants.TILE_SIZE,
-                        Constants.TILE_SIZE);
+                        Constants.TILE_SIZE, Constants.TILE_SIZE);
             }
         }
 
-        // Enemies + chase arrows
+        // Enemies
         for (Enemy e : levelManager.getEnemies()) {
-
             int ex = e.getX();
             int ey = e.getY();
+            if (!visible[ey][ex]) continue;
 
-            // Draw enemy only if visible
-            if (visible[ey][ex]) {
-                java.awt.Image img = e.getEnemyImage();
-                if (img != null) {
-                    int ts = Constants.TILE_SIZE;
-                    int spriteSize = (e instanceof PatrolEnemy)
-                            ? (int) (ts * 0.75) // patrol is 75% of tile size
-                            : ts;
-                    int offset = (ts - spriteSize) / 2;
-                    int drawX = ex * ts + offset;
-                    int drawY = ey * ts + offset;
-                    g2.drawImage(img, drawX, drawY, spriteSize, spriteSize, null);
-                } else {
-                    g2.setColor(Color.RED);
-                    g2.fillOval(
-                            ex * Constants.TILE_SIZE,
-                            ey * Constants.TILE_SIZE,
-                            Constants.TILE_SIZE,
-                            Constants.TILE_SIZE);
+            java.awt.Image img = e.getEnemyImage();
+            if (img != null) {
+                int tileS = Constants.TILE_SIZE;
+                int spriteSize = (e instanceof PatrolEnemy) ? (int) (tileS * 0.75) : tileS;
+                int offset = (tileS - spriteSize) / 2;
+                g2.drawImage(img, ex * tileS + offset, ey * tileS + offset, spriteSize, spriteSize, null);
+            } else {
+                g2.setColor(Color.RED);
+                g2.fillOval(ex * Constants.TILE_SIZE, ey * Constants.TILE_SIZE,
+                        Constants.TILE_SIZE, Constants.TILE_SIZE);
+            }
+
+            // Sentry alert badge
+            if (e instanceof SentryEnemy) {
+                SentryEnemy s = (SentryEnemy) e;
+                if (s.isAlertVisualActive()) {
+                    int tileSize = Constants.TILE_SIZE;
+                    int size = tileSize / 2;
+                    int centerX = ex * tileSize + tileSize / 2;
+                    int badgeX = centerX - size / 2;
+                    int badgeY = ey * tileSize - (size / 2);
+                    if (badgeY < 2) badgeY = 2;
+
+                    g2.setColor(new Color(200, 40, 40, 220));
+                    g2.fillOval(badgeX, badgeY, size, size);
+                    g2.setColor(new Color(255, 255, 255, 200));
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.drawOval(badgeX, badgeY, size, size);
+
+                    String mark = "!";
+                    int fontSize = Math.max(10, size / 2 + 6);
+                    Font oldFont = g2.getFont();
+                    g2.setFont(new Font("Arial", Font.BOLD, fontSize));
+                    FontMetrics fm = g2.getFontMetrics();
+                    int tx = badgeX + (size - fm.stringWidth(mark)) / 2;
+                    int ty = badgeY + (size - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.setColor(Color.WHITE);
+                    g2.drawString(mark, tx, ty);
+                    g2.setFont(oldFont);
                 }
+            }
 
-                // After drawing the enemy sprite (still inside visible[ey][ex] block)
-                if (e instanceof SentryEnemy) {
-                    SentryEnemy s = (SentryEnemy) e;
-                    if (s.isAlertVisualActive()) {
-                        // Draw a small circular badge with '!' above the enemy tile
-                        int tileSize = Constants.TILE_SIZE;
-                        int size = tileSize / 2; // badge size in px
-                        int centerX = ex * tileSize + tileSize / 2;
-                        int badgeX = centerX - size / 2;
-                        int badgeY = ey * tileSize - (size / 2); // above the tile
-
-                        // Clamp so badge doesn't draw off-screen
-                        if (badgeY < 2)
-                            badgeY = 2;
-
-                        // Background circle (red)
-                        g2.setColor(new Color(200, 40, 40, 220));
-                        g2.fillOval(badgeX, badgeY, size, size);
-
-                        // White border
-                        g2.setColor(new Color(255, 255, 255, 200));
-                        g2.setStroke(new BasicStroke(2f));
-                        g2.drawOval(badgeX, badgeY, size, size);
-
-                        // Draw '!' centered
-                        String mark = "!";
-                        // Choose a font size relative to badge
-                        int fontSize = Math.max(10, size / 2 + 6);
-                        Font oldFont = g2.getFont();
-                        g2.setFont(new Font("Arial", Font.BOLD, fontSize));
-                        FontMetrics fm = g2.getFontMetrics();
-                        int tx = badgeX + (size - fm.stringWidth(mark)) / 2;
-                        int ty = badgeY + (size - fm.getHeight()) / 2 + fm.getAscent();
-
-                        g2.setColor(Color.WHITE);
-                        g2.drawString(mark, tx, ty);
-
-                        // restore font
-                        g2.setFont(oldFont);
-                    }
-                }
-
-                // Draw arrow only when:
-                // - enemy is currently CHASE
-                // - enemy actually has line-of-sight to the player right now
-                // Draw faint dotted path preview
-                if (e.getState() == Enemy.State.CHASE
-                        && e.hasLineOfSightToPlayer(levelManager.getMap(), player, levelManager.getSmokes())) {
-
-                    java.util.List<unseen.ai.Node> path = e.getPlannedPath(levelManager.getMap(), player);
-
-                    if (path != null && path.size() > 1) {
-
-                        Graphics2D g2d = (Graphics2D) g;
-                        g2d.setColor(new Color(255, 255, 120, 90)); // soft yellow, faint
-
-                        for (int i = 1; i < path.size(); i++) {
-
-                            unseen.ai.Node n = path.get(i);
-
-                            // Only draw dots if tile is visible to player
-                            if (visible[n.y][n.x]) {
-
-                                int dotSize = Math.max(4, Constants.TILE_SIZE / 5);
-
-                                int dx = n.x * Constants.TILE_SIZE
-                                        + Constants.TILE_SIZE / 2
-                                        - dotSize / 2;
-
-                                int dy = n.y * Constants.TILE_SIZE
-                                        + Constants.TILE_SIZE / 2
-                                        - dotSize / 2;
-
-                                g2d.fillOval(dx, dy, dotSize, dotSize);
-                            }
+            // Chase path dots
+            if (e.getState() == Enemy.State.CHASE
+                    && e.hasLineOfSightToPlayer(levelManager.getMap(), player, levelManager.getSmokes())) {
+                java.util.List<unseen.ai.Node> path = e.getPlannedPath(levelManager.getMap(), player);
+                if (path != null && path.size() > 1) {
+                    g2.setColor(new Color(255, 255, 120, 90));
+                    for (int i = 1; i < path.size(); i++) {
+                        unseen.ai.Node n = path.get(i);
+                        if (visible[n.y][n.x]) {
+                            int dotSize = Math.max(4, Constants.TILE_SIZE / 5);
+                            int ddx = n.x * Constants.TILE_SIZE + Constants.TILE_SIZE / 2 - dotSize / 2;
+                            int ddy = n.y * Constants.TILE_SIZE + Constants.TILE_SIZE / 2 - dotSize / 2;
+                            g2.fillOval(ddx, ddy, dotSize, dotSize);
                         }
                     }
                 }
@@ -734,121 +670,151 @@ public class GameRenderer {
         }
     }
 
-    /**
-     * Draw glowing auras around each active Flare.
-     */
+    private void drawShurikenAimOverlay(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int ts = Constants.TILE_SIZE;
+        Player player = levelManager.getPlayer();
+        int px = player.getX();
+        int py = player.getY();
+        int dx = panel.getShurikenDx();
+        int dy = panel.getShurikenDy();
+        unseen.map.Map map = levelManager.getMap();
+
+        // Dim overlay
+        g2.setColor(new Color(0, 0, 0, 60));
+        g2.fillRect(0, 0, panel.getWidth(), panel.getHeight());
+
+        // Draw trajectory tiles
+        boolean hitEnemy = false;
+        for (int i = 1; i <= 5; i++) {
+            int tx = px + dx * i;
+            int ty = py + dy * i;
+            if (tx < 0 || tx >= Constants.GRID_WIDTH || ty < 0 || ty >= Constants.GRID_HEIGHT) break;
+            if (map.getTile(tx, ty) == unseen.map.Tile.WALL) {
+                // Show blocked tile in red
+                g2.setColor(new Color(200, 50, 50, 120));
+                g2.fillRect(tx * ts, ty * ts, ts, ts);
+                break;
+            }
+
+            // Check if enemy is here
+            boolean enemyHere = false;
+            for (unseen.entities.Enemy e : levelManager.getEnemies()) {
+                if (e.isAlive() && e.getX() == tx && e.getY() == ty) {
+                    enemyHere = true;
+                    hitEnemy = true;
+                    break;
+                }
+            }
+
+            if (enemyHere) {
+                // Highlight enemy tile red — shuriken hits here
+                g2.setColor(new Color(220, 60, 60, 200));
+                g2.fillRect(tx * ts, ty * ts, ts, ts);
+                g2.setColor(new Color(255, 100, 100, 255));
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRect(tx * ts, ty * ts, ts, ts);
+                break; // shuriken stops at first hit
+            } else {
+                // Normal trajectory tile — cyan/white dashed
+                g2.setColor(new Color(150, 220, 255, 80));
+                g2.fillRect(tx * ts, ty * ts, ts, ts);
+                g2.setColor(new Color(180, 240, 255, 180));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRect(tx * ts, ty * ts, ts, ts);
+            }
+        }
+
+        // Draw a line from player center along the trajectory
+        int startCx = px * ts + ts / 2;
+        int startCy = py * ts + ts / 2;
+        int endCx   = startCx + dx * 5 * ts;
+        int endCy   = startCy + dy * 5 * ts;
+        g2.setColor(hitEnemy ? new Color(255, 80, 80, 160) : new Color(180, 240, 255, 120));
+        float[] dash = {4f, 4f};
+        g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1f, dash, 0f));
+        g2.drawLine(startCx, startCy, endCx, endCy);
+
+        // HUD prompt at bottom
+        String msg = (hitEnemy ? "Will hit enemy!  " : "") + "WASD to aim  |  Space/Enter to throw  |  Esc to cancel";
+        g2.setFont(new Font("Arial", Font.BOLD, 15));
+        FontMetrics fm = g2.getFontMetrics();
+        int msgW = fm.stringWidth(msg);
+        int bx = (panel.getWidth() - msgW) / 2 - 12;
+        int by = panel.getHeight() - 42;
+        g2.setColor(new Color(20, 20, 20, 190));
+        g2.setStroke(new BasicStroke(1f));
+        g2.fillRoundRect(bx, by, msgW + 24, 28, 10, 10);
+        g2.setColor(hitEnemy ? new Color(255, 160, 160) : new Color(180, 240, 255));
+        g2.drawString(msg, bx + 12, by + 20);
+    }
+
     private void drawFlares(Graphics g) {
         List<ActiveFlare> flares = levelManager.getFlares();
-        if (flares.isEmpty())
-            return;
+        if (flares.isEmpty()) return;
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         boolean[][] visible = levelManager.getVisible();
         long now = System.currentTimeMillis();
         int ts = Constants.TILE_SIZE;
         for (ActiveFlare f : flares) {
-            // Only draw if within player FOV/visible
-            if (!visible[f.getY()][f.getX()])
-                continue;
-
+            if (!visible[f.getY()][f.getX()]) continue;
             int cx = f.getX() * ts + ts / 2;
             int cy = f.getY() * ts + ts / 2;
 
-            // 8-frame animation cycle based on system time (approx 1200ms total)
-            // Frames: 0 (tiny square) -> 1 (small star) -> 2 (med star) -> 3 (large star)
-            // -> 4 (expanding with detached particles) -> 5 (smaller core, particles
-            // further) -> 6 (even smaller core, particles fading) -> 7 (tiny core,
-            // particles gone)
             float animCycle = (float) ((now % 1200) / 1200.0);
             int frame = (int) (animCycle * 8);
 
-            // Base glow aura
             int alpha = 40;
-            if (frame >= 2 && frame <= 4)
-                alpha = 60; // Brighter in middle frames
+            if (frame >= 2 && frame <= 4) alpha = 60;
             int auraR = (int) (ts * 1.5f + (ts * 0.2f * (frame == 3 || frame == 4 ? 1.0 : 0.0)));
             g2.setColor(new Color(255, 255, 100, alpha));
             g2.fillOval(cx - auraR, cy - auraR, auraR * 2, auraR * 2);
 
-            // Inner aura
             int innerR = (int) (ts * 0.8f);
             g2.setColor(new Color(255, 255, 180, alpha * 2));
             g2.fillOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
 
-            // Draw the star core based on the frame
             java.awt.geom.Path2D.Double star = new java.awt.geom.Path2D.Double();
-            double r = 0;
-            double innerCore = 0;
-
+            double r = 0, innerCore = 0;
             if (frame == 0 || frame == 7) {
-                // Tiny square/dot
                 r = ts * 0.1;
-                star.moveTo(cx - r, cy - r);
-                star.lineTo(cx + r, cy - r);
-                star.lineTo(cx + r, cy + r);
-                star.lineTo(cx - r, cy + r);
+                star.moveTo(cx - r, cy - r); star.lineTo(cx + r, cy - r);
+                star.lineTo(cx + r, cy + r); star.lineTo(cx - r, cy + r);
                 star.closePath();
             } else {
-                // Determine star size
-                if (frame == 1 || frame == 6) {
-                    r = ts * 0.2;
-                    innerCore = r * 0.15;
-                } else if (frame == 2 || frame == 5) {
-                    r = ts * 0.4;
-                    innerCore = r * 0.15;
-                } else if (frame == 3) {
-                    r = ts * 0.6;
-                    innerCore = r * 0.15;
-                } else if (frame == 4) {
-                    r = ts * 0.4;
-                    innerCore = r * 0.15;
-                } // Core shrinks slightly while detaching
-
-                star.moveTo(cx, cy - r); // Top
-                star.quadTo(cx + innerCore, cy - innerCore, cx + r, cy); // Right
-                star.quadTo(cx + innerCore, cy + innerCore, cx, cy + r); // Bottom
-                star.quadTo(cx - innerCore, cy + innerCore, cx - r, cy); // Left
-                star.quadTo(cx - innerCore, cy - innerCore, cx, cy - r); // Top (to close the loop with a curve)
+                if      (frame == 1 || frame == 6) { r = ts * 0.2; innerCore = r * 0.15; }
+                else if (frame == 2 || frame == 5) { r = ts * 0.4; innerCore = r * 0.15; }
+                else if (frame == 3)               { r = ts * 0.6; innerCore = r * 0.15; }
+                else if (frame == 4)               { r = ts * 0.4; innerCore = r * 0.15; }
+                star.moveTo(cx, cy - r);
+                star.quadTo(cx + innerCore, cy - innerCore, cx + r, cy);
+                star.quadTo(cx + innerCore, cy + innerCore, cx, cy + r);
+                star.quadTo(cx - innerCore, cy + innerCore, cx - r, cy);
+                star.quadTo(cx - innerCore, cy - innerCore, cx, cy - r);
                 star.closePath();
             }
-
             g2.setColor(new Color(255, 255, 220, 240));
             g2.fill(star);
 
-            // Flakes/particles detaching in frames 4, 5, 6
             if (frame >= 4 && frame <= 6) {
-                float partDist = 0;
-                int pSize = 0;
-                if (frame == 4) {
-                    partDist = ts * 0.45f;
-                    pSize = 3;
-                } else if (frame == 5) {
-                    partDist = ts * 0.65f;
-                    pSize = 2;
-                } else if (frame == 6) {
-                    partDist = ts * 0.8f;
-                    pSize = 1;
-                }
-
-                // Diagonal particles
-                g2.fillOval(cx - (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2); // Top-left
-                g2.fillOval(cx + (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2); // Top-right
-                g2.fillOval(cx - (int) partDist - pSize, cy + (int) partDist - pSize, pSize * 2, pSize * 2); // Bottom-left
-                g2.fillOval(cx + (int) partDist - pSize, cy + (int) partDist - pSize, pSize * 2, pSize * 2); // Bottom-right
+                float partDist; int pSize;
+                if      (frame == 4) { partDist = ts * 0.45f; pSize = 3; }
+                else if (frame == 5) { partDist = ts * 0.65f; pSize = 2; }
+                else                 { partDist = ts * 0.8f;  pSize = 1; }
+                g2.fillOval(cx - (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2);
+                g2.fillOval(cx + (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2);
+                g2.fillOval(cx - (int) partDist - pSize, cy + (int) partDist - pSize, pSize * 2, pSize * 2);
+                g2.fillOval(cx + (int) partDist - pSize, cy + (int) partDist - pSize, pSize * 2, pSize * 2);
             }
         }
     }
 
-    /**
-     * Draw expanding ripple rings at each active NoiseMaker flash position.
-     * Two concentric orange/yellow rings radiate outward and fade over the
-     * flash's lifetime. Drawn on top of everything so the player always sees
-     * where the decoy was placed.
-     */
     private void drawNoiseFlashes(Graphics g) {
         List<FlashEffect> noiseFlashes = levelManager.getNoiseFlashes();
-        if (noiseFlashes.isEmpty())
-            return;
+        if (noiseFlashes.isEmpty()) return;
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         java.awt.Stroke saved = g2.getStroke();
@@ -857,16 +823,13 @@ public class GameRenderer {
         for (FlashEffect f : noiseFlashes) {
             int cx = f.getX() * ts + ts / 2;
             int cy = f.getY() * ts + ts / 2;
-            // Base alpha decreases as the flash ages (countdown 4 → 1)
-            int baseAlpha = f.getCountdown() * 55; // 220, 165, 110, 55
-            // Ring 1: inner ring, period 600 ms
+            int baseAlpha = f.getCountdown() * 55;
             float t1 = (float) ((now % 600) / 600.0);
             int r1 = ts / 4 + (int) (ts * 0.9f * t1);
             int a1 = Math.min(255, (int) (baseAlpha * (1.0f - t1 * 0.5f)));
             g2.setColor(new Color(255, 210, 50, a1));
             g2.setStroke(new BasicStroke(3f));
             g2.drawOval(cx - r1, cy - r1, r1 * 2, r1 * 2);
-            // Ring 2: outer ring, 200 ms behind ring 1
             float t2 = (float) (((now + 200) % 600) / 600.0);
             int r2 = ts / 4 + (int) (ts * 0.9f * t2);
             int a2 = Math.min(255, (int) (baseAlpha * (1.0f - t2 * 0.5f)));
@@ -877,23 +840,17 @@ public class GameRenderer {
         g2.setStroke(saved);
     }
 
-    /**
-     * Draws the NoiseMaker targeting overlay: dim, highlighted hover tile, and
-     * instructions.
-     */
     private void drawTargetingOverlay(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         int ts = Constants.TILE_SIZE;
 
-        // Slight dim over the whole map
         g2.setColor(new Color(0, 0, 0, 80));
         g2.fillRect(0, 0, panel.getWidth(), panel.getHeight());
 
         int mouseGridX = panel.getMouseGridX();
         int mouseGridY = panel.getMouseGridY();
 
-        // Highlight hovered tile
         boolean validTile = mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT
                 && levelManager.getMap().isPassable(mouseGridX, mouseGridY);
@@ -901,28 +858,23 @@ public class GameRenderer {
         int tx = mouseGridX * ts;
         int ty = mouseGridY * ts;
 
+        if (panel.isTargetingShuriken())
+            drawShurikenAimOverlay(g);
+
         if (validTile) {
             if (panel.isTargetingFlare()) {
-                g2.setColor(new Color(255, 240, 100, 130));
-                g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(255, 240, 100, 130)); g2.fillRect(tx, ty, ts, ts);
                 g2.setColor(new Color(255, 255, 150, 220));
-                g2.setStroke(new BasicStroke(2.5f));
-                g2.drawRect(tx, ty, ts, ts);
-
-                // Crosshair lines
+                g2.setStroke(new BasicStroke(2.5f)); g2.drawRect(tx, ty, ts, ts);
                 int cx = tx + ts / 2, cy = ty + ts / 2;
                 g2.setColor(new Color(255, 255, 150, 200));
                 g2.setStroke(new BasicStroke(1.5f));
                 g2.drawLine(cx - ts / 2, cy, cx + ts / 2, cy);
                 g2.drawLine(cx, cy - ts / 2, cx, cy + ts / 2);
             } else {
-                g2.setColor(new Color(255, 200, 50, 130));
-                g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(255, 200, 50, 130)); g2.fillRect(tx, ty, ts, ts);
                 g2.setColor(new Color(255, 220, 80, 220));
-                g2.setStroke(new BasicStroke(2.5f));
-                g2.drawRect(tx, ty, ts, ts);
-
-                // Crosshair lines
+                g2.setStroke(new BasicStroke(2.5f)); g2.drawRect(tx, ty, ts, ts);
                 int cx = tx + ts / 2, cy = ty + ts / 2;
                 g2.setColor(new Color(255, 220, 80, 200));
                 g2.setStroke(new BasicStroke(1.5f));
@@ -931,15 +883,11 @@ public class GameRenderer {
             }
         } else if (mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT) {
-            // Invalid tile — red tint
-            g2.setColor(new Color(200, 50, 50, 100));
-            g2.fillRect(tx, ty, ts, ts);
+            g2.setColor(new Color(200, 50, 50, 100)); g2.fillRect(tx, ty, ts, ts);
             g2.setColor(new Color(200, 80, 80, 180));
-            g2.setStroke(new BasicStroke(2f));
-            g2.drawRect(tx, ty, ts, ts);
+            g2.setStroke(new BasicStroke(2f)); g2.drawRect(tx, ty, ts, ts);
         }
 
-        // Instruction banner at the bottom
         String actionName = panel.isTargetingFlare() ? "flare" : "noise";
         String msg = validTile ? "Click to throw " + actionName + "  |  Esc to cancel"
                 : "Invalid tile  |  Esc to cancel";
@@ -951,14 +899,7 @@ public class GameRenderer {
         g2.setColor(new Color(20, 20, 20, 190));
         g2.fillRoundRect(bx, by, msgW + 24, 28, 10, 10);
 
-        // Colors for valid tile
-        Color validColor;
-        if (panel.isTargetingFlare()) {
-            validColor = new Color(255, 255, 120);
-        } else {
-            validColor = new Color(255, 220, 80);
-        }
-
+        Color validColor = panel.isTargetingFlare() ? new Color(255, 255, 120) : new Color(255, 220, 80);
         g2.setColor(validTile ? validColor : new Color(220, 100, 100));
         g2.drawString(msg, bx + 12, by + 20);
     }

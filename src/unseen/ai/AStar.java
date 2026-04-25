@@ -5,7 +5,6 @@ import unseen.map.Map;
 import java.util.*;
 
 public class AStar implements Pathfinder {
-
     private static final int[][] DIRECTIONS = {
             {1, 0}, {-1, 0}, {0, 1}, {0, -1}
     };

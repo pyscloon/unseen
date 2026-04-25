@@ -3,6 +3,7 @@ package unseen.game;
 import unseen.entities.Enemy;
 import unseen.entities.Player;
 import unseen.map.Map;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TurnManager {
@@ -11,27 +12,33 @@ public class TurnManager {
             Player player,
             List<Enemy> enemies,
             Map map,
-            List<Smoke> smokes) { // add smoke list
+            List<Smoke> smokes) {
 
-        // Enemies move after player
-        for (Enemy enemy : enemies) {
+        // Iterate over a copy so removing dead enemies mid-loop is safe
+        for (Enemy enemy : new ArrayList<>(enemies)) {
+
+            // Skip enemies that were killed earlier this turn
+            if (!enemy.isAlive()) continue;
 
             // Each enemy executes its logic based on current world state
-            enemy.takeTurn(map, player, smokes, enemies); // pass smokes + full enemy list for collision
+            enemy.takeTurn(map, player, smokes, enemies);
 
-            // If this enemy is a sentry, let it alert nearby enemies (and set its visual)
+            // If this enemy is a sentry, let it alert nearby enemies
             if (enemy instanceof unseen.entities.SentryEnemy) {
                 ((unseen.entities.SentryEnemy) enemy).handleAlerts(enemies, player);
             }
-            // tickAlertVisual is now called at the start of SentryEnemy.takeTurn() each turn
 
-            // Check for player capture
-            if (enemy.getX() == player.getX()
+            // Check for player capture — only living enemies can catch the player
+            if (enemy.isAlive()
+                    && enemy.getX() == player.getX()
                     && enemy.getY() == player.getY()) {
 
                 return GameState.LOSE;
             }
         }
+
+        // Remove all dead enemies from the live list so they stop rendering and taking turns
+        enemies.removeIf(e -> !e.isAlive());
 
         if (map.getTile(player.getX(), player.getY())
                 == unseen.map.Tile.EXIT) {

@@ -1,10 +1,12 @@
 package unseen.map;
 
-import java.util.Random;
-import unseen.utils.Constants;
-import unseen.items.NoiseMaker;
-import unseen.items.SmokeBomb;
 import unseen.items.Item;
+import unseen.items.NoiseMaker;
+import unseen.items.Shuriken;
+import unseen.items.SmokeBomb;
+import unseen.utils.Constants;
+
+import java.util.Random;
 
 public class MapGenerator {
 
@@ -82,8 +84,10 @@ public class MapGenerator {
                 it = new NoiseMaker();
             } else if (roll < 0.66) {
                 it = new SmokeBomb();
-            } else {
+            } else if (roll < 0.75) {
                 it = new unseen.items.Flare();
+            } else {
+                it = new Shuriken();
             }
             map.setItem(tx, ty, it);
         }

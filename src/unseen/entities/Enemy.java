@@ -1,10 +1,11 @@
 package unseen.entities;
 
-import java.util.List;
-import unseen.ai.Pathfinder;
-import unseen.map.Map;
 import unseen.ai.LineOfSight;
+import unseen.ai.Pathfinder;
 import unseen.game.Smoke;
+import unseen.map.Map;
+
+import java.util.List;
 
 public abstract class Enemy extends Entity {
     public enum Direction { UP, DOWN, LEFT, RIGHT }
@@ -26,6 +27,7 @@ public abstract class Enemy extends Entity {
     protected int lastKnownX, lastKnownY;
     protected int searchTurns = 0;
     protected int distractedTurns = 0;
+    protected boolean alive = true;
 
     public Enemy(int x, int y, int detectionRange, Pathfinder pathfinder) {
         super(x, y);
@@ -166,5 +168,12 @@ public abstract class Enemy extends Entity {
             return true;
         }
         return false;
+    }
+
+    public boolean isAlive() {return alive;}
+
+    public void die() {
+        this.alive = false;
+        this.state = State.SEARCH;
     }
 }

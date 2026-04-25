@@ -3,16 +3,13 @@ package unseen.ui.gamepanel;
 import unseen.ai.AStar;
 import unseen.ai.LineOfSight;
 import unseen.ai.PathValidator;
-import unseen.entities.Enemy;
-import unseen.entities.HunterEnemy;
-import unseen.entities.PatrolEnemy;
-import unseen.entities.Player;
-import unseen.entities.SentryEnemy;
+import unseen.entities.*;
 import unseen.game.ActiveFlare;
 import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
 import unseen.items.Flare;
 import unseen.items.NoiseMaker;
+import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
 import unseen.map.ExitPlacer;
 import unseen.map.Map;
@@ -162,6 +159,7 @@ public class LevelManager implements SmokeSpawner {
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
         player.addItem(new Flare());
+        player.addItem(new Shuriken());
         player.setSmokeSpawner(this);
         updateVisibility();
     }
@@ -179,6 +177,7 @@ public class LevelManager implements SmokeSpawner {
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
         player.addItem(new Flare());
+        player.addItem(new Shuriken());
         updateVisibility();
     }
 
@@ -303,6 +302,10 @@ public class LevelManager implements SmokeSpawner {
     @Override
     public void spawnFlare(int x, int y) {
         flares.add(new ActiveFlare(x, y, 5, 10)); // radius 5, lasts 10 turns
+    }
+
+    public void spawnDeathPuff(int x, int y) {
+        smokes.add(new Smoke(x, y, 1, 2)); // radius 1, lasts 2 turns
     }
 
     // -------------------------------------------------------------------------

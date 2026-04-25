@@ -1,7 +1,7 @@
 package unseen.utils;
 
-import java.awt.Image;
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.net.URL;
 
 /**
@@ -20,6 +20,7 @@ public class AssetLoader {
     public final Image smokeBomb;
     public final Image lantern;
     public final Image nextFloor;
+    public final Image shuriken; // NEW
 
     public final Image hero;
 
@@ -32,23 +33,24 @@ public class AssetLoader {
     public final Image patrol;
 
     private AssetLoader() {
-        wall = load("unseen/assets/wall.png");
-        floor = load("unseen/assets/tile.png");
-        torch = load("unseen/assets/torch.png");
+        wall       = load("unseen/assets/wall.png");
+        floor      = load("unseen/assets/tile.png");
+        torch      = load("unseen/assets/torch.png");
         noiseMaker = load("unseen/assets/noise.png");
-        smokeBomb = load("unseen/assets/smoke.png");
-        lantern = load("unseen/assets/lantern.png");
-        nextFloor = load("unseen/assets/next_floor.png");
+        smokeBomb  = load("unseen/assets/smoke.png");
+        lantern    = load("unseen/assets/lantern.png");
+        nextFloor  = load("unseen/assets/next_floor.png");
+        shuriken   = load("unseen/assets/shuriken.png");
 
         hero = load("unseen/assets/hero.png");
 
-        enemyUp = load("unseen/assets/up-enemy.png");
-        enemyDown = load("unseen/assets/down-enemy.png");
-        enemyLeft = load("unseen/assets/left-enemy.png");
+        enemyUp    = load("unseen/assets/up-enemy.png");
+        enemyDown  = load("unseen/assets/down-enemy.png");
+        enemyLeft  = load("unseen/assets/left-enemy.png");
         enemyRight = load("unseen/assets/right-enemy.png");
-        enemyBase = load("unseen/assets/enemy.png");
-        sentry = load("unseen/assets/sentry.png");
-        patrol = load("unseen/assets/patrol.png");
+        enemyBase  = load("unseen/assets/enemy.png");
+        sentry     = load("unseen/assets/sentry.png");
+        patrol     = load("unseen/assets/patrol.png");
     }
 
     private Image load(String path) {
