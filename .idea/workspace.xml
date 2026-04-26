@@ -5,19 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="86345f1f-460e-4de8-8cf1-5f7444a6b5fe" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/unseen/items/Shuriken.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/TutorialManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/ai/AStar.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ai/AStar.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/entities/Player.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/Player.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/map/MapGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/map/MapGenerator.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/LevelManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/LevelManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/utils/AssetLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/utils/AssetLoader.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

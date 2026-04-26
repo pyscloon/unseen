@@ -11,6 +11,7 @@ import unseen.items.Shuriken;
 import unseen.map.Map;
 import unseen.ui.gamepanel.GameRenderer;
 import unseen.ui.gamepanel.LevelManager;
+import unseen.ui.gamepanel.TutorialManager;
 import unseen.utils.Constants;
 
 import javax.swing.*;
@@ -28,13 +29,18 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private boolean targetingFlare      = false;
     private int mouseGridX = 0;
     private int mouseGridY = 0;
+    private int mouseX     = 0;
+    private int mouseY     = 0;
     private boolean targetingShuriken = false;
     private int shurikenDx = 1, shurikenDy = 0;
 
-    private final LevelManager levelManager;
-    private final GameRenderer renderer;
+    private final LevelManager    levelManager;
+    private final GameRenderer    renderer;
+    private final TutorialManager tutorial = new TutorialManager();
 
-
+    public TutorialManager getTutorial() { return tutorial; }
+    public int getMouseX()               { return mouseX; }
+    public int getMouseY()               { return mouseY; }
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT));
@@ -45,15 +51,33 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         this.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override public void mouseMoved(java.awt.event.MouseEvent e) {
+                mouseX     = e.getX();
+                mouseY     = e.getY();
                 mouseGridX = e.getX() / Constants.TILE_SIZE;
                 mouseGridY = e.getY() / Constants.TILE_SIZE;
                 if (targetingNoiseMaker || targetingFlare) repaint();
             }
         });
+
         this.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
-                if (targetingNoiseMaker)      confirmNoiseTarget(mouseGridX, mouseGridY);
-                else if (targetingFlare)      confirmFlareTarget(mouseGridX, mouseGridY);
+                // Tutorial click handling
+                if (tutorial.isActive()) {
+                    boolean tutConsumed = tutorial.handleClick(e.getX(), e.getY(), getWidth(), getHeight());
+                    if (tutConsumed) {
+                        repaint();
+                        return;
+                    }
+                    // handleClick returned false — "Start Game" was pressed on last page
+                    if (!tutorial.isActive() && state == GameState.MENU) {
+                        startFromMenu();
+                        return;
+                    }
+                }
+
+                // Noise/Flare targeting clicks during gameplay
+                if (targetingNoiseMaker)  confirmNoiseTarget(mouseGridX, mouseGridY);
+                else if (targetingFlare)  confirmFlareTarget(mouseGridX, mouseGridY);
             }
         });
 
@@ -87,7 +111,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         levelManager.setupGame();
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
-        if (backgroundClip != null) { backgroundClip.setFramePosition(0); backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY); }
+        if (backgroundClip != null) {
+            backgroundClip.setFramePosition(0);
+            backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+        }
         repaint();
     }
 
@@ -142,7 +169,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1; unseen.items.NoiseMaker nm = null;
         for (int i = 0; i < inv.size(); i++) {
-            if (inv.get(i) instanceof unseen.items.NoiseMaker) { idx = i; nm = (unseen.items.NoiseMaker) inv.get(i); break; }
+            if (inv.get(i) instanceof unseen.items.NoiseMaker) {
+                idx = i; nm = (unseen.items.NoiseMaker) inv.get(i); break;
+            }
         }
         if (nm == null) { targetingNoiseMaker = false; repaint(); return; }
 
@@ -166,7 +195,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1; unseen.items.Flare flareItem = null;
         for (int i = 0; i < inv.size(); i++) {
-            if (inv.get(i) instanceof unseen.items.Flare) { idx = i; flareItem = (unseen.items.Flare) inv.get(i); break; }
+            if (inv.get(i) instanceof unseen.items.Flare) {
+                idx = i; flareItem = (unseen.items.Flare) inv.get(i); break;
+            }
         }
         if (flareItem == null) { targetingFlare = false; repaint(); return; }
 
@@ -192,7 +223,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         int px = levelManager.getPlayer().getX();
         int py = levelManager.getPlayer().getY();
-        shuriken.fireInDirection(px, py, shurikenDx, shurikenDy, levelManager.getMap(), levelManager.getEnemies());
+        shuriken.fireInDirection(px, py, shurikenDx, shurikenDy,
+                levelManager.getMap(), levelManager.getEnemies());
         inv.remove(idx);
         targetingShuriken = false;
 
@@ -205,7 +237,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 levelManager.getMap(), levelManager.getSmokes());
         setGameState(result);
         levelManager.updateSmoke();
-        requestFocusInWindow(); // ← ADD THIS
+        requestFocusInWindow();
         repaint();
     }
 
@@ -213,13 +245,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     // Smoke / flare / death puff
     // -------------------------------------------------------------------------
 
-    @Override public void spawnSmoke(int x, int y)  { levelManager.spawnSmoke(x, y); }
-    @Override public void spawnFlare(int x, int y)  { levelManager.spawnFlare(x, y); }
+    @Override public void spawnSmoke(int x, int y) { levelManager.spawnSmoke(x, y); }
+    @Override public void spawnFlare(int x, int y) { levelManager.spawnFlare(x, y); }
 
-    /** Spawn a small death-puff smoke cloud at tile (x, y). */
     public void spawnDeathPuff(int x, int y) { levelManager.spawnDeathPuff(x, y); }
-
-    public void updateSmoke() { levelManager.updateSmoke(); }
+    public void updateSmoke()                { levelManager.updateSmoke(); }
 
     // -------------------------------------------------------------------------
     // Pickup
@@ -257,29 +287,29 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     // Getters / setters
     // -------------------------------------------------------------------------
 
-    public void setGameState(GameState state) { this.state = state; }
-    public GameState getGameState()           { return state; }
+    public void setGameState(GameState s) { this.state = s; }
+    public GameState getGameState()       { return state; }
 
-    public Player getPlayer()           { return levelManager.getPlayer(); }
-    public Map getMap()                 { return levelManager.getMap(); }
-    public List<Enemy> getEnemies()     { return levelManager.getEnemies(); }
-    public List<Smoke> getSmokes()      { return levelManager.getSmokes(); }
+    public Player getPlayer()       { return levelManager.getPlayer(); }
+    public Map getMap()             { return levelManager.getMap(); }
+    public List<Enemy> getEnemies() { return levelManager.getEnemies(); }
+    public List<Smoke> getSmokes()  { return levelManager.getSmokes(); }
     public java.util.List<unseen.game.StickyTrap> getTraps() { return levelManager.getTraps(); }
 
     public int getMouseGridX() { return mouseGridX; }
     public int getMouseGridY() { return mouseGridY; }
 
     public boolean isTargetingShuriken() { return targetingShuriken; }
-    public int getShurikenDx() { return shurikenDx; }
-    public int getShurikenDy() { return shurikenDy; }
+    public int getShurikenDx()           { return shurikenDx; }
+    public int getShurikenDy()           { return shurikenDy; }
 
     public void enterShurikenTargeting() {
-        // Default direction based on current facing
         shurikenDx = (levelManager.getPlayer().getFacing() == Player.Facing.RIGHT) ? 1 : -1;
         shurikenDy = 0;
         targetingShuriken = true;
         repaint();
     }
+
     public void setShurikenDirection(int dx, int dy) {
         shurikenDx = dx;
         shurikenDy = dy;

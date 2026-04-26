@@ -37,6 +37,9 @@ public class GameRenderer {
     public void render(Graphics g) {
         if (panel.getGameState() == GameState.MENU) {
             drawMainMenu(g);
+            if (panel.getTutorial().isActive()) {
+                panel.getTutorial().draw(g, panel.getWidth(), panel.getHeight());
+            }
             return;
         }
 
@@ -220,8 +223,10 @@ public class GameRenderer {
         g2.setColor(new Color(140, 90, 25, 220));
         g2.fillPolygon(dpx, dpy, 4);
 
+        // ── Menu options — all uniform plain text style ──────────────────────────
         int optY = sepY + 52;
 
+        // SPACE to Start
         String start = "SPACE  to  Start";
         g2.setFont(new Font("Serif", Font.BOLD, 22));
         int sw = g2.getFontMetrics().stringWidth(start);
@@ -230,20 +235,32 @@ public class GameRenderer {
         g2.setColor(new Color(210, 175, 90));
         g2.drawString(start, (w - sw) / 2, optY);
 
-        String quit = "Q  to Quit";
+        // H — How to Play
+        String howTo = "H  —  How to Play";
+        g2.setFont(new Font("Serif", Font.PLAIN, 18));
+        int hw2 = g2.getFontMetrics().stringWidth(howTo);
+        g2.setColor(new Color(0, 0, 0, 130));
+        g2.drawString(howTo, (w - hw2) / 2 + 1, optY + 39);
+        g2.setColor(new Color(118, 100, 72));
+        g2.drawString(howTo, (w - hw2) / 2, optY + 38);
+
+        // Q — Quit
+        String quit = "Q  —  Quit";
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int qw = g2.getFontMetrics().stringWidth(quit);
+        g2.setColor(new Color(0, 0, 0, 130));
+        g2.drawString(quit, (w - qw) / 2 + 1, optY + 76);
         g2.setColor(new Color(118, 100, 72));
-        g2.drawString(quit, (w - qw) / 2, optY + 38);
+        g2.drawString(quit, (w - qw) / 2, optY + 75);
+        // ── end menu options ─────────────────────────────────────────────────────
 
-        // Updated hint now mentions key 4 for shuriken
         String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
-        int hw = g2.getFontMetrics().stringWidth(hint);
+        int hintW = g2.getFontMetrics().stringWidth(hint);
         g2.setColor(new Color(0, 0, 0, 180));
-        g2.drawString(hint, (w - hw) / 2 + 1, h - 36);
+        g2.drawString(hint, (w - hintW) / 2 + 1, h - 36);
         g2.setColor(new Color(210, 190, 140));
-        g2.drawString(hint, (w - hw) / 2, h - 37);
+        g2.drawString(hint, (w - hintW) / 2, h - 37);
 
         String version = "v0.1 Alpha";
         g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
