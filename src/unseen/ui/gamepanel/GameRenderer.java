@@ -67,6 +67,12 @@ public class GameRenderer {
             g.setFont(new Font("Arial", Font.PLAIN, 22));
             int w2 = g.getFontMetrics().stringWidth(line2);
             g.drawString(line2, (panel.getWidth() - w2) / 2, panel.getHeight() / 2 + 20);
+
+            String line3 = "M  —  Return to Menu";
+            g.setColor(new Color(180, 180, 180));
+            g.setFont(new Font("Arial", Font.PLAIN, 16));
+            int w3 = g.getFontMetrics().stringWidth(line3);
+            g.drawString(line3, (panel.getWidth() - w3) / 2, panel.getHeight() / 2 + 52);
         }
 
         if (panel.getGameState() == GameState.LOSE) {
@@ -85,11 +91,11 @@ public class GameRenderer {
             int lw2 = g.getFontMetrics().stringWidth(line2);
             g.drawString(line2, (panel.getWidth() - lw2) / 2, panel.getHeight() / 2 + 20);
 
-            String line3 = "Press R to restart";
+            String line3 = "R  —  Restart     M  —  Main Menu";
             g.setColor(new Color(200, 200, 200));
             g.setFont(new Font("Arial", Font.PLAIN, 18));
             int lw3 = g.getFontMetrics().stringWidth(line3);
-            g.drawString(line3, (panel.getWidth() - lw3) / 2, panel.getHeight() / 2 + 55);
+            g.drawString(line3, (panel.getWidth() - lw3) / 2, panel.getHeight() / 2 + 57);
         }
 
         if (panel.getGameState() == GameState.PAUSED) {
@@ -102,12 +108,71 @@ public class GameRenderer {
             int pw = g.getFontMetrics().stringWidth(pauseText);
             g.drawString(pauseText, (panel.getWidth() - pw) / 2, panel.getHeight() / 2 - 20);
 
-            String resumeHint = "Press ESC or P to resume";
+            String resumeHint = "P  —  Resume";
             g.setFont(new Font("Arial", Font.PLAIN, 18));
             int rw = g.getFontMetrics().stringWidth(resumeHint);
             g.setColor(new Color(200, 200, 200));
             g.drawString(resumeHint, (panel.getWidth() - rw) / 2, panel.getHeight() / 2 + 25);
+
+            String menuHint = "ESC  —  Return to Menu";
+            g.setFont(new Font("Arial", Font.PLAIN, 16));
+            int mw = g.getFontMetrics().stringWidth(menuHint);
+            g.setColor(new Color(160, 160, 160));
+            g.drawString(menuHint, (panel.getWidth() - mw) / 2, panel.getHeight() / 2 + 55);
         }
+
+        // ── Return-to-menu confirmation overlay ──────────────────────────────────
+        if (panel.getGameState() == GameState.CONFIRM_QUIT) {
+            // Darken everything behind
+            g.setColor(new Color(0, 0, 0, 180));
+            g.fillRect(0, 0, panel.getWidth(), panel.getHeight());
+
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // Card background
+            int cardW = 380, cardH = 160;
+            int cardX = (panel.getWidth()  - cardW) / 2;
+            int cardY = (panel.getHeight() - cardH) / 2;
+
+            g2.setColor(new Color(16, 12, 8, 240));
+            g2.fillRoundRect(cardX, cardY, cardW, cardH, 16, 16);
+            g2.setColor(new Color(90, 58, 18, 200));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16);
+            g2.setColor(new Color(50, 33, 10, 100));
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(cardX + 5, cardY + 5, cardW - 10, cardH - 10, 12, 12);
+
+            // Question
+            String question = "Return to Main Menu?";
+            g2.setFont(new Font("Serif", Font.BOLD, 22));
+            FontMetrics qfm = g2.getFontMetrics();
+            int qw = qfm.stringWidth(question);
+            g2.setColor(new Color(220, 190, 100));
+            g2.drawString(question, cardX + (cardW - qw) / 2, cardY + 52);
+
+            // Separator line
+            g2.setColor(new Color(90, 58, 18, 140));
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.drawLine(cardX + 30, cardY + 66, cardX + cardW - 30, cardY + 66);
+
+            // Options
+            String yes  = "M  —  Yes, go to menu";
+            String no   = "Any other key  —  Stay";
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
+            FontMetrics ofm = g2.getFontMetrics();
+
+            int yw = ofm.stringWidth(yes);
+            g2.setColor(new Color(180, 240, 140));
+            g2.drawString(yes,  cardX + (cardW - yw) / 2, cardY + 98);
+
+            int nw = ofm.stringWidth(no);
+            g2.setColor(new Color(180, 180, 180));
+            g2.drawString(no, cardX + (cardW - nw) / 2, cardY + 126);
+        }
+        // ────────────────────────────────────────────────────────────────────────
 
         // Floor number in top-right corner
         if (panel.getGameState() == GameState.PLAYING) {
@@ -183,9 +248,9 @@ public class GameRenderer {
 
         int cs = 7;
         g2.setColor(new Color(110, 72, 22, 200));
-        g2.fillRect(cardX - 2,            cardY - 2,            cs, cs);
-        g2.fillRect(cardX + cardW - cs + 2, cardY - 2,           cs, cs);
-        g2.fillRect(cardX - 2,            cardY + cardH - cs + 2, cs, cs);
+        g2.fillRect(cardX - 2,              cardY - 2,              cs, cs);
+        g2.fillRect(cardX + cardW - cs + 2, cardY - 2,              cs, cs);
+        g2.fillRect(cardX - 2,              cardY + cardH - cs + 2, cs, cs);
         g2.fillRect(cardX + cardW - cs + 2, cardY + cardH - cs + 2, cs, cs);
 
         float pulse = (float) (0.5 + 0.5 * Math.sin(now / 820.0));
@@ -226,7 +291,6 @@ public class GameRenderer {
         // ── Menu options — all uniform plain text style ──────────────────────────
         int optY = sepY + 52;
 
-        // SPACE to Start
         String start = "SPACE  to  Start";
         g2.setFont(new Font("Serif", Font.BOLD, 22));
         int sw = g2.getFontMetrics().stringWidth(start);
@@ -235,7 +299,6 @@ public class GameRenderer {
         g2.setColor(new Color(210, 175, 90));
         g2.drawString(start, (w - sw) / 2, optY);
 
-        // H — How to Play
         String howTo = "H  —  How to Play";
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int hw2 = g2.getFontMetrics().stringWidth(howTo);
@@ -244,7 +307,6 @@ public class GameRenderer {
         g2.setColor(new Color(118, 100, 72));
         g2.drawString(howTo, (w - hw2) / 2, optY + 38);
 
-        // Q — Quit
         String quit = "Q  —  Quit";
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int qw = g2.getFontMetrics().stringWidth(quit);
@@ -306,7 +368,7 @@ public class GameRenderer {
     private void drawInventory(Graphics g) {
         int boxSize = 44;
         int spacing = 12;
-        int slots   = 4; // NOW 4 slots
+        int slots   = 4;
         int barWidth  = slots * (boxSize + spacing) + 40;
         int barHeight = boxSize + 24;
         int panelWidth = panel.getWidth();
@@ -319,8 +381,6 @@ public class GameRenderer {
         g2.fillRoundRect(startX - 18, y - 14, barWidth, barHeight, 18, 18);
 
         Player player = levelManager.getPlayer();
-
-        // ---- helper lambda replaced by inline blocks for Java compatibility ----
 
         // Slot 1 — NoiseMaker
         int x = startX;
@@ -371,7 +431,7 @@ public class GameRenderer {
         drawSlotNumber(g2, "3", x, y, boxSize);
         x += boxSize + spacing;
 
-        // Slot 4 — Shuriken (NEW)
+        // Slot 4 — Shuriken
         drawSlotBox(g2, x, y, boxSize, new Color(180, 220, 255, 180));
         boolean hasShuriken = player.getInventory().stream().anyMatch(i -> i instanceof Shuriken);
         if (hasShuriken) {
@@ -379,7 +439,6 @@ public class GameRenderer {
                 g2.drawImage(AssetLoader.get().shuriken, x + iconPad, y + iconPad,
                         boxSize - 2 * iconPad, boxSize - 2 * iconPad, null);
             else {
-                // Fallback: draw a simple star/cross shape
                 g2.setColor(new Color(160, 200, 240));
                 int cx2 = x + boxSize / 2, cy2 = y + boxSize / 2, r2 = boxSize / 2 - iconPad;
                 g2.fillOval(cx2 - r2, cy2 - r2, r2 * 2, r2 * 2);
@@ -392,7 +451,6 @@ public class GameRenderer {
         drawSlotNumber(g2, "4", x, y, boxSize);
     }
 
-    /** Draws the border + background for one inventory slot. */
     private void drawSlotBox(Graphics2D g2, int x, int y, int boxSize, Color borderColor) {
         g2.setColor(borderColor);
         g2.setStroke(new BasicStroke(3f));
@@ -404,7 +462,6 @@ public class GameRenderer {
         g2.drawRoundRect(x, y, boxSize, boxSize, 12, 12);
     }
 
-    /** Draws the small label above a slot. */
     private void drawSlotLabel(Graphics2D g2, String label, int x, int y, int boxSize, Color color) {
         g2.setFont(new Font("Arial", Font.PLAIN, 10));
         g2.setColor(color);
@@ -412,7 +469,6 @@ public class GameRenderer {
         g2.drawString(label, x + (boxSize - labelWidth) / 2, y - 6);
     }
 
-    /** Draws the key-number badge in the bottom-right of a slot. */
     private void drawSlotNumber(Graphics2D g2, String num, int x, int y, int boxSize) {
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
         g2.setColor(new Color(200, 200, 200, 180));
@@ -422,13 +478,11 @@ public class GameRenderer {
     // -------------------------------------------------------------------------
 
     private void drawMap(Graphics g) {
-
         Graphics2D g2 = (Graphics2D) g;
         boolean[][] visible    = levelManager.getVisible();
         float[][]   lightLevel = levelManager.getLightLevel();
         List<Smoke> smokes     = levelManager.getSmokes();
 
-        // 1) draw base tiles
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 Tile tile  = levelManager.getMap().getTile(x, y);
@@ -499,7 +553,7 @@ public class GameRenderer {
             }
         }
 
-        // 2) draw items on ground — now includes Shuriken
+        // Items on ground
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 unseen.items.Item ground = levelManager.getMap().getItem(x, y);
@@ -516,15 +570,12 @@ public class GameRenderer {
                     } else if (ground instanceof Flare && AssetLoader.get().lantern != null) {
                         g2.drawImage(AssetLoader.get().lantern, tx + iconPad, ty + iconPad,
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
-                    } else if (ground instanceof Shuriken) { // NEW
+                    } else if (ground instanceof Shuriken) {
                         if (AssetLoader.get().shuriken != null) {
                             g2.drawImage(AssetLoader.get().shuriken, tx + iconPad, ty + iconPad,
                                     Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                         } else {
-                            // Fallback: small blue-grey cross
                             g2.setColor(new Color(160, 200, 240, 200));
-                            int mid = Constants.TILE_SIZE / 2;
-                            int r = Constants.TILE_SIZE / 2 - iconPad;
                             g2.fillOval(tx + iconPad, ty + iconPad,
                                     Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad);
                         }
@@ -533,7 +584,7 @@ public class GameRenderer {
             }
         }
 
-        // 3) draw sticky traps
+        // Sticky traps
         java.awt.Stroke savedStroke = g2.getStroke();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -551,9 +602,8 @@ public class GameRenderer {
         }
         g2.setStroke(savedStroke);
 
-        // 4) draw smoke clouds
+        // Smoke clouds
         savedStroke = g2.getStroke();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         long smokeNow = System.currentTimeMillis();
         for (Smoke smoke : smokes) {
             int cx = smoke.getX() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
@@ -570,7 +620,7 @@ public class GameRenderer {
         }
         g2.setStroke(savedStroke);
 
-        // 5) fog overlay
+        // Fog overlay
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 if (!visible[y][x]) {
@@ -592,13 +642,11 @@ public class GameRenderer {
     }
 
     private void drawEntities(Graphics g) {
-
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         boolean[][] visible = levelManager.getVisible();
         Player player = levelManager.getPlayer();
 
-        // Player
         if (visible[player.getY()][player.getX()]) {
             if (player.getHeroImage() != null) {
                 int scaledSize = Constants.TILE_SIZE * 2;
@@ -619,7 +667,6 @@ public class GameRenderer {
             }
         }
 
-        // Enemies
         for (Enemy e : levelManager.getEnemies()) {
             int ex = e.getX();
             int ey = e.getY();
@@ -637,7 +684,6 @@ public class GameRenderer {
                         Constants.TILE_SIZE, Constants.TILE_SIZE);
             }
 
-            // Sentry alert badge
             if (e instanceof SentryEnemy) {
                 SentryEnemy s = (SentryEnemy) e;
                 if (s.isAlertVisualActive()) {
@@ -667,7 +713,6 @@ public class GameRenderer {
                 }
             }
 
-            // Chase path dots
             if (e.getState() == Enemy.State.CHASE
                     && e.hasLineOfSightToPlayer(levelManager.getMap(), player, levelManager.getSmokes())) {
                 java.util.List<unseen.ai.Node> path = e.getPlannedPath(levelManager.getMap(), player);
@@ -699,24 +744,20 @@ public class GameRenderer {
         int dy = panel.getShurikenDy();
         unseen.map.Map map = levelManager.getMap();
 
-        // Dim overlay
         g2.setColor(new Color(0, 0, 0, 60));
         g2.fillRect(0, 0, panel.getWidth(), panel.getHeight());
 
-        // Draw trajectory tiles
         boolean hitEnemy = false;
         for (int i = 1; i <= 5; i++) {
             int tx = px + dx * i;
             int ty = py + dy * i;
             if (tx < 0 || tx >= Constants.GRID_WIDTH || ty < 0 || ty >= Constants.GRID_HEIGHT) break;
             if (map.getTile(tx, ty) == unseen.map.Tile.WALL) {
-                // Show blocked tile in red
                 g2.setColor(new Color(200, 50, 50, 120));
                 g2.fillRect(tx * ts, ty * ts, ts, ts);
                 break;
             }
 
-            // Check if enemy is here
             boolean enemyHere = false;
             for (unseen.entities.Enemy e : levelManager.getEnemies()) {
                 if (e.isAlive() && e.getX() == tx && e.getY() == ty) {
@@ -727,15 +768,13 @@ public class GameRenderer {
             }
 
             if (enemyHere) {
-                // Highlight enemy tile red — shuriken hits here
                 g2.setColor(new Color(220, 60, 60, 200));
                 g2.fillRect(tx * ts, ty * ts, ts, ts);
                 g2.setColor(new Color(255, 100, 100, 255));
                 g2.setStroke(new BasicStroke(2.5f));
                 g2.drawRect(tx * ts, ty * ts, ts, ts);
-                break; // shuriken stops at first hit
+                break;
             } else {
-                // Normal trajectory tile — cyan/white dashed
                 g2.setColor(new Color(150, 220, 255, 80));
                 g2.fillRect(tx * ts, ty * ts, ts, ts);
                 g2.setColor(new Color(180, 240, 255, 180));
@@ -744,7 +783,6 @@ public class GameRenderer {
             }
         }
 
-        // Draw a line from player center along the trajectory
         int startCx = px * ts + ts / 2;
         int startCy = py * ts + ts / 2;
         int endCx   = startCx + dx * 5 * ts;
@@ -754,7 +792,6 @@ public class GameRenderer {
         g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1f, dash, 0f));
         g2.drawLine(startCx, startCy, endCx, endCy);
 
-        // HUD prompt at bottom
         String msg = (hitEnemy ? "Will hit enemy!  " : "") + "WASD to aim  |  Space/Enter to throw  |  Esc to cancel";
         g2.setFont(new Font("Arial", Font.BOLD, 15));
         FontMetrics fm = g2.getFontMetrics();

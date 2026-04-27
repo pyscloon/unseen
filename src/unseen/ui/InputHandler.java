@@ -29,7 +29,6 @@ public class InputHandler extends KeyAdapter {
         if (panel.getTutorial().isActive()) {
             if (key == KeyEvent.VK_RIGHT || key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
                 panel.getTutorial().nextPage();
-                // If that just dismissed the tutorial, go straight into the game
                 if (!panel.getTutorial().isActive()) {
                     panel.startFromMenu();
                 }
@@ -37,7 +36,6 @@ public class InputHandler extends KeyAdapter {
                 panel.getTutorial().prevPage();
             } else if (key == KeyEvent.VK_ESCAPE) {
                 panel.getTutorial().dismiss();
-                // ESC just closes the tutorial, stays on main menu
             }
             panel.repaint();
             return;
@@ -62,32 +60,46 @@ public class InputHandler extends KeyAdapter {
         }
 
         // Retry after death
-        if (panel.getGameState() == GameState.LOSE && key == KeyEvent.VK_R) {
-            panel.restartGame();
+        if (panel.getGameState() == GameState.LOSE) {
+            if (key == KeyEvent.VK_R) { panel.restartGame(); return; }
+            if (key == KeyEvent.VK_M) { panel.returnToMenu(); return; }
             return;
         }
 
-        // Win screen — next floor
+        // Win screen — next floor or back to menu
         if (panel.getGameState() == GameState.WIN) {
+            if (key == KeyEvent.VK_M) { panel.returnToMenu(); return; }
             panel.nextFloor();
             return;
         }
 
-        // Escape: cancel targeting or toggle pause
+        // ── Confirm-quit overlay ────────────────────────────────────────────────
+        if (panel.getGameState() == GameState.CONFIRM_QUIT) {
+            if (key == KeyEvent.VK_M) {
+                panel.returnToMenu();
+            } else {
+                // Any other key (ESC, P, space, …) cancels back to PAUSED
+                panel.setGameState(GameState.PAUSED);
+                panel.repaint();
+            }
+            return;
+        }
+
+        // Escape: cancel targeting → pause → show quit-confirm
         if (key == KeyEvent.VK_ESCAPE) {
             if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingShuriken()) {
                 panel.cancelTargeting();
             } else if (panel.getGameState() == GameState.PLAYING) {
                 panel.pauseGame();
             } else if (panel.getGameState() == GameState.PAUSED) {
-                panel.resumeGame();
+                panel.showQuitConfirm();   // second ESC → "Return to menu?" prompt
             }
             return;
         }
 
         if (key == KeyEvent.VK_P) {
-            if (panel.getGameState() == GameState.PLAYING)       panel.pauseGame();
-            else if (panel.getGameState() == GameState.PAUSED)   panel.resumeGame();
+            if (panel.getGameState() == GameState.PLAYING)     panel.pauseGame();
+            else if (panel.getGameState() == GameState.PAUSED) panel.resumeGame();
             return;
         }
 
@@ -102,7 +114,6 @@ public class InputHandler extends KeyAdapter {
                 case KeyEvent.VK_ENTER:
                 case KeyEvent.VK_SPACE: panel.confirmShurikenThrow(); return;
             }
-            // Any other key cancels
             panel.cancelTargeting();
             return;
         }
@@ -117,14 +128,12 @@ public class InputHandler extends KeyAdapter {
 
         // ---- Item keys ----
 
-        // 1 — NoiseMaker (enter targeting mode)
         if (key == KeyEvent.VK_1) {
             boolean hasNoise = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
             if (hasNoise) panel.enterNoiseMakerTargeting();
             return;
         }
 
-        // 2 — SmokeBomb (instant use)
         if (key == KeyEvent.VK_2) {
             List<Item> inv = player.getInventory();
             int idx = -1;
@@ -141,28 +150,24 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        // 3 — Flare (enter targeting mode)
         if (key == KeyEvent.VK_3) {
             boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.Flare);
             if (hasFlare) panel.enterFlareTargeting();
             return;
         }
 
-        // 4 — Shuriken: find and throw one, spawn death puff if a kill happened
         if (key == KeyEvent.VK_4) {
             boolean hasShuriken = player.getInventory().stream().anyMatch(i -> i instanceof Shuriken);
             if (hasShuriken) panel.enterShurikenTargeting();
             return;
         }
 
-        // E — Pickup
         if (key == KeyEvent.VK_E) {
             boolean picked = panel.attemptPickup();
             if (!picked) System.out.println("Nothing to pick up here.");
             return;
         }
 
-        // Trapped: spend turn escaping instead of moving
         if (isMovementKey(key) && player.isTrapped()) {
             player.decrementTrapped();
             GameState result = TurnManager.processTurn(player, panel.getEnemies(),
@@ -171,8 +176,6 @@ public class InputHandler extends KeyAdapter {
             panel.updateSmoke();
             return;
         }
-
-
 
         // Movement
         int x = player.getX(), y = player.getY();

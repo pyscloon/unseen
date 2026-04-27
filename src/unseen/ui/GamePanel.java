@@ -68,7 +68,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                         repaint();
                         return;
                     }
-                    // handleClick returned false — "Start Game" was pressed on last page
                     if (!tutorial.isActive() && state == GameState.MENU) {
                         startFromMenu();
                         return;
@@ -105,7 +104,33 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     // -------------------------------------------------------------------------
 
     public void pauseGame()  { if (state == GameState.PLAYING) { state = GameState.PAUSED;  repaint(); } }
-    public void resumeGame() { if (state == GameState.PAUSED)  { state = GameState.PLAYING; requestFocusInWindow(); repaint(); } }
+    public void resumeGame() {
+        if (state == GameState.PAUSED || state == GameState.CONFIRM_QUIT) {
+            state = GameState.PLAYING;
+            requestFocusInWindow();
+            repaint();
+        }
+    }
+
+    /** Transitions from PAUSED → CONFIRM_QUIT, showing the "Return to menu?" prompt. */
+    public void showQuitConfirm() {
+        if (state == GameState.PAUSED) {
+            state = GameState.CONFIRM_QUIT;
+            repaint();
+        }
+    }
+
+    /** Tears down the current run and returns to the main menu. */
+    public void returnToMenu() {
+        levelManager.setupGame();
+        state = GameState.MENU;
+        if (backgroundClip != null) {
+            backgroundClip.setFramePosition(0);
+            backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+        }
+        requestFocusInWindow();
+        repaint();
+    }
 
     public void restartGame() {
         levelManager.setupGame();
