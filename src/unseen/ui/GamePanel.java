@@ -302,6 +302,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         unseen.utils.SoundManager.get().play("ladder");
         runStats.setFloorsCleared(levelManager.getFloorNumber());
         levelManager.nextFloor();
+        loadAndPlayBackgroundSound(); // Restore horror music if applicable
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
         repaint();

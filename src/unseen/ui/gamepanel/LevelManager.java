@@ -520,6 +520,7 @@ public class LevelManager implements SmokeSpawner {
         terrorLevel = 0;
         highTensionMode = false;
         tensionTimer = 20;
+        floorPurified = false;
 
         buildFloor();
         player.setPosition(Constants.START_X, Constants.START_Y);
