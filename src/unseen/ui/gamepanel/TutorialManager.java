@@ -75,6 +75,7 @@ public class TutorialManager {
                 "2               —   Use Smoke Bomb   (instant, centred on you)",
                 "3               —   Use Flare / Lantern  (click tile to target)",
                 "4               —   Use Shuriken  (WASD to aim, Space to throw)",
+                "5               —   Use Holy Cross (Purify Floor - Horror Mode Only)",
                 "ESC             —   Cancel targeting / Pause / Return to Menu",
                 "P               —   Pause / Resume (Any key also resumes)",
                 "M               —   Toggle Music",
@@ -112,6 +113,14 @@ public class TutorialManager {
                 "Press Space or Enter to throw. Travels up to 5 tiles",
                 "in a straight line and silently eliminates the first enemy hit.",
                 "Wall stops the shuriken. Only one throw per shuriken."
+        ));
+        itemRows.add(new EntryRow(
+                "Holy Cross", "[5]",
+                new Color(255, 255, 180),
+                "A sacred artifact that only functions in HORROR MODE.",
+                "Instantly purifies the floor: banishes the Stalker,",
+                "cleanses blood, and reverts atmosphere to Normal Mode.",
+                "Extremely rare. Use it when the darkness becomes too much."
         ));
         // ── END ITEMS ──
 
@@ -164,7 +173,8 @@ public class TutorialManager {
                 "• TOTAL DARKNESS: Lights may fail, forcing you to move blind.",
                 "• UNRELIABLE TOOLS: Your lantern may flicker or fail in the dark.",
                 "• TENSION CYCLE: High-tension pulses bring audio hallucinations.",
-                "• THE LIMIT: You cannot linger. Something hunts you after Turn 70."
+                "• THE LIMIT: You cannot linger. Something hunts you after Turn 40.",
+                "• PURIFICATION: Use the Holy Cross [5] to return to Normal Mode."
         ));
 
         List<EntryRow> horrorRows = new ArrayList<>();
@@ -179,7 +189,7 @@ public class TutorialManager {
                 "The Stalker", "",
                 new Color(120, 20, 20),
                 "A persistent, invincible predator.",
-                "Spawns if you linger too long on a floor (Turn 70+).",
+                "Spawns if you linger too long on a floor (Turn 40+).",
                 "It knows where you are. It cannot be killed. ESCAPE."
         ));
         horrorRows.add(new EntryRow(

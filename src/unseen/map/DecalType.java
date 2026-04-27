@@ -6,5 +6,7 @@ public enum DecalType {
     BLOODY_TEXT_RUN,
     BLOODY_TEXT_HELP,
     BLOODY_TEXT_WATCHING,
-    BLOODY_TEXT_HIDE
+    BLOODY_TEXT_HIDE,
+    BLOOD_TILE,
+    DIE_TILE
 }

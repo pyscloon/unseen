@@ -166,7 +166,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
 
         try {
-            String[] activePlaylist = horrorMode ? horrorPlaylist : playlist;
+            boolean isActuallyHorror = horrorMode && !levelManager.isFloorPurified();
+            String[] activePlaylist = isActuallyHorror ? horrorPlaylist : playlist;
             if (currentTrackIndex >= activePlaylist.length) currentTrackIndex = 0;
             
             String path = activePlaylist[currentTrackIndex];
@@ -547,6 +548,22 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     @Override
     public void spawnFlare(int x, int y) {
         levelManager.spawnFlare(x, y);
+    }
+
+    @Override
+    public void purifyFloor() {
+        levelManager.purifyFloor();
+        loadAndPlayBackgroundSound(); // Immediately swap to normal music
+    }
+
+    @Override
+    public void addNoiseFlash(int x, int y) {
+        levelManager.addNoiseFlash(x, y);
+    }
+
+    @Override
+    public void addHolyFlash(int x, int y) {
+        levelManager.addHolyFlash(x, y);
     }
 
     public void spawnDeathPuff(int x, int y) {

@@ -34,16 +34,18 @@ public class MapGenerator {
                 // Place horror decals
                 if (horrorMode) {
                     double decalRoll = rand.nextDouble();
-                    if (decalRoll < 0.05) { // 5% chance per tile
+                    if (decalRoll < 0.08) { // Increased to 8% chance per tile
                         Tile t = map.getTile(x, y);
                         if (t == Tile.WALL) {
                             map.setDecal(x, y, DecalType.BLOODY_HANDPRINT);
                         } else {
                             double subRoll = rand.nextDouble();
-                            if (subRoll < 0.5) map.setDecal(x, y, DecalType.BLOOD_SPLATTER);
-                            else if (subRoll < 0.7) map.setDecal(x, y, DecalType.BLOODY_TEXT_RUN);
-                            else if (subRoll < 0.85) map.setDecal(x, y, DecalType.BLOODY_TEXT_HELP);
-                            else if (subRoll < 0.95) map.setDecal(x, y, DecalType.BLOODY_TEXT_WATCHING);
+                            if (subRoll < 0.4) map.setDecal(x, y, DecalType.BLOOD_SPLATTER);
+                            else if (subRoll < 0.7) map.setDecal(x, y, DecalType.BLOOD_TILE);
+                            else if (subRoll < 0.85) map.setDecal(x, y, DecalType.DIE_TILE);
+                            else if (subRoll < 0.90) map.setDecal(x, y, DecalType.BLOODY_TEXT_RUN);
+                            else if (subRoll < 0.94) map.setDecal(x, y, DecalType.BLOODY_TEXT_HELP);
+                            else if (subRoll < 0.97) map.setDecal(x, y, DecalType.BLOODY_TEXT_WATCHING);
                             else map.setDecal(x, y, DecalType.BLOODY_TEXT_HIDE);
                         }
                     }
@@ -98,7 +100,9 @@ public class MapGenerator {
                     || map.getItem(tx, ty) != null);
             double roll = rand.nextDouble();
             Item it;
-            if (roll < 0.33) {
+            if (horrorMode && rand.nextDouble() < 0.03) {
+                it = new unseen.items.Cross();
+            } else if (roll < 0.33) {
                 it = new NoiseMaker();
             } else if (roll < 0.66) {
                 it = new SmokeBomb();

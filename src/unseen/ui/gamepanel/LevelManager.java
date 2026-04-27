@@ -42,9 +42,10 @@ public class LevelManager implements SmokeSpawner {
     }
 
     private int turnCount = 0;
-    private boolean stalkerSpawned = false;
+    private int     stalkerSpawnCount = 0;
     private int darkEventTurns = 0;
     private int lanternFlickerTurns = 0;
+    private boolean floorPurified = false;
 
     // --- SUSPENSE SYSTEM ---
     private int terrorLevel = 0; // 0 to 10
@@ -147,7 +148,7 @@ public class LevelManager implements SmokeSpawner {
 
     public void incrementTurn() {
         turnCount++;
-        if (panel.isHorrorMode()) {
+        if (panel.isHorrorMode() && !floorPurified) {
             // --- Update Suspense Cycle ---
             tensionTimer--;
             if (tensionTimer <= 0) {
@@ -228,7 +229,7 @@ public class LevelManager implements SmokeSpawner {
             }
 
             // --- PLAYER BREATHING (General ambient tension) ---
-            if (panel.isHorrorMode() && Math.random() < 0.04) { // 4% chance per turn for ambient breathing
+            if (panel.isHorrorMode() && !floorPurified && panel.getGameState() == unseen.game.GameState.PLAYING && Math.random() < 0.04) { // 4% chance per turn for ambient breathing
                 unseen.utils.SoundManager.get().play("breathing", 0.3f);
                 unseen.utils.SoundManager.get().play("heartbeat", 0.5f);
             }
@@ -260,16 +261,24 @@ public class LevelManager implements SmokeSpawner {
                 return sf.isSeen();
             });
 
-            if (!stalkerSpawned && turnCount > 70) { // Delayed spawn
-                stalkerSpawned = true;
-                enemies.add(
-                        new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y, new unseen.ai.AStar()));
-                unseen.utils.SoundManager.get().play("no_more", 1.2f);
-                panel.triggerShake(20, 3f);
+            // Stalker spawning logic (up to 2 per floor)
+            boolean isStalkerAlive = enemies.stream().anyMatch(e -> e instanceof unseen.entities.StalkerEnemy);
+            if (!isStalkerAlive) {
+                if (stalkerSpawnCount == 0 && turnCount > 40) {
+                    stalkerSpawnCount++;
+                    enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y, new unseen.ai.AStar()));
+                    unseen.utils.SoundManager.get().play("no_more", 1.2f);
+                    panel.triggerShake(20, 3f);
+                } else if (stalkerSpawnCount == 1 && turnCount > 80) {
+                    stalkerSpawnCount++;
+                    enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y, new unseen.ai.AStar()));
+                    unseen.utils.SoundManager.get().play("horror_laugh", 1.0f); // Different sound for 2nd appearance
+                    panel.triggerShake(30, 4f);
+                }
             }
 
-            // --- STALKER PROXIMITY SOUNDS (EXTREMELY RARE NOW) ---
-            if (stalkerSpawned) {
+            // --- STALKER PROXIMITY SOUNDS ---
+            if (isStalkerAlive) {
                 for (unseen.entities.Enemy e : enemies) {
                     if (e instanceof unseen.entities.StalkerEnemy) {
                         double dist = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
@@ -339,7 +348,6 @@ public class LevelManager implements SmokeSpawner {
                     }
                 }
             }
-
             // --- ECHOING FOOTSTEPS --- (Suspense element)
             if (highTensionMode && Math.random() < 0.15) {
                 // Play a delayed footstep to make player paranoid
@@ -478,12 +486,13 @@ public class LevelManager implements SmokeSpawner {
     public void setupGame() {
         this.floorNumber = 1;
         this.turnCount = 0;
-        this.stalkerSpawned = false;
+        this.stalkerSpawnCount = 0;
         this.darkEventTurns = 0;
         this.lanternFlickerTurns = 0;
         this.terrorLevel = 0;
         this.highTensionMode = false;
         this.tensionTimer = 20;
+        this.floorPurified = false;
 
         this.player = new Player(Constants.START_X, Constants.START_Y);
         buildFloor();
@@ -491,6 +500,9 @@ public class LevelManager implements SmokeSpawner {
         player.addItem(new SmokeBomb());
         player.addItem(new Flare());
         player.addItem(new Shuriken());
+        if (panel.isHorrorMode()) {
+            player.addItem(new unseen.items.Cross());
+        }
         player.setSmokeSpawner(this);
         updateVisibility();
     }
@@ -502,7 +514,7 @@ public class LevelManager implements SmokeSpawner {
     public void nextFloor() {
         floorNumber++;
         turnCount = 0;
-        stalkerSpawned = false;
+        stalkerSpawnCount = 0;
         darkEventTurns = 0;
         lanternFlickerTurns = 0;
         terrorLevel = 0;
@@ -663,7 +675,28 @@ public class LevelManager implements SmokeSpawner {
     // -------------------------------------------------------------------------
 
     /** Register a NoiseMaker ripple effect at the given tile for 4 turns. */
+    @Override
     public void addNoiseFlash(int x, int y) {
         noiseFlashes.add(new FlashEffect(x, y, 4));
+    }
+
+    @Override
+    public void addHolyFlash(int x, int y) {
+        noiseFlashes.add(new FlashEffect(x, y, 8, true)); // Longer duration (8 turns)
+    }
+
+    @Override
+    public void purifyFloor() {
+        this.floorPurified = true;
+        this.darkEventTurns = 0;
+        this.terrorLevel = 0;
+        this.highTensionMode = false;
+        this.phantomTurns = 0;
+        this.phantomX = -1;
+        this.shadowFigures.clear();
+    }
+
+    public boolean isFloorPurified() {
+        return floorPurified;
     }
 }

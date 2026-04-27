@@ -11,6 +11,7 @@ import unseen.items.Flare;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
+import unseen.map.DecalType;
 import unseen.map.Tile;
 import unseen.ui.GamePanel;
 import unseen.utils.AssetLoader;
@@ -63,9 +64,14 @@ public class GameRenderer {
         drawFlares(world);
         drawNoiseFlashes(world);
         drawShurikenProjectiles(world);
+        
+        // --- HORROR ATMOSPHERE ---
+        if (panel.isHorrorMode() && !levelManager.isFloorPurified()) {
+            drawAtmosphericEffects(world);
+        }
 
         // --- HORROR MODE: Heartbeat Vignette ---
-        if (panel.isHorrorMode() && panel.getGameState() == unseen.game.GameState.PLAYING) {
+        if (panel.isHorrorMode() && !levelManager.isFloorPurified() && panel.getGameState() == unseen.game.GameState.PLAYING) {
             double minEnemyDist = Double.MAX_VALUE;
             unseen.entities.Player p = levelManager.getPlayer();
 
@@ -128,7 +134,7 @@ public class GameRenderer {
         }
 
         // --- Shadow Figures ---
-        if (panel.isHorrorMode()) {
+        if (panel.isHorrorMode() && !levelManager.isFloorPurified()) {
             for (unseen.entities.ShadowFigure sf : levelManager.getShadowFigures()) {
                 int sdx = sf.getX() * Constants.TILE_SIZE;
                 int sdy = sf.getY() * Constants.TILE_SIZE;
@@ -697,6 +703,7 @@ public class GameRenderer {
             new SlotDef("2", "Smoke Bomb", new Color(180, 200, 255), new Color(80, 85, 110)),
             new SlotDef("3", "Lantern", new Color(255, 230, 120), new Color(110, 100, 60)),
             new SlotDef("4", "Shuriken", new Color(140, 210, 255), new Color(65, 95, 120)),
+            new SlotDef("5", "Holy Cross", new Color(255, 255, 180), new Color(100, 100, 70)),
     };
 
     private void drawInventory(Graphics g) {
@@ -712,7 +719,7 @@ public class GameRenderer {
         final int PAD_X = 16;
         final int PAD_Y = 8;
 
-        int slots = SLOTS.length;
+        int slots = panel.isHorrorMode() ? SLOTS.length : SLOTS.length - 1;
         int barW = PAD_X * 2 + slots * BOX + (slots - 1) * SPACING;
         int barH = PAD_Y * 2 + LABEL_H + BOX + BADGE_H;
         int barX = (panel.getWidth() - barW) / 2;
@@ -733,13 +740,15 @@ public class GameRenderer {
         int countSmoke = (int) player.getInventory().stream().filter(i -> i instanceof SmokeBomb).count();
         int countFlare = (int) player.getInventory().stream().filter(i -> i instanceof Flare).count();
         int countShuriken = (int) player.getInventory().stream().filter(i -> i instanceof Shuriken).count();
-        int[] counts = { countNoise, countSmoke, countFlare, countShuriken };
+        int countCross = (int) player.getInventory().stream().filter(i -> i instanceof unseen.items.Cross).count();
+        int[] counts = { countNoise, countSmoke, countFlare, countShuriken, countCross };
 
         java.awt.Image[] icons = {
                 AssetLoader.get().noiseMaker,
                 AssetLoader.get().smokeBomb,
                 AssetLoader.get().lantern,
                 AssetLoader.get().shuriken,
+                AssetLoader.get().cross,
         };
 
         // Which slot is currently "active" (targeting)?
@@ -748,6 +757,7 @@ public class GameRenderer {
                 false, // smoke bomb has no targeting mode
                 panel.isTargetingFlare(),
                 panel.isTargetingShuriken(),
+                false, // cross is immediate
         };
 
         long now = System.currentTimeMillis();
@@ -1481,19 +1491,59 @@ public class GameRenderer {
         for (FlashEffect f : noiseFlashes) {
             int cx = f.getX() * ts + ts / 2;
             int cy = f.getY() * ts + ts / 2;
-            int baseAlpha = f.getCountdown() * 55;
-            float t1 = (float) ((now % 600) / 600.0);
-            int r1 = ts / 4 + (int) (ts * 0.9f * t1);
-            int a1 = Math.min(255, (int) (baseAlpha * (1.0f - t1 * 0.5f)));
-            g2.setColor(new Color(255, 210, 50, a1));
-            g2.setStroke(new BasicStroke(3f));
-            g2.drawOval(cx - r1, cy - r1, r1 * 2, r1 * 2);
-            float t2 = (float) (((now + 200) % 600) / 600.0);
-            int r2 = ts / 4 + (int) (ts * 0.9f * t2);
-            int a2 = Math.min(255, (int) (baseAlpha * (1.0f - t2 * 0.5f)));
-            g2.setColor(new Color(255, 130, 20, a2));
-            g2.setStroke(new BasicStroke(2f));
-            g2.drawOval(cx - r2, cy - r2, r2 * 2, r2 * 2);
+            if (f.isHoly()) {
+                // --- HOLY PURIFICATION EFFECT (Smooth time-based) ---
+                long elapsed = now - f.getStartTime();
+                float progress = Math.min(1.0f, elapsed / 1000.0f); // 1 second full animation
+                
+                // Expand from 0 to 3 tiles radius
+                int r = (int) (ts * 0.2f + ts * 2.8f * (float) Math.pow(progress, 0.5)); 
+                // Fade out at the end
+                int alpha = (int) (220 * (1.0f - progress));
+                if (f.getCountdown() <= 1) alpha *= 0.5; // Extra fade if almost gone
+                
+                if (alpha <= 0) continue;
+
+                // 1. Golden Aura
+                g2.setColor(new Color(255, 255, 180, alpha / 3));
+                g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+                
+                // 2. Expanding Cross
+                g2.setColor(new Color(255, 240, 100, alpha));
+                g2.setStroke(new BasicStroke(2f + 4f * (1.0f - progress)));
+                int arm = r;
+                g2.drawLine(cx - arm, cy, cx + arm, cy);
+                g2.drawLine(cx, cy - arm, cx, cy + arm);
+                
+                // 3. Sparkles (using progress for movement)
+                Random sparkleRand = new Random(f.getX() * 100 + f.getY());
+                for (int i = 0; i < 8; i++) {
+                    float sAngle = (float) (sparkleRand.nextDouble() * 2 * Math.PI);
+                    float sDist = (float) (r * 0.2f + r * 0.8f * sparkleRand.nextDouble());
+                    int sx = cx + (int) (Math.cos(sAngle) * sDist);
+                    int sy = cy + (int) (Math.sin(sAngle) * sDist);
+                    
+                    int sAlpha = (int) (alpha * (0.5 + 0.5 * Math.sin(now * 0.01 + i)));
+                    g2.setColor(new Color(255, 255, 255, Math.max(0, sAlpha)));
+                    g2.fillRect(sx, sy, 2, 2);
+                }
+            } else {
+                // --- STANDARD NOISEMAKER RIPPLE ---
+                int baseAlpha = Math.min(255, f.getCountdown() * 60);
+                float t1 = (float) ((now % 600) / 600.0);
+                int r1 = ts / 4 + (int) (ts * 0.9f * t1);
+                int a1 = Math.min(baseAlpha, (int) (baseAlpha * (1.0f - t1)));
+                g2.setColor(new Color(255, 210, 50, a1));
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawOval(cx - r1, cy - r1, r1 * 2, r1 * 2);
+                
+                float t2 = (float) (((now + 200) % 600) / 600.0);
+                int r2 = ts / 4 + (int) (ts * 0.9f * t2);
+                int a2 = Math.min(baseAlpha, (int) (baseAlpha * (1.0f - t2)));
+                g2.setColor(new Color(255, 130, 20, a2));
+                g2.setStroke(new BasicStroke(2f));
+                g2.drawOval(cx - r2, cy - r2, r2 * 2, r2 * 2);
+            }
         }
         g2.setStroke(saved);
     }
@@ -1755,6 +1805,83 @@ public class GameRenderer {
                 g2.setFont(new Font("Monospaced", Font.BOLD, 14));
                 g2.drawString("HIDE", drawX + 5, drawY + 25);
                 break;
+            case BLOOD_TILE:
+            case DIE_TILE:
+                Image img = (type == DecalType.BLOOD_TILE) 
+                    ? unseen.utils.AssetLoader.get().horrorFloor 
+                    : unseen.utils.AssetLoader.get().dieTile;
+                if (img != null) {
+                    int variant = (gx * 31 + gy * 17) & 3;
+                    int ts = Constants.TILE_SIZE;
+                    java.awt.geom.AffineTransform saved = g2.getTransform();
+                    
+                    // Center for rotation
+                    g2.translate(drawX + ts/2, drawY + ts/2);
+                    
+                    // Rotate based on variant
+                    g2.rotate(Math.toRadians(variant * 90));
+                    
+                    // Flip logic (optional, but adds more variety)
+                    if ((variant & 1) != 0) g2.scale(-1, 1);
+                    
+                    g2.drawImage(img, -ts/2, -ts/2, ts, ts, null);
+                    g2.setTransform(saved);
+                }
+                break;
+        }
+    }
+    /**
+     * Adds 'Found Footage' style grain, scanlines, and cold tint to the world.
+     */
+    private void drawAtmosphericEffects(Graphics2D g2) {
+        int w = panel.getWidth();
+        int h = panel.getHeight();
+        Random rand = new Random();
+        long now = System.currentTimeMillis();
+
+        // 1. COLD COLOR TINT (EERIE BLUE/GREEN)
+        // This desaturates the scene and makes it feel colder.
+        g2.setColor(new Color(20, 40, 60, 15)); 
+        g2.fillRect(0, 0, w, h);
+
+        // 2. FILM GRAIN / NOISE
+        // Draw small random pixels of varying brightness to simulate ISO noise
+        // Using a seed based on time so it 'flickers'
+        Random flickerRand = new Random(now / 50); 
+        for (int i = 0; i < 1200; i++) {
+            int rx = flickerRand.nextInt(w);
+            int ry = flickerRand.nextInt(h);
+            int bright = 120 + flickerRand.nextInt(135);
+            g2.setColor(new Color(bright, bright, bright, 18));
+            g2.fillRect(rx, ry, 1, 1);
+        }
+
+        // 3. SCANLINES (CRT EFFECT)
+        g2.setColor(new Color(0, 0, 0, 12));
+        for (int y = 0; y < h; y += 4) {
+            g2.fillRect(0, y, w, 1);
+        }
+
+        // 4. FLOATING PARTICLES (ASH / DUST)
+        // Moves slowly across the screen
+        for (int i = 0; i < 15; i++) {
+            int px = (int) ((i * 137 + now * 0.02) % w);
+            int py = (int) ((i * 253 + now * 0.015) % h);
+            int sz = 1 + (i % 3);
+            g2.setColor(new Color(200, 200, 200, 40));
+            g2.fillOval(px, py, sz, sz);
+        }
+
+        // 5. GLITCH ARTIFACTS (RARE)
+        if (rand.nextDouble() < 0.02) {
+            int gy = rand.nextInt(h);
+            int gh = rand.nextInt(10) + 2;
+            g2.setColor(new Color(0, 0, 0, 40));
+            g2.fillRect(0, gy, w, gh);
+            if (rand.nextBoolean()) {
+                g2.setColor(new Color(255, 0, 0, 20));
+                g2.fillRect(0, gy + gh, w, 1);
+            }
         }
     }
 }

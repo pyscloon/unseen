@@ -24,7 +24,6 @@
         /** Brief invulnerability after taking a hit (in turns). */
         private int invincibleTurns = 0;
 
-        /** Narrow interface — Player no longer depends on GamePanel directly. */
         private SmokeSpawner smokeSpawner;
 
         private List<Item> inventory = new ArrayList<>();

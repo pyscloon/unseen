@@ -10,4 +10,10 @@ public interface SmokeSpawner {
     void spawnSmoke(int x, int y);
 
     void spawnFlare(int x, int y);
+
+    void purifyFloor();
+
+    void addNoiseFlash(int x, int y);
+
+    void addHolyFlash(int x, int y);
 }

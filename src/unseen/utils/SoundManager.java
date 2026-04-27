@@ -60,6 +60,7 @@ public class SoundManager {
         load("spooky_jump", "unseen/assets/sound/horror-mode/spooky-jumpscare.wav");
         load("heartbeat", "unseen/assets/sound/horror-mode/heartbeat.wav");
         load("suspense", "unseen/assets/sound/horror-mode/suspense.wav");
+        load("holy_cross", "unseen/assets/sound/horror-mode/holy-cross.wav");
     }
 
     public static SoundManager get() {

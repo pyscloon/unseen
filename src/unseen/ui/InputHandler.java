@@ -245,6 +245,22 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
+        if (key == KeyEvent.VK_5 && panel.isHorrorMode()) {
+            List<Item> inv = player.getInventory();
+            int idx = -1;
+            for (int i = 0; i < inv.size(); i++) {
+                if (inv.get(i) instanceof unseen.items.Cross) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx >= 0) {
+                player.useItem(idx, map, panel.getEnemies());
+                panel.processTurnAndApply();
+            }
+            return;
+        }
+
         if (key == KeyEvent.VK_E) {
             boolean picked = panel.attemptPickup();
             if (!picked)

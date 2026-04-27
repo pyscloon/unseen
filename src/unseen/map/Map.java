@@ -50,6 +50,14 @@ public class Map {
         items[y][x] = null;
     }
 
+    public void clearAllDecals() {
+        for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+            for (int x = 0; x < Constants.GRID_WIDTH; x++) {
+                decals[y][x] = null;
+            }
+        }
+    }
+
     public Tile[][] getGrid() {
         return grid;
     }
