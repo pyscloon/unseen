@@ -78,21 +78,21 @@ public class InputHandler extends KeyAdapter {
             if (key == KeyEvent.VK_M) {
                 panel.returnToMenu();
             } else {
-                // Any other key (ESC, P, space, …) cancels back to PAUSED
+                // Any other key (ESC, P, space, ...) cancels back to PAUSED
                 panel.setGameState(GameState.PAUSED);
                 panel.repaint();
             }
             return;
         }
 
-        // Escape: cancel targeting → pause → show quit-confirm
+        // Escape: cancel targeting -> pause -> show quit-confirm
         if (key == KeyEvent.VK_ESCAPE) {
             if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingShuriken()) {
                 panel.cancelTargeting();
             } else if (panel.getGameState() == GameState.PLAYING) {
                 panel.pauseGame();
             } else if (panel.getGameState() == GameState.PAUSED) {
-                panel.showQuitConfirm();   // second ESC → "Return to menu?" prompt
+                panel.showQuitConfirm();   // second ESC -> "Return to menu?" prompt
             }
             return;
         }
@@ -107,10 +107,10 @@ public class InputHandler extends KeyAdapter {
 
         if (panel.isTargetingShuriken()) {
             switch (key) {
-                case KeyEvent.VK_W: panel.setShurikenDirection(0, -1); return;
-                case KeyEvent.VK_S: panel.setShurikenDirection(0,  1); return;
-                case KeyEvent.VK_A: panel.setShurikenDirection(-1, 0); return;
-                case KeyEvent.VK_D: panel.setShurikenDirection( 1, 0); return;
+                case KeyEvent.VK_W: case KeyEvent.VK_UP:    panel.setShurikenDirection(0, -1); return;
+                case KeyEvent.VK_S: case KeyEvent.VK_DOWN:  panel.setShurikenDirection(0,  1); return;
+                case KeyEvent.VK_A: case KeyEvent.VK_LEFT:  panel.setShurikenDirection(-1, 0); return;
+                case KeyEvent.VK_D: case KeyEvent.VK_RIGHT: panel.setShurikenDirection( 1, 0); return;
                 case KeyEvent.VK_ENTER:
                 case KeyEvent.VK_SPACE: panel.confirmShurikenThrow(); return;
             }
@@ -126,7 +126,7 @@ public class InputHandler extends KeyAdapter {
         Player player = panel.getPlayer();
         Map map       = panel.getMap();
 
-        // ---- Item keys ----
+        // ── Item keys ────────────────────────────────────────────────────────
 
         if (key == KeyEvent.VK_1) {
             boolean hasNoise = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
@@ -142,10 +142,7 @@ public class InputHandler extends KeyAdapter {
             }
             if (idx >= 0) {
                 player.useItem(idx, map, panel.getEnemies());
-                GameState result = TurnManager.processTurn(player, panel.getEnemies(),
-                        panel.getMap(), panel.getSmokes());
-                panel.setGameState(result);
-                panel.updateSmoke();
+                panel.processTurnAndApply();
             }
             return;
         }
@@ -164,31 +161,39 @@ public class InputHandler extends KeyAdapter {
 
         if (key == KeyEvent.VK_E) {
             boolean picked = panel.attemptPickup();
-            if (!picked) System.out.println("Nothing to pick up here.");
+            if (!picked) panel.showToast("Nothing to pick up here", new java.awt.Color(160, 160, 170));
             return;
         }
+
+        // ── Wait / skip turn ─────────────────────────────────────────────────
+
+        if (key == KeyEvent.VK_SPACE) {
+            panel.processTurnAndApply();
+            panel.repaint();
+            return;
+        }
+
+        // ── Trapped — struggle free ──────────────────────────────────────────
 
         if (isMovementKey(key) && player.isTrapped()) {
             player.decrementTrapped();
-            GameState result = TurnManager.processTurn(player, panel.getEnemies(),
-                    panel.getMap(), panel.getSmokes());
-            panel.setGameState(result);
-            panel.updateSmoke();
+            panel.processTurnAndApply();
             return;
         }
 
-        // Movement
+        // ── Movement ─────────────────────────────────────────────────────────
+
         int x = player.getX(), y = player.getY();
         boolean moved = false;
 
         switch (key) {
-            case KeyEvent.VK_W: y--;    moved = true; break;
-            case KeyEvent.VK_S: y++;    moved = true; break;
-            case KeyEvent.VK_A:
+            case KeyEvent.VK_W: case KeyEvent.VK_UP:    y--;    moved = true; break;
+            case KeyEvent.VK_S: case KeyEvent.VK_DOWN:  y++;    moved = true; break;
+            case KeyEvent.VK_A: case KeyEvent.VK_LEFT:
                 if (x > 0 && map.isPassable(x - 1, y)) { x--; moved = true; }
                 else { player.setFacing(Player.Facing.LEFT); panel.repaint(); return; }
                 break;
-            case KeyEvent.VK_D:
+            case KeyEvent.VK_D: case KeyEvent.VK_RIGHT:
                 if (x < unseen.utils.Constants.GRID_WIDTH - 1 && map.isPassable(x + 1, y)) { x++; moved = true; }
                 else { player.setFacing(Player.Facing.RIGHT); panel.repaint(); return; }
                 break;
@@ -209,15 +214,14 @@ public class InputHandler extends KeyAdapter {
                 return false;
             });
 
-            GameState result = TurnManager.processTurn(player, panel.getEnemies(),
-                    panel.getMap(), panel.getSmokes());
-            panel.setGameState(result);
-            panel.updateSmoke();
+            panel.processTurnAndApply();
         }
     }
 
     private static boolean isMovementKey(int key) {
         return key == KeyEvent.VK_W || key == KeyEvent.VK_S
-                || key == KeyEvent.VK_A || key == KeyEvent.VK_D;
+                || key == KeyEvent.VK_A || key == KeyEvent.VK_D
+                || key == KeyEvent.VK_UP || key == KeyEvent.VK_DOWN
+                || key == KeyEvent.VK_LEFT || key == KeyEvent.VK_RIGHT;
     }
 }

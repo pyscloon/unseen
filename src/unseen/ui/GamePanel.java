@@ -3,6 +3,7 @@ package unseen.ui;
 import unseen.entities.Enemy;
 import unseen.entities.Player;
 import unseen.game.GameState;
+import unseen.game.RunStats;
 import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
 import unseen.game.TurnManager;
@@ -10,12 +11,15 @@ import unseen.items.Item;
 import unseen.items.Shuriken;
 import unseen.map.Map;
 import unseen.ui.gamepanel.GameRenderer;
+import unseen.ui.gamepanel.HudToast;
 import unseen.ui.gamepanel.LevelManager;
+import unseen.ui.gamepanel.ScreenShake;
 import unseen.ui.gamepanel.TutorialManager;
 import unseen.utils.Constants;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
@@ -37,10 +41,21 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private final LevelManager    levelManager;
     private final GameRenderer    renderer;
     private final TutorialManager tutorial = new TutorialManager();
+    private final ScreenShake      screenShake = new ScreenShake();
+    private final RunStats         runStats = new RunStats();
+
+    /** HUD toast queue — most recent at the end. */
+    private final List<HudToast> toasts = new ArrayList<>();
+
+    /** Millisecond timestamp of the last hit — used for red vignette flash. */
+    private long lastHitTime = 0;
 
     public TutorialManager getTutorial() { return tutorial; }
     public int getMouseX()               { return mouseX; }
     public int getMouseY()               { return mouseY; }
+    public RunStats getRunStats()         { return runStats; }
+    public List<HudToast> getToasts()    { return toasts; }
+    public long getLastHitTime()         { return lastHitTime; }
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT));
@@ -100,6 +115,19 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     // -------------------------------------------------------------------------
+    // Toast notifications
+    // -------------------------------------------------------------------------
+
+    /** Shows a brief auto-fading toast at the bottom of the HUD. */
+    public void showToast(String message) {
+        toasts.add(new HudToast(message));
+    }
+
+    public void showToast(String message, Color color) {
+        toasts.add(new HudToast(message, color));
+    }
+
+    // -------------------------------------------------------------------------
     // Game lifecycle
     // -------------------------------------------------------------------------
 
@@ -112,7 +140,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
     }
 
-    /** Transitions from PAUSED → CONFIRM_QUIT, showing the "Return to menu?" prompt. */
+    /** Transitions from PAUSED -> CONFIRM_QUIT, showing the "Return to menu?" prompt. */
     public void showQuitConfirm() {
         if (state == GameState.PAUSED) {
             state = GameState.CONFIRM_QUIT;
@@ -122,6 +150,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     /** Tears down the current run and returns to the main menu. */
     public void returnToMenu() {
+        runStats.commitHighScore();
         levelManager.setupGame();
         state = GameState.MENU;
         if (backgroundClip != null) {
@@ -133,7 +162,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     public void restartGame() {
+        runStats.commitHighScore();
+        runStats.resetRun();
         levelManager.setupGame();
+        levelManager.getPlayer().resetHealth();
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
         if (backgroundClip != null) {
@@ -144,6 +176,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     public void startFromMenu() {
+        runStats.resetRun();
         levelManager.setupGame();
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
@@ -151,6 +184,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     public void nextFloor() {
+        runStats.setFloorsCleared(levelManager.getFloorNumber());
         levelManager.nextFloor();
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
@@ -164,10 +198,47 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     @Override
     public void run() {
+        // ~30 FPS - smooth enough for screen-shake and HUD animations
+        final long TARGET_MS = 33L;
         while (gameThread != null) {
+            long start = System.currentTimeMillis();
             repaint();
-            try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+            long elapsed = System.currentTimeMillis() - start;
+            long sleep = TARGET_MS - elapsed;
+            if (sleep > 0) {
+                try { Thread.sleep(sleep); } catch (InterruptedException ignored) {}
+            }
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Turn processing (shared helper)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Runs a turn via TurnManager.processTurnEx and handles all common
+     * side-effects: stats, damage feedback, toasts, visibility.
+     */
+    public void processTurnAndApply() {
+        TurnManager.TurnResult result = TurnManager.processTurnEx(
+                levelManager.getPlayer(), levelManager.getEnemies(),
+                levelManager.getMap(), levelManager.getSmokes());
+
+        runStats.incrementTurns();
+        runStats.incrementKills(result.killsThisTurn);
+        runStats.setFloorsCleared(levelManager.getFloorNumber() - 1);
+
+        if (result.playerHit) {
+            lastHitTime = System.currentTimeMillis();
+            int hp = levelManager.getPlayer().getHealth();
+            if (hp > 0) {
+                screenShake.trigger(12, 6f);
+                showToast("HIT! " + hp + " HP remaining", new Color(255, 80, 60));
+            }
+        }
+
+        setGameState(result.state);
+        levelManager.updateSmoke();
     }
 
     // -------------------------------------------------------------------------
@@ -205,10 +276,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         levelManager.addNoiseFlash(gx, gy);
         targetingNoiseMaker = false;
 
-        GameState result = TurnManager.processTurn(levelManager.getPlayer(), levelManager.getEnemies(),
-                levelManager.getMap(), levelManager.getSmokes());
-        setGameState(result);
-        levelManager.updateSmoke();
+        processTurnAndApply();
         requestFocusInWindow();
         repaint();
     }
@@ -230,10 +298,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         inv.remove(idx);
         targetingFlare = false;
 
-        GameState result = TurnManager.processTurn(levelManager.getPlayer(), levelManager.getEnemies(),
-                levelManager.getMap(), levelManager.getSmokes());
-        setGameState(result);
-        levelManager.updateSmoke();
+        processTurnAndApply();
         requestFocusInWindow();
         repaint();
     }
@@ -253,15 +318,32 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         inv.remove(idx);
         targetingShuriken = false;
 
-        if (shuriken.getLastKillPos() != null) {
-            int[] pos = shuriken.getLastKillPos();
-            spawnDeathPuff(pos[0], pos[1]);
+        // Determine how far the shuriken actually flew and spawn the visual
+        int[] killPos = shuriken.getLastKillPos();
+        int travelTiles;
+        if (killPos != null) {
+            travelTiles = Math.abs(killPos[0] - px) + Math.abs(killPos[1] - py);
+        } else {
+            // Stopped at wall or edge -- count the unobstructed tiles
+            travelTiles = 0;
+            for (int i = 1; i <= unseen.items.Shuriken.RANGE; i++) {
+                int tx = px + shurikenDx * i;
+                int ty = py + shurikenDy * i;
+                if (tx < 0 || tx >= unseen.utils.Constants.GRID_WIDTH
+                        || ty < 0 || ty >= unseen.utils.Constants.GRID_HEIGHT) break;
+                if (levelManager.getMap().getTile(tx, ty) == unseen.map.Tile.WALL) break;
+                travelTiles = i;
+            }
+        }
+        if (travelTiles > 0) {
+            levelManager.spawnShurikenFlight(px, py, shurikenDx, shurikenDy, travelTiles);
         }
 
-        GameState result = TurnManager.processTurn(levelManager.getPlayer(), levelManager.getEnemies(),
-                levelManager.getMap(), levelManager.getSmokes());
-        setGameState(result);
-        levelManager.updateSmoke();
+        if (killPos != null) {
+            spawnDeathPuff(killPos[0], killPos[1]);
+        }
+
+        processTurnAndApply();
         requestFocusInWindow();
         repaint();
     }
@@ -288,12 +370,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         levelManager.getPlayer().addItem(it);
         levelManager.getMap().removeItem(px, py);
-        System.out.println("Picked up: " + it.getClass().getSimpleName());
+        showToast("Picked up " + it.getClass().getSimpleName(), new Color(120, 255, 160));
 
-        GameState result = TurnManager.processTurn(levelManager.getPlayer(), levelManager.getEnemies(),
-                levelManager.getMap(), levelManager.getSmokes());
-        setGameState(result);
-        levelManager.updateSmoke();
+        processTurnAndApply();
         levelManager.updateVisibility();
         return true;
     }
@@ -312,14 +391,28 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     // Getters / setters
     // -------------------------------------------------------------------------
 
-    public void setGameState(GameState s) { this.state = s; }
+    public void setGameState(GameState s) {
+        this.state = s;
+        if (s == GameState.LOSE) {
+            screenShake.trigger(18, 8f);
+            runStats.setFloorsCleared(levelManager.getFloorNumber() - 1);
+            runStats.commitHighScore();
+        }
+    }
     public GameState getGameState()       { return state; }
+
+    /** Manually trigger a screen shake (frames, magnitude in pixels). */
+    public void triggerShake(int frames, float magnitude) { screenShake.trigger(frames, magnitude); }
+    public ScreenShake getScreenShake()                   { return screenShake; }
 
     public Player getPlayer()       { return levelManager.getPlayer(); }
     public Map getMap()             { return levelManager.getMap(); }
     public List<Enemy> getEnemies() { return levelManager.getEnemies(); }
     public List<Smoke> getSmokes()  { return levelManager.getSmokes(); }
     public java.util.List<unseen.game.StickyTrap> getTraps() { return levelManager.getTraps(); }
+    public java.util.List<unseen.ui.gamepanel.ShurikenProjectile> getShurikenProjectiles() {
+        return levelManager.getShurikenProjectiles();
+    }
 
     public int getMouseGridX() { return mouseGridX; }
     public int getMouseGridY() { return mouseGridY; }

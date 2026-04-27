@@ -29,6 +29,12 @@ public abstract class Enemy extends Entity {
     protected int distractedTurns = 0;
     protected boolean alive = true;
 
+    // ── Path cache ──────────────────────────────────────────────────────────
+    private java.util.List<unseen.ai.Node> cachedPath;
+    private int cachedPlayerX = -1, cachedPlayerY = -1;
+    private State cachedState;
+    private int cachedEnemyX = -1, cachedEnemyY = -1;
+
     public Enemy(int x, int y, int detectionRange, Pathfinder pathfinder) {
         super(x, y);
         this.direction = Direction.DOWN;
@@ -97,10 +103,12 @@ public abstract class Enemy extends Entity {
         this.state = State.CHASE;
         this.lastKnownX = x;
         this.lastKnownY = y;
+        invalidatePathCache();
     }
 
     public void calmDown() {
         this.state = State.PATROL;
+        invalidatePathCache();
     }
 
     protected void alertNearbyEnemies(List<Enemy> allEnemies, int radius, int targetX, int targetY) {
@@ -121,14 +129,27 @@ public abstract class Enemy extends Entity {
     public java.util.List<unseen.ai.Node> getPlannedPath(Map map, Player player) {
         if (pathfinder == null) return null;
 
-        return pathfinder.findPath(
-                map,
-                this.x,
-                this.y,
-                player.getX(),
-                player.getY()
-        );
+        int px = player.getX();
+        int py = player.getY();
+
+        // Return cached path if inputs haven't changed
+        if (cachedPath != null
+                && px == cachedPlayerX && py == cachedPlayerY
+                && this.x == cachedEnemyX && this.y == cachedEnemyY
+                && this.state == cachedState) {
+            return cachedPath;
+        }
+
+        cachedPath    = pathfinder.findPath(map, this.x, this.y, px, py);
+        cachedPlayerX = px;
+        cachedPlayerY = py;
+        cachedEnemyX  = this.x;
+        cachedEnemyY  = this.y;
+        cachedState   = this.state;
+        return cachedPath;
     }
+
+    public void invalidatePathCache() { cachedPath = null; }
 
     public State getState() {
         return this.state;
@@ -159,6 +180,7 @@ public abstract class Enemy extends Entity {
         this.state = State.CHASE;
         this.searchTurns = unseen.utils.Constants.SEARCH_TURNS;
         this.distractedTurns = 2; // blocks LOS re-detection for 2 turns
+        invalidatePathCache();
     }
 
     // Add this helper:

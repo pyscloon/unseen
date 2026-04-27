@@ -37,6 +37,7 @@ public class LevelManager implements SmokeSpawner {
     private List<FlashEffect> noiseFlashes = new ArrayList<>();
     private List<ActiveFlare> flares = new ArrayList<>();
     private List<unseen.game.StickyTrap> traps = new ArrayList<>();
+    private List<ShurikenProjectile> shurikenProjectiles = new ArrayList<>();
     private int floorNumber = 1;
 
     // -------------------------------------------------------------------------
@@ -60,6 +61,16 @@ public class LevelManager implements SmokeSpawner {
     public List<ActiveFlare> getFlares() { return flares; }
 
     public List<unseen.game.StickyTrap> getTraps() { return traps; }
+
+    public List<ShurikenProjectile> getShurikenProjectiles() { return shurikenProjectiles; }
+
+    /**
+     * Spawns a flying shuriken visual from {@code originX,originY} in direction
+     * {@code dx,dy}, traveling {@code travelTiles} tiles.
+     */
+    public void spawnShurikenFlight(int originX, int originY, int dx, int dy, int travelTiles) {
+        shurikenProjectiles.add(new ShurikenProjectile(originX, originY, dx, dy, travelTiles));
+    }
 
     public int getFloorNumber() { return floorNumber; }
 
@@ -87,6 +98,7 @@ public class LevelManager implements SmokeSpawner {
         smokes.clear();
         flares.clear();
         traps.clear();
+        shurikenProjectiles.clear();
         enemies = new ArrayList<>();
 
         Random rand = new Random();

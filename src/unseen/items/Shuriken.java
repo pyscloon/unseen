@@ -9,7 +9,7 @@ import java.util.List;
 
 public class Shuriken extends Item {
 
-    private static final int RANGE = 5;
+    public static final int RANGE = 5;
     private int[] lastKillPos = null;
 
     public int[] getLastKillPos() { return lastKillPos; }
