@@ -299,7 +299,7 @@ public class GameRenderer {
         g2.setColor(new Color(210, 175, 90));
         g2.drawString(start, (w - sw) / 2, optY);
 
-        String howTo = "H  —  How to Play";
+        String howTo = "H : How to Play";
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int hw2 = g2.getFontMetrics().stringWidth(howTo);
         g2.setColor(new Color(0, 0, 0, 130));
@@ -307,7 +307,7 @@ public class GameRenderer {
         g2.setColor(new Color(118, 100, 72));
         g2.drawString(howTo, (w - hw2) / 2, optY + 38);
 
-        String quit = "Q  —  Quit";
+        String quit = "Q : Quit";
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int qw = g2.getFontMetrics().stringWidth(quit);
         g2.setColor(new Color(0, 0, 0, 130));

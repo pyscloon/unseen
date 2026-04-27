@@ -269,11 +269,11 @@ public class TutorialManager {
         int btnW = 110;
 
         if (pageIdx > 0) {
-            drawNavButton(g2, cardX + 20, btnY, btnW, btnH, "← Back",
+            drawNavButton(g2, cardX + 20, btnY, btnW, btnH, "< Back",
                     new Color(80, 60, 30, 200), new Color(160, 130, 60));
         }
 
-        String nextLabel = (pageIdx == PAGES.size() - 1) ? "Start Game →" : "Next →";
+        String nextLabel = (pageIdx == PAGES.size() - 1) ? "Start Game >" : "Next >";
         Color  nextFill  = (pageIdx == PAGES.size() - 1)
                 ? new Color(60, 100, 50, 220) : new Color(60, 45, 15, 220);
         Color  nextText  = (pageIdx == PAGES.size() - 1)
@@ -281,7 +281,7 @@ public class TutorialManager {
         drawNavButton(g2, cardX + cardW - btnW - 20, btnY, btnW, btnH, nextLabel, nextFill, nextText);
 
         g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        String hint = pageIdx > 0 ? "← / → arrow keys  or  click buttons" : "→ arrow key  or  click Next";
+        String hint = pageIdx > 0 ? "< / > arrow keys  or  click buttons" : "> arrow key  or  click Next";
         FontMetrics hfm = g2.getFontMetrics();
         g2.setColor(new Color(100, 90, 70));
         g2.drawString(hint, cardX + (cardW - hfm.stringWidth(hint)) / 2, btnY + btnH + 14);
