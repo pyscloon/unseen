@@ -24,15 +24,29 @@ public class SentryEnemy extends Enemy {
     public void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> allEnemies) {
         // Tick alert visual at the start so it doesn't decrement the same turn it's set
         tickAlertVisual();
-        // Sentry is stationary — it only raises an alert when it spots the player.
+        
+        // Sentry is usually stationary — it raises an alert when it spots the player.
         if (canSeePlayer(map, player, smokes)) {
-            this.state = State.CHASE;
-            // Record the real player position so handleAlerts broadcasts the correct
-            // target.
+            setState(State.CHASE);
             this.lastKnownX = player.getX();
             this.lastKnownY = player.getY();
+        } else if (state == State.CHASE) {
+            // Keep searching if we were just chasing
+            setState(State.SEARCH);
         } else {
-            this.state = State.PATROL;
+            setState(State.PATROL);
+        }
+
+        // CHANCE to actually move towards player if in CHASE mode (25% chance)
+        if (state == State.CHASE && Math.random() < 0.25) {
+            List<unseen.ai.Node> path = pathfinder.findPath(map, x, y, lastKnownX, lastKnownY);
+            if (path != null && path.size() > 1) {
+                unseen.ai.Node next = path.get(1);
+                if (!isTileOccupied(next.x, next.y, allEnemies)) {
+                    this.x = next.x;
+                    this.y = next.y;
+                }
+            }
         }
     }
 
@@ -40,7 +54,7 @@ public class SentryEnemy extends Enemy {
     public void redirectToNoise(int x, int y) {
         super.redirectToNoise(x, y);
         // Sentries do not chase noise, they just get "distracted" and stop their alarm
-        this.state = State.SEARCH;
+        setState(State.SEARCH);
     }
 
     /**

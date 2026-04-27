@@ -36,7 +36,7 @@ public class HunterEnemy extends Enemy {
     public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes, List<Enemy> allEnemies) {
 
         if (!isDistracted() && canSeePlayer(map, player, smokes)) {
-            state = State.CHASE;
+            setState(State.CHASE);
             lastKnownX = player.getX();
             lastKnownY = player.getY();
         }
@@ -86,14 +86,14 @@ public class HunterEnemy extends Enemy {
             y = next.y;
         } else {
             // Reached last known position — search for a few turns before giving up
-            state = State.SEARCH;
+            setState(State.SEARCH);
             searchTurns = Constants.SEARCH_TURNS;
         }
     }
 
     private void search() {
         if (searchTurns <= 0) {
-            state = State.PATROL;
+            setState(State.PATROL);
             return;
         }
         searchTurns--;

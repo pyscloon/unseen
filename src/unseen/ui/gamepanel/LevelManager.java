@@ -33,36 +33,96 @@ public class LevelManager implements SmokeSpawner {
     private List<Enemy> enemies;
     private boolean[][] visible;
     private float[][] lightLevel;
+    private unseen.ui.GamePanel panel;
+    private int floorNumber = 1;
+    private List<unseen.entities.ShadowFigure> shadowFigures = new ArrayList<>();
+
+    public List<unseen.entities.ShadowFigure> getShadowFigures() {
+        return shadowFigures;
+    }
+
+    private int turnCount = 0;
+    private boolean stalkerSpawned = false;
+    private int darkEventTurns = 0;
+    private int lanternFlickerTurns = 0;
+
+    // --- SUSPENSE SYSTEM ---
+    private int terrorLevel = 0; // 0 to 10
+    private boolean highTensionMode = false;
+    private int tensionTimer = 20;
+
+    public int getDarkEventTurns() {
+        return darkEventTurns;
+    }
+
+    public boolean isHighTension() {
+        return highTensionMode;
+    }
+
+    public int getTerrorLevel() {
+        return terrorLevel;
+    }
+
+    public void setPanel(unseen.ui.GamePanel p) {
+        this.panel = p;
+    }
+
+    // --- MIRROR PHANTOM ---
+    private int phantomX = -1, phantomY = -1;
+    private int phantomTurns = 0;
+
+    public int getPhantomX() { return phantomX; }
+    public int getPhantomY() { return phantomY; }
+
     private List<Smoke> smokes = new ArrayList<>();
     private List<FlashEffect> noiseFlashes = new ArrayList<>();
     private List<ActiveFlare> flares = new ArrayList<>();
     private List<unseen.game.StickyTrap> traps = new ArrayList<>();
     private List<ShurikenProjectile> shurikenProjectiles = new ArrayList<>();
-    private int floorNumber = 1;
 
     // -------------------------------------------------------------------------
     // Getters
     // -------------------------------------------------------------------------
 
-    public Map getMap() { return map; }
+    public Map getMap() {
+        return map;
+    }
 
-    public Player getPlayer() { return player; }
+    public Player getPlayer() {
+        return player;
+    }
 
-    public List<Enemy> getEnemies() { return enemies; }
+    public List<Enemy> getEnemies() {
+        return enemies;
+    }
 
-    public boolean[][] getVisible() { return visible; }
+    public boolean[][] getVisible() {
+        return visible;
+    }
 
-    public float[][] getLightLevel() { return lightLevel; }
+    public float[][] getLightLevel() {
+        return lightLevel;
+    }
 
-    public List<Smoke> getSmokes() { return smokes; }
+    public List<Smoke> getSmokes() {
+        return smokes;
+    }
 
-    public List<FlashEffect> getNoiseFlashes() { return noiseFlashes; }
+    public List<FlashEffect> getNoiseFlashes() {
+        return noiseFlashes;
+    }
 
-    public List<ActiveFlare> getFlares() { return flares; }
+    public List<ActiveFlare> getFlares() {
+        return flares;
+    }
 
-    public List<unseen.game.StickyTrap> getTraps() { return traps; }
+    public List<unseen.game.StickyTrap> getTraps() {
+        return traps;
+    }
 
-    public List<ShurikenProjectile> getShurikenProjectiles() { return shurikenProjectiles; }
+    public List<ShurikenProjectile> getShurikenProjectiles() {
+        return shurikenProjectiles;
+    }
 
     /**
      * Spawns a flying shuriken visual from {@code originX,originY} in direction
@@ -72,11 +132,238 @@ public class LevelManager implements SmokeSpawner {
         shurikenProjectiles.add(new ShurikenProjectile(originX, originY, dx, dy, travelTiles));
     }
 
-    public int getFloorNumber() { return floorNumber; }
+    public int getFloorNumber() {
+        return floorNumber;
+    }
 
     // -------------------------------------------------------------------------
     // Level setup / progression
     // -------------------------------------------------------------------------
+
+    public void incrementTurn() {
+        turnCount++;
+        if (panel.isHorrorMode()) {
+            // --- Update Suspense Cycle ---
+            tensionTimer--;
+            if (tensionTimer <= 0) {
+                highTensionMode = !highTensionMode;
+                tensionTimer = 15 + new Random().nextInt(15);
+                if (highTensionMode) {
+                    unseen.utils.SoundManager.get().play("bone_break", 0.4f);
+                }
+            }
+
+            // Calculate Terror Level based on nearest enemy
+            double minD = Double.MAX_VALUE;
+            for (Enemy e : enemies) {
+                double d = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
+                if (d < minD)
+                    minD = d;
+            }
+            if (minD < 5.0)
+                terrorLevel = 10;
+            else if (minD < 10.0)
+                terrorLevel = 7;
+            else
+                terrorLevel = highTensionMode ? 5 : 2;
+
+            // Chance to trigger total darkness - only in High Tension or when close to
+            // enemy (REDUCED)
+            if (darkEventTurns <= 0 && (highTensionMode || minD < 8.0) && Math.random() < 0.015) {
+                darkEventTurns = 2 + (int) (Math.random() * 2); // 2 to 3 turns of darkness (shorter)
+                unseen.utils.SoundManager.get().play("ghostwhisper", 1.0f); // Eerie whisper for lights out
+                panel.triggerShake(10, 2f);
+            } else if (darkEventTurns > 0) {
+                darkEventTurns--;
+            }
+
+            // Random ambient horror sounds - frequency tied to terrorLevel
+            double ambientRoll = Math.random();
+            double chance = 0.001 + (terrorLevel * 0.002); // Slightly increased from ultra-rare
+            if (ambientRoll < chance) {
+                if (highTensionMode && Math.random() < 0.01) {
+                    unseen.utils.SoundManager.get().play("jumpscare", 0.4f);
+                } else {
+                    float vol = 0.1f + (terrorLevel * 0.02f);
+                    // Added 'breathing' back to the mix
+                    unseen.utils.SoundManager.get().playRandom(vol, "laugh", "scream", "iseeyou", "breathing",
+                            "iseeyou");
+                }
+            }
+
+            // --- UNRELIABLE LANTERN ---
+            if (lanternFlickerTurns > 0) {
+                lanternFlickerTurns--;
+            } else if (panel.isHorrorMode() && Math.random() < 0.02) { // 2% chance per turn
+                lanternFlickerTurns = 1 + new Random().nextInt(2);
+            }
+
+            // --- HEARTBEAT SOUND LOGIC ---
+            boolean anyChase = false;
+            double chaseDist = 999;
+            for (Enemy e : enemies) {
+                if (e.getState() == Enemy.State.CHASE || e instanceof unseen.entities.StalkerEnemy) {
+                    anyChase = true;
+                    double d = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
+                    if (d < chaseDist)
+                        chaseDist = d;
+                }
+            }
+            if (anyChase && chaseDist < 15) { // Increased distance range
+                // Heartbeat frequency (Scales more aggressively now)
+                double hbChance = 0.15 + (1.0 - (chaseDist / 15.0)) * 0.45;
+                if (Math.random() < hbChance) {
+                    unseen.utils.SoundManager.get().play("heartbeat", 0.7f); // Louder volume
+                }
+            }
+
+            // --- LOW HEALTH HEARTBEAT ---
+            if (player.getHealth() == 1 && Math.random() < 0.25) {
+                unseen.utils.SoundManager.get().play("heartbeat", 0.4f);
+            }
+
+            // --- PLAYER BREATHING (General ambient tension) ---
+            if (panel.isHorrorMode() && Math.random() < 0.04) { // 4% chance per turn for ambient breathing
+                unseen.utils.SoundManager.get().play("breathing", 0.3f);
+                unseen.utils.SoundManager.get().play("heartbeat", 0.5f);
+            }
+
+            // Spawn Shadow Figures in the dark - extremely rare now
+            double shadowChance = highTensionMode ? 0.04 : 0.01;
+            if (Math.random() < shadowChance && shadowFigures.size() < 2) {
+                Random r = new Random();
+                for (int i = 0; i < 50; i++) {
+                    int sx = r.nextInt(Constants.GRID_WIDTH);
+                    int sy = r.nextInt(Constants.GRID_HEIGHT);
+                    if (map.getTile(sx, sy) == Tile.FLOOR && !visible[sy][sx]) {
+                        shadowFigures.add(new unseen.entities.ShadowFigure(sx, sy));
+                        break;
+                    }
+                }
+            }
+
+            // Update Shadow Figures
+            shadowFigures.removeIf(sf -> {
+                boolean wasSeen = sf.isSeen();
+                sf.update(player.getX(), player.getY(), visible, map);
+                if (!wasSeen && sf.isSeen()) {
+                    // Use 'jumpscare' (jumpscare1.wav) for shadow figure appearance
+                    unseen.utils.SoundManager.get().play("jumpscare", 0.7f);
+                    unseen.utils.SoundManager.get().play("iseeyou", 0.5f);
+                    panel.triggerShake(5, 1.5f); // Tiny shake
+                }
+                return sf.isSeen();
+            });
+
+            if (!stalkerSpawned && turnCount > 70) { // Delayed spawn
+                stalkerSpawned = true;
+                enemies.add(
+                        new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y, new unseen.ai.AStar()));
+                unseen.utils.SoundManager.get().play("no_more", 1.2f);
+                panel.triggerShake(20, 3f);
+            }
+
+            // --- STALKER PROXIMITY SOUNDS (EXTREMELY RARE NOW) ---
+            if (stalkerSpawned) {
+                for (unseen.entities.Enemy e : enemies) {
+                    if (e instanceof unseen.entities.StalkerEnemy) {
+                        double dist = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
+
+                        if (dist < 8) {
+                            // Breathing (Increased frequency when stalker is stalking)
+                            double breathChance = 0.05 + (1.0 - (dist / 8.0)) * 0.15;
+                            if (Math.random() < breathChance) {
+                                float breathVol = (float) (0.3 + (8.0 - dist) * 0.1);
+                                unseen.utils.SoundManager.get().play("breathing", breathVol);
+                                // Alongside/After breathing: Play a loud, sharp heartbeat
+                                unseen.utils.SoundManager.get().play("heartbeat", 0.75f);
+                            }
+
+                            // "I see you" (Reduced frequency to 2%)
+                            if (dist < 5 && Math.random() < 0.02) {
+                                if (Math.random() < 0.6) {
+                                    unseen.utils.SoundManager.get().play("iseeyou", 0.5f);
+                                } else {
+                                    unseen.utils.SoundManager.get().play("bone_break", 0.4f);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // --- MIRROR PHANTOM (Interactive psychological scare) ---
+            if (phantomTurns > 0) {
+                phantomTurns--;
+                if (phantomTurns == 0) {
+                    phantomX = -1;
+                    phantomY = -1;
+                } else {
+                    // If player moved (we're in turn increment), check if they moved TOWARDS phantom
+                    double d = Math.hypot(phantomX - player.getX(), phantomY - player.getY());
+                    if (d < 3.5) { // Player got quite close
+                        // Move phantom away in the same direction
+                        int dx = Integer.compare(phantomX, player.getX());
+                        int dy = Integer.compare(phantomY, player.getY());
+                        int nx = phantomX + dx;
+                        int ny = phantomY + dy;
+                        if (nx >= 0 && nx < Constants.GRID_WIDTH && ny >= 0 && ny < Constants.GRID_HEIGHT
+                                && map.isPassable(nx, ny)) {
+                            phantomX = nx;
+                            phantomY = ny;
+                        }
+                    }
+                }
+            } else if (panel.isHorrorMode() && Math.random() < 0.015) { // Increased to 1.5% per turn
+                Random r = new Random();
+                for (int i = 0; i < 30; i++) {
+                    int tx = r.nextInt(Constants.GRID_WIDTH);
+                    int ty = r.nextInt(Constants.GRID_HEIGHT);
+                    double d = Math.hypot(tx - player.getX(), ty - player.getY());
+                    // Spawn IN VISION but at a distance
+                    if (map.getTile(tx, ty) == Tile.FLOOR && visible[ty][tx] && d > 3 && d < 6) {
+                        phantomX = tx;
+                        phantomY = ty;
+                        phantomTurns = 2; // Lasts 2 turns
+                        break;
+                    }
+                }
+            }
+
+            // --- ECHOING FOOTSTEPS --- (Suspense element)
+            if (highTensionMode && Math.random() < 0.15) {
+                // Play a delayed footstep to make player paranoid
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException ex) {
+                    }
+                    unseen.utils.SoundManager.get().playRandom(0.3f, "footstep1", "footstep2");
+                }).start();
+            }
+
+            // --- WHISPERING WALLS ---
+            if (highTensionMode && Math.random() < 0.12) {
+                int px = player.getX();
+                int py = player.getY();
+                // Check neighbors for walls
+                boolean nearWall = false;
+                if (px > 0 && map.getTile(px - 1, py) == Tile.WALL)
+                    nearWall = true;
+                else if (px < Constants.GRID_WIDTH - 1 && map.getTile(px + 1, py) == Tile.WALL)
+                    nearWall = true;
+                else if (py > 0 && map.getTile(px, py - 1) == Tile.WALL)
+                    nearWall = true;
+                else if (py < Constants.GRID_HEIGHT - 1 && map.getTile(px, py + 1) == Tile.WALL)
+                    nearWall = true;
+
+                if (nearWall) {
+                    unseen.utils.SoundManager.get().play("smoke", 0.45f); // Use smoke as a whisper
+                }
+            }
+        }
+    }
 
     /**
      * Generates a new map and places enemies randomly.
@@ -88,10 +375,9 @@ public class LevelManager implements SmokeSpawner {
 
         // Keep generating until valid
         do {
-            map = MapGenerator.generate(); // also updates Constants.START_X/Y
+            map = MapGenerator.generate(panel.isHorrorMode()); // also updates Constants.START_X/Y
             ExitPlacer.placeExit(map);
-        }
-        while (!validator.isValid(map));
+        } while (!validator.isValid(map));
 
         visible = new boolean[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         lightLevel = new float[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
@@ -100,50 +386,54 @@ public class LevelManager implements SmokeSpawner {
         traps.clear();
         shurikenProjectiles.clear();
         enemies = new ArrayList<>();
+        shadowFigures.clear(); // Clear old figures
 
         Random rand = new Random();
         AStar pathfinder = new AStar();
-        int minDist = 6;
+        int minDist = 8;
         List<int[]> placed = new ArrayList<>();
 
-        // Scale enemy count with floor: floor 1 = 3, +1 per floor, cap at 8
-        int extraEnemies = Math.min(floorNumber - 1, 5);
-
-        List<String> typeList =
-                new ArrayList<>(Arrays.asList("patrol", "hunter", "sentry"));
-
-        for (int i = 0; i < extraEnemies; i++) {
-            typeList.add(i % 2 == 0 ? "patrol" : "hunter");
+        int count = 3 + (floorNumber / 2);
+        if (panel.isHorrorMode()) {
+            // Lessen enemies in early horror floors as requested
+            if (floorNumber <= 2)
+                count = 2;
+            else if (floorNumber <= 5)
+                count = 3;
         }
 
-        for (String type : typeList) {
+        for (int i = 0; i < count; i++) {
 
-            int ex = Constants.START_X;
-            int ey = Constants.START_Y;
-
+            int ex = 0, ey = 0;
             for (int attempt = 0; attempt < 500; attempt++) {
-
                 int cx = 1 + rand.nextInt(Constants.GRID_WIDTH - 2);
                 int cy = 1 + rand.nextInt(Constants.GRID_HEIGHT - 2);
 
-                int dist =
-                        Math.abs(cx - Constants.START_X)
-                                + Math.abs(cy - Constants.START_Y);
+                int dist = Math.abs(cx - Constants.START_X)
+                        + Math.abs(cy - Constants.START_Y);
 
                 if (map.getTile(cx, cy) == Tile.FLOOR
                         && dist >= minDist) {
 
-                    boolean overlap =
-                            placed.stream().anyMatch(p -> p[0] == cx && p[1] == cy);
+                    boolean overlap = placed.stream().anyMatch(p -> p[0] == cx && p[1] == cy);
 
                     if (!overlap) {
                         ex = cx;
                         ey = cy;
-                        placed.add(new int[]{cx, cy});
+                        placed.add(new int[] { cx, cy });
                         break;
                     }
                 }
             }
+
+            String type;
+            double roll = rand.nextDouble();
+            if (roll < 0.5)
+                type = "patrol";
+            else if (roll < 0.8)
+                type = "sentry";
+            else
+                type = "hunter";
 
             switch (type) {
 
@@ -161,13 +451,33 @@ public class LevelManager implements SmokeSpawner {
                     break;
             }
         }
+
+        // Every 3rd floor, place a Heart item
+        if (floorNumber % 3 == 0) {
+            for (int attempt = 0; attempt < 500; attempt++) {
+                int hx = 1 + rand.nextInt(Constants.GRID_WIDTH - 2);
+                int hy = 1 + rand.nextInt(Constants.GRID_HEIGHT - 2);
+                if (map.getTile(hx, hy) == Tile.FLOOR && (hx != Constants.START_X || hy != Constants.START_Y)) {
+                    map.setItem(hx, hy, new unseen.items.Heart());
+                    break;
+                }
+            }
+        }
     }
 
     /** Full game reset: floor 1, new map, fresh player with starting items. */
     public void setupGame() {
-        floorNumber = 1;
+        this.floorNumber = 1;
+        this.turnCount = 0;
+        this.stalkerSpawned = false;
+        this.darkEventTurns = 0;
+        this.lanternFlickerTurns = 0;
+        this.terrorLevel = 0;
+        this.highTensionMode = false;
+        this.tensionTimer = 20;
+
+        this.player = new Player(Constants.START_X, Constants.START_Y);
         buildFloor();
-        player = new Player(Constants.START_X, Constants.START_Y);
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
         player.addItem(new Flare());
@@ -182,14 +492,18 @@ public class LevelManager implements SmokeSpawner {
      */
     public void nextFloor() {
         floorNumber++;
+        turnCount = 0;
+        stalkerSpawned = false;
+        darkEventTurns = 0;
+        lanternFlickerTurns = 0;
+        terrorLevel = 0;
+        highTensionMode = false;
+        tensionTimer = 20;
+
         buildFloor();
         player.setPosition(Constants.START_X, Constants.START_Y);
-        // Refill items for the new floor
-        player.getInventory().clear();
-        player.addItem(new NoiseMaker());
-        player.addItem(new SmokeBomb());
-        player.addItem(new Flare());
-        player.addItem(new Shuriken());
+        // We no longer clear inventory or refill items here,
+        // allowing the player to bring their current items to the next floor.
         updateVisibility();
     }
 
@@ -210,34 +524,47 @@ public class LevelManager implements SmokeSpawner {
         int px = player.getX();
         int py = player.getY();
 
-        // Player vision (range 6)
+        // Player vision
+        int baseRange = panel.isHorrorMode() ? 5 : 6;
+
+        // --- UNRELIABLE LANTERN (Turn-based flicker) ---
+        if (panel.isHorrorMode()) {
+            if (darkEventTurns > 0) {
+                baseRange = 1;
+            } else if (lanternFlickerTurns > 0) {
+                baseRange = 2; // Near-total darkness
+            }
+        }
+
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
 
-                if (LineOfSight.hasLineOfSight(map, px, py, x, y, 6, smokes)) {
+                if (LineOfSight.hasLineOfSight(map, px, py, x, y, baseRange, smokes)) {
                     visible[y][x] = true;
                     double dist = Math.hypot(px - x, py - y);
-                    float light = (float) Math.max(0, 1.0 - (dist / 6.0));
+                    float light = (float) Math.max(0, 1.0 - (dist / (double) baseRange));
                     lightLevel[y][x] = Math.max(lightLevel[y][x], light);
                 }
             }
         }
 
-        // Torch illumination — use LOS from each torch so walls block torch light
-        final int TORCH_RANGE = 3;
-        for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
-            for (int x = 0; x < Constants.GRID_WIDTH; x++) {
+        // Torch illumination — skip if in total darkness
+        if (darkEventTurns <= 0) {
+            final int TORCH_RANGE = 3;
+            for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+                for (int x = 0; x < Constants.GRID_WIDTH; x++) {
 
-                if (map.getTile(x, y) == Tile.TORCH) {
+                    if (map.getTile(x, y) == Tile.TORCH || map.getTile(x, y) == Tile.CAMPFIRE) {
 
-                    for (int ty2 = 0; ty2 < Constants.GRID_HEIGHT; ty2++) {
-                        for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
+                        for (int ty2 = 0; ty2 < Constants.GRID_HEIGHT; ty2++) {
+                            for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
 
-                            if (LineOfSight.hasLineOfSight(map, x, y, tx2, ty2, TORCH_RANGE)) {
-                                visible[ty2][tx2] = true;
-                                double dist = Math.hypot(x - tx2, y - ty2);
-                                float light = (float) Math.max(0, 1.0 - (dist / TORCH_RANGE));
-                                lightLevel[ty2][tx2] = Math.max(lightLevel[ty2][tx2], light);
+                                if (LineOfSight.hasLineOfSight(map, x, y, tx2, ty2, TORCH_RANGE)) {
+                                    visible[ty2][tx2] = true;
+                                    double dist = Math.hypot(x - tx2, y - ty2);
+                                    float light = (float) Math.max(0, 1.0 - (dist / TORCH_RANGE));
+                                    lightLevel[ty2][tx2] = Math.max(lightLevel[ty2][tx2], light);
+                                }
                             }
                         }
                     }
@@ -245,18 +572,20 @@ public class LevelManager implements SmokeSpawner {
             }
         }
 
-        // Active flares
-        for (ActiveFlare flare : flares) {
-            int cx = flare.getX();
-            int cy = flare.getY();
-            int fr = flare.getRadius();
-            for (int ty2 = 0; ty2 < Constants.GRID_HEIGHT; ty2++) {
-                for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
-                    if (LineOfSight.hasLineOfSight(map, cx, cy, tx2, ty2, fr)) {
-                        visible[ty2][tx2] = true;
-                        double dist = Math.hypot(cx - tx2, cy - ty2);
-                        float light = (float) Math.max(0, 1.0 - (dist / fr));
-                        lightLevel[ty2][tx2] = Math.max(lightLevel[ty2][tx2], light);
+        // Active flares — skip if in total darkness
+        if (darkEventTurns <= 0) {
+            for (ActiveFlare flare : flares) {
+                int cx = flare.getX();
+                int cy = flare.getY();
+                int fr = flare.getRadius();
+                for (int ty2 = 0; ty2 < Constants.GRID_HEIGHT; ty2++) {
+                    for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
+                        if (LineOfSight.hasLineOfSight(map, cx, cy, tx2, ty2, fr)) {
+                            visible[ty2][tx2] = true;
+                            double dist = Math.hypot(cx - tx2, cy - ty2);
+                            float light = (float) Math.max(0, 1.0 - (dist / fr));
+                            lightLevel[ty2][tx2] = Math.max(lightLevel[ty2][tx2], light);
+                        }
                     }
                 }
             }

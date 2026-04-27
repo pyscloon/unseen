@@ -56,6 +56,11 @@ public class InputHandler extends KeyAdapter {
                 panel.repaint();
                 return;
             }
+            if (key == KeyEvent.VK_X) {
+                panel.setHorrorMode(!panel.isHorrorMode());
+                panel.repaint();
+                return;
+            }
             return;
         }
 
@@ -124,8 +129,38 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
+        if (key == KeyEvent.VK_R && panel.getGameState() == GameState.PAUSED) {
+            panel.restartGame();
+            return;
+        }
+
         if (panel.getGameState() != GameState.PLAYING)
             return;
+
+        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare()) {
+            switch (key) {
+                case KeyEvent.VK_W:
+                case KeyEvent.VK_UP:
+                    panel.moveTarget(0, -1);
+                    return;
+                case KeyEvent.VK_S:
+                case KeyEvent.VK_DOWN:
+                    panel.moveTarget(0, 1);
+                    return;
+                case KeyEvent.VK_A:
+                case KeyEvent.VK_LEFT:
+                    panel.moveTarget(-1, 0);
+                    return;
+                case KeyEvent.VK_D:
+                case KeyEvent.VK_RIGHT:
+                    panel.moveTarget(1, 0);
+                    return;
+                case KeyEvent.VK_ENTER:
+                case KeyEvent.VK_SPACE:
+                    panel.confirmTargeting();
+                    return;
+            }
+        }
 
         if (panel.isTargetingShuriken()) {
             switch (key) {
@@ -282,7 +317,7 @@ public class InputHandler extends KeyAdapter {
                 return false;
             });
 
-            unseen.utils.SoundManager.get().playRandom(0.6f, "footstep1", "footstep2");
+            unseen.utils.SoundManager.get().playRandom(0.4f, "footstep1", "footstep2");
             panel.processTurnAndApply();
         }
     }

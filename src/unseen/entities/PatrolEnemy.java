@@ -56,7 +56,7 @@ public class PatrolEnemy extends Enemy {
     public void takeTurn(Map map, Player player, List<unseen.game.Smoke> smokes, List<Enemy> allEnemies) {
 
         if (!isDistracted() && canSeePlayer(map, player, smokes)) {
-            state = State.CHASE;
+            setState(State.CHASE);
             lastKnownX = player.getX();
             lastKnownY = player.getY();
         }
@@ -115,7 +115,7 @@ public class PatrolEnemy extends Enemy {
             x = next.x;
             y = next.y;
         } else {
-            state = State.SEARCH;
+            setState(State.SEARCH);
             searchTurns = Constants.SEARCH_TURNS;
         }
     }
@@ -123,7 +123,7 @@ public class PatrolEnemy extends Enemy {
     private void search(Map map) {
 
         if (searchTurns <= 0) {
-            state = State.PATROL;
+            setState(State.PATROL);
             return;
         }
 

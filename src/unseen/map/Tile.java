@@ -6,5 +6,6 @@ public enum Tile {
     START,
     EXIT,
     ITEM,
-    TORCH
+    TORCH,
+    CAMPFIRE
 }

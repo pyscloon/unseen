@@ -1,0 +1,10 @@
+package unseen.map;
+
+public enum DecalType {
+    BLOOD_SPLATTER,
+    BLOODY_HANDPRINT,
+    BLOODY_TEXT_RUN,
+    BLOODY_TEXT_HELP,
+    BLOODY_TEXT_WATCHING,
+    BLOODY_TEXT_HIDE
+}

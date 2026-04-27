@@ -5,9 +5,20 @@ import unseen.items.Item;
 public class Map {
     private Tile[][] grid;
     private Item[][] items;
+    private DecalType[][] decals;
     public Map() {
         grid = new Tile[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
         items = new Item[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
+        decals = new DecalType[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
+    }
+
+    public void setDecal(int x, int y, DecalType type) {
+        decals[y][x] = type;
+    }
+
+    public DecalType getDecal(int x, int y) {
+        if (x < 0 || y < 0 || x >= Constants.GRID_WIDTH || y >= Constants.GRID_HEIGHT) return null;
+        return decals[y][x];
     }
 
     public void setTile(int x, int y, Tile tile) {

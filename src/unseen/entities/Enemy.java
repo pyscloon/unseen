@@ -15,12 +15,18 @@ public abstract class Enemy extends Entity {
     protected java.awt.Image leftImage;
     protected java.awt.Image rightImage;
     protected java.awt.Image enemyImage;
-    public enum EnemyType { PATROL, HUNTER, SENTRY }
+    public enum EnemyType { PATROL, HUNTER, SENTRY, STALKER }
     protected EnemyType type;
 
     public enum State { PATROL, CHASE, SEARCH }
 
     protected State state = State.PATROL;
+    public void setState(State newState) {
+        if (this.state != State.CHASE && newState == State.CHASE) {
+            unseen.utils.SoundManager.get().play("alert", 0.6f);
+        }
+        this.state = newState;
+    }
     protected int detectionRange;
     protected Pathfinder pathfinder;
 

@@ -22,6 +22,9 @@ public class AssetLoader {
     public final Image nextFloor;
     public final Image shuriken; 
     public final Image heart;    
+    public final Image campfire;
+    public final Image horrorFloor;
+    public final Image dieTile;
 
     public final Image hero;
 
@@ -43,6 +46,13 @@ public class AssetLoader {
         nextFloor  = load("unseen/assets/next_floor.png");
         shuriken   = load("unseen/assets/shuriken.png");
         heart      = load("unseen/assets/heart.png");
+        
+        Image cf = load("unseen/assets/campfire.png");
+        if (cf == null) cf = load("unseen/assets/torch.png");
+        campfire = cf;
+
+        horrorFloor = load("unseen/assets/horror assets/blood time.png");
+        dieTile     = load("unseen/assets/horror assets/die-tile.png");
 
         hero = load("unseen/assets/hero.png");
 
@@ -61,7 +71,9 @@ public class AssetLoader {
             if (url != null) {
                 return ImageIO.read(url);
             }
-            System.out.println("Asset not found: " + path);
+            if (!path.contains("campfire.png")) {
+                System.out.println("Asset not found: " + path);
+            }
         } catch (Exception e) {
             System.out.println("Failed to load asset '" + path + "': " + e.getMessage());
         }

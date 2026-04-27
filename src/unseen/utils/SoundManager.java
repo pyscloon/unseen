@@ -20,7 +20,7 @@ public class SoundManager {
     private final Map<String, AudioFormat> formats = new HashMap<>();
 
     private boolean sfxEnabled = true;
-    private float globalSfxVolume = 0.5f;
+    private float globalSfxVolume = 1.0f;
 
     public void setSfxEnabled(boolean enabled) { this.sfxEnabled = enabled; }
     public boolean isSfxEnabled() { return sfxEnabled; }
@@ -35,6 +35,21 @@ public class SoundManager {
         load("noisemaker",   "unseen/assets/sound/noisemaker_sf.wav");
         load("shuriken",     "unseen/assets/sound/shuriken_sf.wav");
         load("smoke",        "unseen/assets/sound/smoke_sf.wav");
+        load("alert",        "unseen/assets/sound/alert.wav");
+        load("ladder",       "unseen/assets/sound/ladder.wav");
+        load("player_hit",   "unseen/assets/sound/player_hit.wav");
+
+        // Horror Mode Sounds
+        load("jumpscare",    "unseen/assets/sound/horror-mode/jumpscare1.wav");
+        load("laugh",        "unseen/assets/sound/horror-mode/possessed-laugh.wav");
+        load("breathing",    "unseen/assets/sound/horror-mode/heavy-breathing.wav");
+        load("no_more",      "unseen/assets/sound/horror-mode/no-more-running.wav");
+        load("bone_break",   "unseen/assets/sound/horror-mode/bone-break.wav");
+        load("scream",       "unseen/assets/sound/horror-mode/person-screaming.wav");
+        load("ghostwhisper", "unseen/assets/sound/horror-mode/ghostwhisper.wav");
+        load("iseeyou",      "unseen/assets/sound/horror-mode/iseeyou.wav");
+        load("spooky_jump",  "unseen/assets/sound/horror-mode/spooky-jumpscare.wav");
+        load("heartbeat",    "unseen/assets/sound/horror-mode/heartbeat.wav");
     }
 
     public static SoundManager get() {

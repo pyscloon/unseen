@@ -25,6 +25,7 @@ public class TurnManager {
     }
 
     public static TurnResult processTurnEx(
+            unseen.ui.GamePanel panel,
             Player player,
             List<Enemy> enemies,
             Map map,
@@ -52,10 +53,16 @@ public class TurnManager {
             // Check for player contact — damage + knockback instead of instant death
             if (enemy.isAlive()
                     && enemy.getX() == player.getX()
-                    && enemy.getY() == player.getY()) {
+                    && enemy.getY() == player.getY()
+                    && !(enemy instanceof unseen.entities.StalkerEnemy)) {
 
                 if (player.takeDamage()) {
                     wasHit = true;
+                    if (panel != null && panel.isHorrorMode()) {
+                        unseen.utils.SoundManager.get().play("bone_break", 0.8f);
+                    } else {
+                        unseen.utils.SoundManager.get().play("player_hit");
+                    }
                     int ex = enemy.getX();
                     int ey = enemy.getY();
                     int ax = ex;
@@ -97,10 +104,11 @@ public class TurnManager {
 
     /** Legacy adapter — existing callers that only check the GameState still compile. */
     public static GameState processTurn(
+            unseen.ui.GamePanel panel,
             Player player,
             List<Enemy> enemies,
             Map map,
             List<Smoke> smokes) {
-        return processTurnEx(player, enemies, map, smokes).state;
+        return processTurnEx(panel, player, enemies, map, smokes).state;
     }
 }

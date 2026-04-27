@@ -18,6 +18,7 @@ import unseen.utils.Constants;
 
 import java.awt.*;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Handles all rendering for the game panel, including the map, entities,
@@ -43,6 +44,11 @@ public class GameRenderer {
             return;
         }
 
+        if (panel.isJumpscareActive()) {
+            drawJumpscare((Graphics2D) g);
+            return;
+        }
+
         // ── Screen shake ────────────────────────────────────────────────────────
         unseen.ui.gamepanel.ScreenShake shake = panel.getScreenShake();
         shake.update();
@@ -57,6 +63,85 @@ public class GameRenderer {
         drawFlares(world);
         drawNoiseFlashes(world);
         drawShurikenProjectiles(world);
+
+        // --- HORROR MODE: Heartbeat Vignette ---
+        if (panel.isHorrorMode() && panel.getGameState() == unseen.game.GameState.PLAYING) {
+            double minEnemyDist = Double.MAX_VALUE;
+            unseen.entities.Player p = levelManager.getPlayer();
+
+            boolean anyChase = false;
+            for (unseen.entities.Enemy e : levelManager.getEnemies()) {
+                if (e.getState() == unseen.entities.Enemy.State.CHASE || e instanceof unseen.entities.StalkerEnemy) {
+                    anyChase = true;
+                    double d = Math.hypot(e.getX() - p.getX(), e.getY() - p.getY());
+                    if (d < minEnemyDist)
+                        minEnemyDist = d;
+                }
+            }
+
+            long now = System.currentTimeMillis();
+            boolean highTension = levelManager.isHighTension();
+
+            float pulse = 0;
+            if (anyChase) {
+                // Faster pulse as they get closer
+                double speed = 0.8 + Math.max(0, 10.0 - minEnemyDist) * 1.2;
+                pulse = (float) (0.3 + 0.7 * 0.5 * (1.0 + Math.sin(now * 0.01 * speed)));
+            } else if (highTension) {
+                // Subtle static dark pulse in high tension
+                pulse = (float) (0.1 + 0.1 * 0.5 * (1.0 + Math.sin(now * 0.005)));
+            }
+
+            int w = panel.getWidth();
+            int h = panel.getHeight();
+            Graphics2D g2 = (Graphics2D) g.create();
+
+            // Red vignette only if chasing, otherwise black/dark red
+            Color edgeColor = anyChase ? new Color(180, 0, 0, (int) (180 * pulse))
+                    : new Color(0, 0, 0, (int) (150 * pulse));
+
+            RadialGradientPaint vignette = new RadialGradientPaint(
+                    w / 2f, h / 2f, Math.max(w, h) * 0.95f,
+                    new float[] { 0.2f, 1.0f },
+                    new Color[] { new Color(0, 0, 0, 0), edgeColor });
+            g2.setPaint(vignette);
+            g2.fillRect(0, 0, w, h);
+
+            // --- PROXIMITY GLITCH --- Extremely rare now
+            if (minEnemyDist < 4.0 || (highTension && minEnemyDist < 7.0 && Math.random() < 0.08)) {
+                Random r = new Random();
+                // Even fewer segments
+                int segments = (highTension ? 2 : 1) + r.nextInt(2);
+                for (int i = 0; i < segments; i++) {
+                    int gy = r.nextInt(h);
+                    int gh = 1 + r.nextInt(10);
+                    int gox = r.nextInt(20) - 10;
+                    g2.copyArea(0, gy, w, gh, gox, 0);
+
+                    if (r.nextDouble() < 0.20) {
+                        g2.setColor(new Color(255, 0, 0, 30));
+                        g2.fillRect(0, gy, w, gh);
+                    }
+                }
+            }
+            g2.dispose();
+        }
+
+        // --- Shadow Figures ---
+        if (panel.isHorrorMode()) {
+            for (unseen.entities.ShadowFigure sf : levelManager.getShadowFigures()) {
+                int sdx = sf.getX() * Constants.TILE_SIZE;
+                int sdy = sf.getY() * Constants.TILE_SIZE;
+                world.setColor(new Color(0, 0, 0, 220));
+                // Draw a simple silhouette
+                world.fillOval(sdx + 10, sdy + 5, 12, 12); // head
+                world.fillRect(sdx + 8, sdy + 15, 16, 15); // body
+            }
+        }
+        // ----------------------
+
+        // ----------------------------------------
+
         if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare())
             drawTargetingOverlay(world);
         if (panel.isTargetingShuriken())
@@ -253,7 +338,7 @@ public class GameRenderer {
             int rx = panel.getWidth() - lw - 14;
             g.setColor(new Color(0, 0, 0, 140));
             g.fillRoundRect(rx - 6, 10, lw + 12, 26, 8, 8);
-            g.setColor(new Color(255, 220, 100));
+            g.setColor(new Color(255, 230, 120));
             g.drawString(floorLabel, rx, 28);
 
             // "TRAPPED!" indicator
@@ -390,9 +475,9 @@ public class GameRenderer {
         float pulse = (float) (0.5 + 0.5 * Math.sin(now / 250.0));
 
         // Background pill
-        g2.setColor(new Color(12, 12, 14, 210));
+        g.setColor(new Color(12, 12, 14, 210));
         g2.fillRoundRect(bx, by, pillW, pillH, 18, 18);
-        g2.setColor(new Color(100, 100, 110, 140));
+        g.setColor(new Color(80, 80, 90, 160));
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawRoundRect(bx, by, pillW, pillH, 18, 18);
 
@@ -516,17 +601,29 @@ public class GameRenderer {
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int hw2 = g2.getFontMetrics().stringWidth(howTo);
         g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(howTo, (w - hw2) / 2 + 1, optY + 39);
+        g2.drawString(howTo, (w - hw2) / 2 + 1, optY + 33);
         g2.setColor(new Color(118, 100, 72));
-        g2.drawString(howTo, (w - hw2) / 2, optY + 38);
+        g2.drawString(howTo, (w - hw2) / 2, optY + 32);
+
+        String horror = "X : Horror Mode [" + (panel.isHorrorMode() ? "ON" : "OFF") + "]";
+        g2.setFont(new Font("Serif", Font.BOLD, 19));
+        int hwx = g2.getFontMetrics().stringWidth(horror);
+        g2.setColor(new Color(0, 0, 0, 130));
+        g2.drawString(horror, (w - hwx) / 2 + 1, optY + 68);
+        if (panel.isHorrorMode()) {
+            g2.setColor(new Color(220, 80, 20)); // Bright horror orange
+        } else {
+            g2.setColor(new Color(118, 100, 72));
+        }
+        g2.drawString(horror, (w - hwx) / 2, optY + 67);
 
         String quit = "Q : Quit";
         g2.setFont(new Font("Serif", Font.PLAIN, 18));
         int qw = g2.getFontMetrics().stringWidth(quit);
         g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(quit, (w - qw) / 2 + 1, optY + 76);
+        g2.drawString(quit, (w - qw) / 2 + 1, optY + 101);
         g2.setColor(new Color(118, 100, 72));
-        g2.drawString(quit, (w - qw) / 2, optY + 75);
+        g2.drawString(quit, (w - qw) / 2, optY + 100);
         // ── end menu options ─────────────────────────────────────────────────────
 
         String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
@@ -831,8 +928,9 @@ public class GameRenderer {
                 int drawY = y * Constants.TILE_SIZE;
                 switch (tile) {
                     case WALL:
-                        if (AssetLoader.get().wall != null)
-                            g2.drawImage(AssetLoader.get().wall, drawX, drawY,
+                        Image wallImg = AssetLoader.get().wall;
+                        if (wallImg != null)
+                            g2.drawImage(wallImg, drawX, drawY,
                                     Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         else {
                             g2.setColor(new Color(90, 90, 90));
@@ -841,7 +939,19 @@ public class GameRenderer {
                         break;
                     case FLOOR:
                     case START:
-                        if (AssetLoader.get().floor != null) {
+                        Image floorImg = AssetLoader.get().floor;
+                        if (panel.isHorrorMode()) {
+                            // 25% chance for bloody floors
+                            Random tr = new Random(x * 31 + y * 17);
+                            double roll = tr.nextDouble();
+                            if (roll < 0.15 && AssetLoader.get().horrorFloor != null) {
+                                floorImg = AssetLoader.get().horrorFloor;
+                            } else if (roll < 0.25 && AssetLoader.get().dieTile != null) {
+                                floorImg = AssetLoader.get().dieTile;
+                            }
+                        }
+
+                        if (floorImg != null) {
                             int variant = (x * 31 + y * 17) & 3;
                             int ts = Constants.TILE_SIZE;
                             java.awt.geom.AffineTransform saved = g2.getTransform();
@@ -857,7 +967,7 @@ public class GameRenderer {
                                 g2.translate(0, ts);
                                 g2.scale(1, -1);
                             }
-                            g2.drawImage(AssetLoader.get().floor, 0, 0, ts, ts, null);
+                            g2.drawImage(floorImg, 0, 0, ts, ts, null);
                             g2.setTransform(saved);
                         } else {
                             g2.setColor(new Color(170, 170, 170));
@@ -865,12 +975,51 @@ public class GameRenderer {
                         }
                         break;
                     case TORCH:
-                        if (AssetLoader.get().torch != null)
-                            g2.drawImage(AssetLoader.get().torch, drawX, drawY,
-                                    Constants.TILE_SIZE, Constants.TILE_SIZE, null);
-                        else {
-                            g2.setColor(new Color(255, 140, 0));
-                            g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                        if (levelManager.getDarkEventTurns() <= 0) {
+                            if (AssetLoader.get().torch != null)
+                                g2.drawImage(AssetLoader.get().torch, drawX, drawY,
+                                        Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                            else {
+                                g2.setColor(new Color(255, 140, 0));
+                                g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                            }
+                        } else {
+                            Image fallback = AssetLoader.get().floor;
+                            if (panel.isHorrorMode()) {
+                                Random tr = new Random(x * 31 + y * 17);
+                                double roll = tr.nextDouble();
+                                if (roll < 0.15 && AssetLoader.get().horrorFloor != null)
+                                    fallback = AssetLoader.get().horrorFloor;
+                                else if (roll < 0.25 && AssetLoader.get().dieTile != null)
+                                    fallback = AssetLoader.get().dieTile;
+                            }
+                            if (fallback != null)
+                                g2.drawImage(fallback, drawX, drawY,
+                                        Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                        }
+                        break;
+                    case CAMPFIRE:
+                        if (levelManager.getDarkEventTurns() <= 0) {
+                            if (AssetLoader.get().campfire != null)
+                                g2.drawImage(AssetLoader.get().campfire, drawX, drawY,
+                                        Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                            else {
+                                g2.setColor(new Color(255, 100, 0));
+                                g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
+                            }
+                        } else {
+                            Image fallback = AssetLoader.get().floor;
+                            if (panel.isHorrorMode()) {
+                                Random tr = new Random(x * 31 + y * 17);
+                                double roll = tr.nextDouble();
+                                if (roll < 0.15 && AssetLoader.get().horrorFloor != null)
+                                    fallback = AssetLoader.get().horrorFloor;
+                                else if (roll < 0.25 && AssetLoader.get().dieTile != null)
+                                    fallback = AssetLoader.get().dieTile;
+                            }
+                            if (fallback != null)
+                                g2.drawImage(fallback, drawX, drawY,
+                                        Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         }
                         break;
                     case EXIT:
@@ -883,13 +1032,31 @@ public class GameRenderer {
                         }
                         break;
                     default:
-                        if (AssetLoader.get().floor != null)
-                            g2.drawImage(AssetLoader.get().floor, drawX, drawY,
+                        Image defFloor = AssetLoader.get().floor;
+                        if (panel.isHorrorMode()) {
+                            Random tr = new Random(x * 31 + y * 17);
+                            double roll = tr.nextDouble();
+                            if (roll < 0.15 && AssetLoader.get().horrorFloor != null)
+                                defFloor = AssetLoader.get().horrorFloor;
+                            else if (roll < 0.25 && AssetLoader.get().dieTile != null)
+                                defFloor = AssetLoader.get().dieTile;
+                        }
+                        if (defFloor != null)
+                            g2.drawImage(defFloor, drawX, drawY,
                                     Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         else {
                             g2.setColor(new Color(170, 170, 170));
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         }
+                        break;
+                }
+
+                // Draw decals if visible
+                if (visible[y][x]) {
+                    unseen.map.DecalType decal = levelManager.getMap().getDecal(x, y);
+                    if (decal != null) {
+                        drawDecal(g2, x, y, decal);
+                    }
                 }
             }
         }
@@ -911,15 +1078,13 @@ public class GameRenderer {
                     } else if (ground instanceof Flare && AssetLoader.get().lantern != null) {
                         g2.drawImage(AssetLoader.get().lantern, tx + iconPad, ty + iconPad,
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
-                    } else if (ground instanceof Shuriken) {
-                        if (AssetLoader.get().shuriken != null) {
-                            g2.drawImage(AssetLoader.get().shuriken, tx + iconPad, ty + iconPad,
-                                    Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
-                        } else {
-                            g2.setColor(new Color(160, 200, 240, 200));
-                            g2.fillOval(tx + iconPad, ty + iconPad,
-                                    Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad);
-                        }
+                    } else if (ground instanceof Shuriken && AssetLoader.get().shuriken != null) {
+                        g2.drawImage(AssetLoader.get().shuriken, tx + iconPad, ty + iconPad,
+                                Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    } else if (ground instanceof unseen.items.Heart && AssetLoader.get().heart != null) {
+                        int heartPad = 2; // smaller pad = bigger icon
+                        g2.drawImage(AssetLoader.get().heart, tx + heartPad, ty + heartPad,
+                                Constants.TILE_SIZE - 2 * heartPad, Constants.TILE_SIZE - 2 * heartPad, null);
                     }
                 }
             }
@@ -963,16 +1128,22 @@ public class GameRenderer {
         g2.setStroke(savedStroke);
 
         // Fog overlay
+        int defaultFogAlpha = panel.isHorrorMode() ? 220 : 200;
+        int defaultMinAlpha = panel.isHorrorMode() ? 80 : 0;
+
+        int baseFogAlpha = levelManager.getDarkEventTurns() > 0 ? 255 : defaultFogAlpha;
+        int minLightAlpha = levelManager.getDarkEventTurns() > 0 ? 150 : defaultMinAlpha;
+
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
                 if (!visible[y][x]) {
-                    g2.setColor(new Color(0, 0, 0, 200));
+                    g2.setColor(new Color(0, 0, 0, baseFogAlpha));
                     g2.fillRect(x * Constants.TILE_SIZE, y * Constants.TILE_SIZE,
                             Constants.TILE_SIZE, Constants.TILE_SIZE);
                 } else {
                     float light = lightLevel[y][x];
                     int alpha = (int) ((1.0f - light) * 200);
-                    alpha = Math.max(0, Math.min(200, alpha));
+                    alpha = Math.max(minLightAlpha, Math.min(255, alpha));
                     if (alpha > 0) {
                         g2.setColor(new Color(0, 0, 0, alpha));
                         g2.fillRect(x * Constants.TILE_SIZE, y * Constants.TILE_SIZE,
@@ -1014,6 +1185,37 @@ public class GameRenderer {
             int ey = e.getY();
             if (!visible[ey][ex])
                 continue;
+
+            if (e.getType() == Enemy.EnemyType.STALKER) {
+                // Draw a terrifying shadowy glitch figure
+                int ts = Constants.TILE_SIZE;
+                int tx = ex * ts;
+                int ty = ey * ts;
+                Random rand = new Random();
+
+                // Shadow body
+                g2.setColor(new Color(0, 0, 0, 180 + rand.nextInt(75)));
+                g2.fillRect(tx + 4, ty + 2, ts - 8, ts - 4);
+
+                // Erratic shifting
+                if (rand.nextDouble() < 0.2) {
+                    g2.setColor(new Color(0, 0, 0, 100));
+                    g2.fillRect(tx + rand.nextInt(20) - 10, ty, ts, ts);
+                }
+
+                // Piercing red glowing eyes
+                g2.setColor(Color.RED);
+                int eyeOff = rand.nextInt(3) - 1;
+                g2.fillOval(tx + 10 + eyeOff, ty + 12, 6, 6);
+                g2.fillOval(tx + 20 + eyeOff, ty + 12, 6, 6);
+
+                // Glitch trails / static around it
+                for (int i = 0; i < 4; i++) {
+                    g2.setColor(new Color(255, 0, 0, 40));
+                    g2.fillRect(tx + rand.nextInt(ts) - 5, ty + rand.nextInt(ts), rand.nextInt(15), 1);
+                }
+                continue;
+            }
 
             java.awt.Image img = e.getEnemyImage();
             if (img != null) {
@@ -1072,6 +1274,34 @@ public class GameRenderer {
                         }
                     }
                 }
+            }
+        }
+        drawPhantom(g2);
+    }
+
+    private void drawPhantom(Graphics2D g2) {
+        int px = levelManager.getPhantomX();
+        int py = levelManager.getPhantomY();
+        if (px != -1) {
+            Player player = levelManager.getPlayer();
+            if (player.getHeroImage() != null) {
+                // Draw a desaturated/darker version of the player facing AWAY
+                java.awt.Composite saved = g2.getComposite();
+                g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.6f));
+                
+                int ts = Constants.TILE_SIZE;
+                int scaledSize = ts * 2;
+                int drawX = px * ts + (ts - scaledSize) / 2;
+                int drawY = py * ts + (ts - scaledSize) / 2;
+                
+                // Always draw facing away (if player faces right, phantom faces left)
+                if (player.getFacing() == Player.Facing.RIGHT) {
+                    g2.drawImage(player.getHeroImage(), drawX + scaledSize, drawY, -scaledSize, scaledSize, null);
+                } else {
+                    g2.drawImage(player.getHeroImage(), drawX, drawY, scaledSize, scaledSize, null);
+                }
+                
+                g2.setComposite(saved);
             }
         }
     }
@@ -1429,5 +1659,96 @@ public class GameRenderer {
         Color validColor = panel.isTargetingFlare() ? new Color(255, 255, 120) : new Color(255, 220, 80);
         g2.setColor(validTile ? validColor : new Color(220, 100, 100));
         g2.drawString(msg, bx + 12, by + 20);
+    }
+
+    private void drawJumpscare(Graphics2D g2) {
+        int w = panel.getWidth();
+        int h = panel.getHeight();
+
+        // Dark red background with static flicker
+        g2.setColor(new Color(20, 0, 0, 230));
+        g2.fillRect(0, 0, w, h);
+
+        Random rand = new Random();
+        // Static noise
+        for (int i = 0; i < 100; i++) {
+            g2.setColor(new Color(rand.nextInt(100), 0, 0, 50));
+            g2.fillRect(rand.nextInt(w), rand.nextInt(h), rand.nextInt(200), 2);
+        }
+
+        // Draw a terrifying distorted face
+        int centerX = w / 2;
+        int centerY = h / 2;
+
+        // The "Eyes" (distorted red voids)
+        g2.setColor(new Color(255, 0, 0, 180 + rand.nextInt(75)));
+        int eyeSize = 120 + rand.nextInt(20);
+        int eyeDist = 140;
+
+        // Left Eye
+        g2.fillOval(centerX - eyeDist - eyeSize / 2 + rand.nextInt(10),
+                centerY - 100 + rand.nextInt(10), eyeSize, eyeSize + rand.nextInt(50));
+        // Right Eye
+        g2.fillOval(centerX + eyeDist - eyeSize / 2 + rand.nextInt(10),
+                centerY - 100 + rand.nextInt(10), eyeSize, eyeSize + rand.nextInt(50));
+
+        // Pupils (pitch black)
+        g2.setColor(Color.BLACK);
+        g2.fillOval(centerX - eyeDist - 20, centerY - 80, 40, 40);
+        g2.fillOval(centerX + eyeDist - 20, centerY - 80, 40, 40);
+
+        // The "Mouth" (a screaming void)
+        int mouthW = 200 + rand.nextInt(40);
+        int mouthH = 300 + rand.nextInt(100);
+        g2.setColor(new Color(0, 0, 0, 240));
+        g2.fillOval(centerX - mouthW / 2 + rand.nextInt(5),
+                centerY + 50 + rand.nextInt(10), mouthW, mouthH);
+
+        // Sudden white flash pulses
+        if (rand.nextBoolean()) {
+            g2.setColor(new Color(255, 255, 255, 30));
+            g2.fillRect(0, 0, w, h);
+        }
+    }
+
+    private void drawDecal(Graphics2D g2, int gx, int gy, unseen.map.DecalType type) {
+        int drawX = gx * Constants.TILE_SIZE;
+        int drawY = gy * Constants.TILE_SIZE;
+        Random r = new Random(gx * 31 + gy * 17);
+
+        g2.setColor(new Color(140, 0, 0, 160)); // Dark dried blood
+
+        switch (type) {
+            case BLOOD_SPLATTER:
+                for (int i = 0; i < 6; i++) {
+                    int ox = r.nextInt(Constants.TILE_SIZE / 2);
+                    int oy = r.nextInt(Constants.TILE_SIZE / 2);
+                    int size = 4 + r.nextInt(12);
+                    g2.fillOval(drawX + ox, drawY + oy, size, size);
+                }
+                break;
+            case BLOODY_HANDPRINT:
+                g2.fillOval(drawX + 12, drawY + 12, 10, 10); // palm
+                for (int i = 0; i < 4; i++) {
+                    g2.fillRect(drawX + 12 + i * 2, drawY + 4, 2, 8); // fingers
+                }
+                break;
+            case BLOODY_TEXT_RUN:
+                g2.setFont(new Font("Monospaced", Font.BOLD, 14));
+                g2.drawString("RUN", drawX + 5, drawY + 25);
+                break;
+            case BLOODY_TEXT_HELP:
+                g2.setFont(new Font("Monospaced", Font.BOLD, 14));
+                g2.drawString("HELP", drawX + 5, drawY + 25);
+                break;
+            case BLOODY_TEXT_WATCHING:
+                g2.setFont(new Font("Monospaced", Font.BOLD, 10));
+                g2.drawString("WATCHING", drawX + 2, drawY + 20);
+                break;
+            case BLOODY_TEXT_HIDE:
+                g2.setFont(new Font("Monospaced", Font.BOLD, 14));
+                g2.drawString("HIDE", drawX + 5, drawY + 25);
+                break;
+        }
     }
 }

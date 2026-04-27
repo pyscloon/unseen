@@ -57,6 +57,10 @@
         public boolean isInvincible() { return invincibleTurns > 0; }
         public void decrementInvincible() { if (invincibleTurns > 0) invincibleTurns--; }
 
+        public void heal(int amount) {
+            health = Math.min(MAX_HEALTH, health + amount);
+        }
+
         public void resetHealth() { health = MAX_HEALTH; invincibleTurns = 0; }
 
         /**

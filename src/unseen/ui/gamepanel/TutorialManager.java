@@ -77,6 +77,8 @@ public class TutorialManager {
                 "4               —   Use Shuriken  (WASD to aim, Space to throw)",
                 "ESC             —   Cancel targeting  /  Pause game",
                 "P               —   Pause / Resume",
+                "M               —   Toggle Music",
+                "N               —   Toggle Sound Effects",
                 "R               —   Restart  (on death screen)"
         ));
 
@@ -224,7 +226,7 @@ public class TutorialManager {
         int dotsW = PAGES.size() * dotGap - (dotGap - dotR * 2);
         int dotX  = cardX + (cardW - dotsW) / 2;
         for (int i = 0; i < PAGES.size(); i++) {
-            g2.setColor(i == pageIdx ? new Color(220, 170, 60) : new Color(80, 60, 30));
+            g2.setColor(i == pageIdx ? new Color(255, 230, 120) : new Color(80, 60, 30));
             g2.fillOval(dotX, dotY, dotR * 2, dotR * 2);
             dotX += dotGap;
         }
@@ -233,7 +235,7 @@ public class TutorialManager {
         g2.setFont(new Font("Serif", Font.BOLD, 28));
         FontMetrics tfm = g2.getFontMetrics();
         int tw = tfm.stringWidth(page.title);
-        g2.setColor(new Color(220, 170, 60));
+        g2.setColor(new Color(255, 230, 120));
         g2.drawString(page.title, cardX + (cardW - tw) / 2, titleY);
 
         int subtitleY = titleY + 22;

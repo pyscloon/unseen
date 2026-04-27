@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class MapGenerator {
 
-    public static Map generate() {
+    public static Map generate(boolean horrorMode) {
 
         Map map = new Map();
         Random rand = new Random();
@@ -29,6 +29,24 @@ public class MapGenerator {
                         map.setTile(x, y, Tile.WALL);
                     else
                         map.setTile(x, y, Tile.FLOOR);
+                }
+
+                // Place horror decals
+                if (horrorMode) {
+                    double decalRoll = rand.nextDouble();
+                    if (decalRoll < 0.05) { // 5% chance per tile
+                        Tile t = map.getTile(x, y);
+                        if (t == Tile.WALL) {
+                            map.setDecal(x, y, DecalType.BLOODY_HANDPRINT);
+                        } else {
+                            double subRoll = rand.nextDouble();
+                            if (subRoll < 0.5) map.setDecal(x, y, DecalType.BLOOD_SPLATTER);
+                            else if (subRoll < 0.7) map.setDecal(x, y, DecalType.BLOODY_TEXT_RUN);
+                            else if (subRoll < 0.85) map.setDecal(x, y, DecalType.BLOODY_TEXT_HELP);
+                            else if (subRoll < 0.95) map.setDecal(x, y, DecalType.BLOODY_TEXT_WATCHING);
+                            else map.setDecal(x, y, DecalType.BLOODY_TEXT_HIDE);
+                        }
+                    }
                 }
             }
         }
@@ -65,7 +83,7 @@ public class MapGenerator {
                 tx = rand.nextInt(Constants.GRID_WIDTH);
                 ty = rand.nextInt(Constants.GRID_HEIGHT);
             } while (map.getTile(tx, ty) != Tile.FLOOR);
-            map.setTile(tx, ty, Tile.TORCH);
+            map.setTile(tx, ty, rand.nextDouble() < 0.4 ? Tile.CAMPFIRE : Tile.TORCH);
         }
 
         // Place ground items (pickupable) — never on the start tile
