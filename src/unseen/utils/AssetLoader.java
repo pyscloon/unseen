@@ -20,7 +20,8 @@ public class AssetLoader {
     public final Image smokeBomb;
     public final Image lantern;
     public final Image nextFloor;
-    public final Image shuriken; // NEW
+    public final Image shuriken; 
+    public final Image heart;    
 
     public final Image hero;
 
@@ -41,6 +42,7 @@ public class AssetLoader {
         lantern    = load("unseen/assets/lantern.png");
         nextFloor  = load("unseen/assets/next_floor.png");
         shuriken   = load("unseen/assets/shuriken.png");
+        heart      = load("unseen/assets/heart.png");
 
         hero = load("unseen/assets/hero.png");
 

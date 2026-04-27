@@ -64,21 +64,22 @@ public class GameRenderer {
 
         world.dispose();
 
-        // ── Red vignette flash on player hit ──────────────────────────────────────────
+        // ── Red vignette flash on player hit
+        // ──────────────────────────────────────────
         long hitAge = System.currentTimeMillis() - panel.getLastHitTime();
         if (hitAge < 600) { // 600ms red flash
             float fade = 1f - (hitAge / 600f);
-            int alpha = (int)(120 * fade);
+            int alpha = (int) (120 * fade);
             Graphics2D vg = (Graphics2D) g.create();
             vg.setComposite(java.awt.AlphaComposite.getInstance(
                     java.awt.AlphaComposite.SRC_OVER, alpha / 255f));
             // Radial-ish vignette: dark-red edges, transparent center
             int w = panel.getWidth(), h = panel.getHeight();
-            int border = (int)(Math.min(w, h) * 0.18f);
+            int border = (int) (Math.min(w, h) * 0.18f);
             vg.setColor(new Color(180, 20, 20));
-            vg.fillRect(0, 0, w, border);                     // top
-            vg.fillRect(0, h - border, w, border);             // bottom
-            vg.fillRect(0, border, border, h - 2 * border);    // left
+            vg.fillRect(0, 0, w, border); // top
+            vg.fillRect(0, h - border, w, border); // bottom
+            vg.fillRect(0, border, border, h - 2 * border); // left
             vg.fillRect(w - border, border, border, h - 2 * border); // right
             vg.dispose();
         }
@@ -168,7 +169,6 @@ public class GameRenderer {
             g.drawString(loseHint, lcx - lhw / 2, lcy + 36);
         }
 
-
         if (panel.getGameState() == GameState.PAUSED) {
             g.setColor(new Color(0, 0, 0, 150));
             g.fillRect(0, 0, panel.getWidth(), panel.getHeight());
@@ -204,7 +204,7 @@ public class GameRenderer {
 
             // Card background
             int cardW = 380, cardH = 160;
-            int cardX = (panel.getWidth()  - cardW) / 2;
+            int cardX = (panel.getWidth() - cardW) / 2;
             int cardY = (panel.getHeight() - cardH) / 2;
 
             g2.setColor(new Color(16, 12, 8, 240));
@@ -230,14 +230,14 @@ public class GameRenderer {
             g2.drawLine(cardX + 30, cardY + 66, cardX + cardW - 30, cardY + 66);
 
             // Options
-            String yes  = "M  —  Yes, go to menu";
-            String no   = "Any other key  —  Stay";
+            String yes = "M  —  Yes, go to menu";
+            String no = "Any other key  —  Stay";
             g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
             FontMetrics ofm = g2.getFontMetrics();
 
             int yw = ofm.stringWidth(yes);
             g2.setColor(new Color(180, 240, 140));
-            g2.drawString(yes,  cardX + (cardW - yw) / 2, cardY + 98);
+            g2.drawString(yes, cardX + (cardW - yw) / 2, cardY + 98);
 
             int nw = ofm.stringWidth(no);
             g2.setColor(new Color(180, 180, 180));
@@ -277,83 +277,27 @@ public class GameRenderer {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Health bar — drawn top-left as heart pips
-    // -------------------------------------------------------------------------
-    private void drawHealthBar(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        int hp    = levelManager.getPlayer().getHealth();
-        int maxHp = unseen.entities.Player.MAX_HEALTH;
-        int heartSize = 18;
-        int spacing   = 6;
-        int startX    = 14;
-        int startY    = 14;
-
-        // Pulsing effect when HP is low (1 remaining)
-        long now = System.currentTimeMillis();
-        float pulse = (float)(0.5 + 0.5 * Math.sin(now / 250.0));
-
-        // Background pill
-        int pillW = maxHp * (heartSize + spacing) + 10;
-        int pillH = heartSize + 12;
-        g2.setColor(new Color(12, 12, 14, 190));
-        g2.fillRoundRect(startX - 6, startY - 6, pillW, pillH, 14, 14);
-        g2.setColor(new Color(80, 80, 90, 120));
-        g2.setStroke(new BasicStroke(1f));
-        g2.drawRoundRect(startX - 6, startY - 6, pillW, pillH, 14, 14);
-
-        for (int i = 0; i < maxHp; i++) {
-            int hx = startX + i * (heartSize + spacing);
-            int hy = startY;
-
-            if (i < hp) {
-                // Filled heart
-                int r = 220, gr = 40, b = 50;
-                if (hp == 1) {
-                    // Critical — pulse brighter
-                    r = 220 + (int)(35 * pulse);
-                    gr = 40 + (int)(20 * pulse);
-                }
-                g2.setColor(new Color(Math.min(255, r), gr, b));
-                drawHeart(g2, hx, hy, heartSize, true);
-            } else {
-                // Empty heart
-                g2.setColor(new Color(60, 60, 65, 180));
-                drawHeart(g2, hx, hy, heartSize, true);
-                g2.setColor(new Color(90, 90, 95, 160));
-                drawHeart(g2, hx, hy, heartSize, false);
-            }
-        }
-
-        // "HP" label
-        g2.setFont(new Font("SansSerif", Font.BOLD, 9));
-        g2.setColor(new Color(160, 160, 170, 200));
-        g2.drawString("HP", startX + pillW - 22, startY + heartSize - 2);
-    }
-
     /** Draws a simple heart shape (filled or outline). */
     private void drawHeart(Graphics2D g2, int x, int y, int size, boolean fill) {
         int[] xp = {
-            x + size / 2,
-            x + size,
-            x + size,
-            x + size * 3 / 4,
-            x + size / 2,
-            x + size / 4,
-            x,
-            x
+                x + size / 2,
+                x + size,
+                x + size,
+                x + size * 3 / 4,
+                x + size / 2,
+                x + size / 4,
+                x,
+                x
         };
         int[] yp = {
-            y + size * 3 / 8,
-            y,
-            y + size / 4,
-            y + size / 2,
-            y + size,
-            y + size / 2,
-            y + size / 4,
-            y
+                y + size * 3 / 8,
+                y,
+                y + size / 4,
+                y + size / 2,
+                y + size,
+                y + size / 2,
+                y + size / 4,
+                y
         };
         if (fill) {
             g2.fillPolygon(xp, yp, 8);
@@ -370,7 +314,8 @@ public class GameRenderer {
         java.util.List<HudToast> toasts = panel.getToasts();
         // Prune expired
         toasts.removeIf(HudToast::isExpired);
-        if (toasts.isEmpty()) return;
+        if (toasts.isEmpty())
+            return;
 
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -378,17 +323,18 @@ public class GameRenderer {
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         int baseY = panel.getHeight() - 56;
-        int cx    = panel.getWidth() / 2;
+        int cx = panel.getWidth() / 2;
 
         // Show up to 3 most recent toasts
         int start = Math.max(0, toasts.size() - 3);
         for (int i = start; i < toasts.size(); i++) {
             HudToast toast = toasts.get(i);
             float alpha = toast.getAlpha();
-            if (alpha <= 0) continue;
+            if (alpha <= 0)
+                continue;
 
             int slot = toasts.size() - 1 - i; // 0 = bottom (newest)
-            int ty = baseY - slot * 26;
+            int ty = baseY - slot * 26 - 60; // offset upward to avoid bottom health bar
 
             g2.setFont(new Font("SansSerif", Font.BOLD, 13));
             FontMetrics fm = g2.getFontMetrics();
@@ -425,6 +371,50 @@ public class GameRenderer {
         }
     }
 
+    private void drawHealthBar(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int hp = levelManager.getPlayer().getHealth();
+        int maxHp = unseen.entities.Player.MAX_HEALTH;
+        int heartSz = 32;
+        int spacing = 6;
+
+        int pillW = maxHp * (heartSz + spacing) + 16;
+        int pillH = heartSz + 16;
+        int bx = (panel.getWidth() - pillW) / 2;
+        int by = panel.getHeight() - pillH - 12;
+
+        // Pulsing effect when HP is low
+        long now = System.currentTimeMillis();
+        float pulse = (float) (0.5 + 0.5 * Math.sin(now / 250.0));
+
+        // Background pill
+        g2.setColor(new Color(12, 12, 14, 210));
+        g2.fillRoundRect(bx, by, pillW, pillH, 18, 18);
+        g2.setColor(new Color(100, 100, 110, 140));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(bx, by, pillW, pillH, 18, 18);
+
+        Image heartImg = AssetLoader.get().heart;
+        for (int i = 0; i < maxHp; i++) {
+            int hx = bx + 10 + i * (heartSz + spacing);
+            int hy = by + 8;
+            float alpha = (i < hp) ? 1.0f : 0.25f;
+            if (hp == 1 && i == 0)
+                alpha = 0.6f + 0.4f * pulse;
+
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+            if (heartImg != null) {
+                g2.drawImage(heartImg, hx, hy, heartSz, heartSz, null);
+            } else {
+                g2.setColor(i < hp ? new Color(220, 50, 40) : new Color(60, 60, 65));
+                g2.fillOval(hx, hy, heartSz, heartSz);
+            }
+        }
+        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+    }
+
     private void drawMainMenu(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -448,8 +438,8 @@ public class GameRenderer {
 
         java.awt.RadialGradientPaint vignette = new java.awt.RadialGradientPaint(
                 w / 2f, h / 2f, Math.max(w, h) * 0.72f,
-                new float[]{0.0f, 1.0f},
-                new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 160)});
+                new float[] { 0.0f, 1.0f },
+                new Color[] { new Color(0, 0, 0, 0), new Color(0, 0, 0, 160) });
         g2.setPaint(vignette);
         g2.fillRect(0, 0, w, h);
 
@@ -471,9 +461,9 @@ public class GameRenderer {
 
         int cs = 7;
         g2.setColor(new Color(110, 72, 22, 200));
-        g2.fillRect(cardX - 2,              cardY - 2,              cs, cs);
-        g2.fillRect(cardX + cardW - cs + 2, cardY - 2,              cs, cs);
-        g2.fillRect(cardX - 2,              cardY + cardH - cs + 2, cs, cs);
+        g2.fillRect(cardX - 2, cardY - 2, cs, cs);
+        g2.fillRect(cardX + cardW - cs + 2, cardY - 2, cs, cs);
+        g2.fillRect(cardX - 2, cardY + cardH - cs + 2, cs, cs);
         g2.fillRect(cardX + cardW - cs + 2, cardY + cardH - cs + 2, cs, cs);
 
         float pulse = (float) (0.5 + 0.5 * Math.sin(now / 820.0));
@@ -506,8 +496,8 @@ public class GameRenderer {
         g2.drawLine(cardX + sepInset, sepY, cardX + cardW - sepInset, sepY);
         int dx = w / 2, dy = sepY;
         int ds = 5;
-        int[] dpx = {dx, dx + ds, dx, dx - ds};
-        int[] dpy = {dy - ds, dy, dy + ds, dy};
+        int[] dpx = { dx, dx + ds, dx, dx - ds };
+        int[] dpy = { dy - ds, dy, dy + ds, dy };
         g2.setColor(new Color(140, 90, 25, 220));
         g2.fillPolygon(dpx, dpy, 4);
 
@@ -561,7 +551,8 @@ public class GameRenderer {
 
         for (int ty = 0; ty < Constants.GRID_HEIGHT; ty++) {
             for (int tx = 0; tx < Constants.GRID_WIDTH; tx++) {
-                if (levelManager.getMap().getTile(tx, ty) != Tile.TORCH) continue;
+                if (levelManager.getMap().getTile(tx, ty) != Tile.TORCH)
+                    continue;
 
                 float phase = (float) ((tx * 17 + ty * 23) * 0.21);
                 float flicker = (float) (0.5 + 0.5 * Math.sin(now / 155.0 + phase));
@@ -570,8 +561,8 @@ public class GameRenderer {
                 int cy = ty * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
 
                 int outer = (int) (Constants.TILE_SIZE * (2.8 + 0.8 * flicker));
-                int mid   = (int) (Constants.TILE_SIZE * (1.6 + 0.5 * flicker));
-                int core  = (int) (Constants.TILE_SIZE * (0.7 + 0.2 * flicker));
+                int mid = (int) (Constants.TILE_SIZE * (1.6 + 0.5 * flicker));
+                int core = (int) (Constants.TILE_SIZE * (0.7 + 0.2 * flicker));
 
                 g2.setColor(new Color(160, 80, 10, 18 + (int) (14 * flicker)));
                 g2.fillOval(cx - outer / 2, cy - outer / 2, outer, outer);
@@ -586,26 +577,29 @@ public class GameRenderer {
     }
 
     // =========================================================================
-    // Inventory HUD  —  slots 1–4 with keybind badges, item names, empty state
+    // Inventory HUD — slots 1–4 with keybind badges, item names, empty state
     // =========================================================================
 
     /** One descriptor per inventory slot (order = visual left→right). */
     private static final class SlotDef {
-        final String key;          // keyboard hint shown in badge
-        final String itemName;     // human-readable label shown above slot
-        final Color  borderFull;   // border tint when item is present
-        final Color  borderEmpty;  // border tint when slot is empty/used
+        final String key; // keyboard hint shown in badge
+        final String itemName; // human-readable label shown above slot
+        final Color borderFull; // border tint when item is present
+        final Color borderEmpty; // border tint when slot is empty/used
+
         SlotDef(String key, String itemName, Color full, Color empty) {
-            this.key = key; this.itemName = itemName;
-            this.borderFull = full; this.borderEmpty = empty;
+            this.key = key;
+            this.itemName = itemName;
+            this.borderFull = full;
+            this.borderEmpty = empty;
         }
     }
 
     private static final SlotDef[] SLOTS = {
-        new SlotDef("1", "Noise Maker", new Color(255, 240, 130), new Color(110, 105, 70)),
-        new SlotDef("2", "Smoke Bomb",  new Color(180, 200, 255), new Color(80,  85, 110)),
-        new SlotDef("3", "Lantern",     new Color(255, 230, 120), new Color(110, 100, 60)),
-        new SlotDef("4", "Shuriken",    new Color(140, 210, 255), new Color(65,  95, 120)),
+            new SlotDef("1", "Noise Maker", new Color(255, 240, 130), new Color(110, 105, 70)),
+            new SlotDef("2", "Smoke Bomb", new Color(180, 200, 255), new Color(80, 85, 110)),
+            new SlotDef("3", "Lantern", new Color(255, 230, 120), new Color(110, 100, 60)),
+            new SlotDef("4", "Shuriken", new Color(140, 210, 255), new Color(65, 95, 120)),
     };
 
     private void drawInventory(Graphics g) {
@@ -614,18 +608,18 @@ public class GameRenderer {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        final int BOX      = 48;   // slot icon area
-        final int SPACING  = 10;
-        final int LABEL_H  = 14;   // px above the box for the item name
-        final int BADGE_H  = 14;   // px below the box for the keybind hint
-        final int PAD_X    = 16;
-        final int PAD_Y    = 8;
+        final int BOX = 48; // slot icon area
+        final int SPACING = 10;
+        final int LABEL_H = 14; // px above the box for the item name
+        final int BADGE_H = 14; // px below the box for the keybind hint
+        final int PAD_X = 16;
+        final int PAD_Y = 8;
 
-        int slots     = SLOTS.length;
-        int barW      = PAD_X * 2 + slots * BOX + (slots - 1) * SPACING;
-        int barH      = PAD_Y * 2 + LABEL_H + BOX + BADGE_H;
-        int barX      = (panel.getWidth() - barW) / 2;
-        int barY      = 6;
+        int slots = SLOTS.length;
+        int barW = PAD_X * 2 + slots * BOX + (slots - 1) * SPACING;
+        int barH = PAD_Y * 2 + LABEL_H + BOX + BADGE_H;
+        int barX = (panel.getWidth() - barW) / 2;
+        int barY = 6;
 
         // ── Bar background ────────────────────────────────────────────────────
         g2.setColor(new Color(12, 12, 14, 210));
@@ -636,48 +630,45 @@ public class GameRenderer {
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawRoundRect(barX, barY, barW, barH, 20, 20);
 
-        // Subtle inner highlight (top edge only — glassy sheen)
-        g2.setColor(new Color(255, 255, 255, 18));
-        g2.setStroke(new BasicStroke(1f));
-        g2.drawLine(barX + 20, barY + 1, barX + barW - 20, barY + 1);
-
         // ── Inventory state ───────────────────────────────────────────────────
         Player player = levelManager.getPlayer();
-        boolean hasNoise   = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
-        boolean hasSmoke   = player.getInventory().stream().anyMatch(i -> i instanceof SmokeBomb);
-        boolean hasFlare   = player.getInventory().stream().anyMatch(i -> i instanceof Flare);
-        boolean hasShuriken= player.getInventory().stream().anyMatch(i -> i instanceof Shuriken);
-        boolean[] present  = { hasNoise, hasSmoke, hasFlare, hasShuriken };
+        int countNoise = (int) player.getInventory().stream().filter(i -> i instanceof NoiseMaker).count();
+        int countSmoke = (int) player.getInventory().stream().filter(i -> i instanceof SmokeBomb).count();
+        int countFlare = (int) player.getInventory().stream().filter(i -> i instanceof Flare).count();
+        int countShuriken = (int) player.getInventory().stream().filter(i -> i instanceof Shuriken).count();
+        int[] counts = { countNoise, countSmoke, countFlare, countShuriken };
 
         java.awt.Image[] icons = {
-            AssetLoader.get().noiseMaker,
-            AssetLoader.get().smokeBomb,
-            AssetLoader.get().lantern,
-            AssetLoader.get().shuriken,
+                AssetLoader.get().noiseMaker,
+                AssetLoader.get().smokeBomb,
+                AssetLoader.get().lantern,
+                AssetLoader.get().shuriken,
         };
 
         // Which slot is currently "active" (targeting)?
         boolean[] active = {
-            panel.isTargetingNoiseMaker(),
-            false,                          // smoke bomb has no targeting mode
-            panel.isTargetingFlare(),
-            panel.isTargetingShuriken(),
+                panel.isTargetingNoiseMaker(),
+                false, // smoke bomb has no targeting mode
+                panel.isTargetingFlare(),
+                panel.isTargetingShuriken(),
         };
 
         long now = System.currentTimeMillis();
-        float pulse = (float)(0.5 + 0.5 * Math.sin(now / 380.0)); // 0..1 glow wave
+        // Use the same timing for inventory pulse
+        float invPulse = (float) (0.5 + 0.5 * Math.sin(now / 380.0)); // 0..1 glow wave
 
-        int iconY = barY + PAD_Y + LABEL_H;  // top of icon area
+        int iconY = barY + PAD_Y + LABEL_H; // top of icon area
 
         for (int i = 0; i < slots; i++) {
-            SlotDef def  = SLOTS[i];
-            int slotX    = barX + PAD_X + i * (BOX + SPACING);
-            boolean has  = present[i];
-            boolean act  = active[i];
+            SlotDef def = SLOTS[i];
+            int slotX = barX + PAD_X + i * (BOX + SPACING);
+            int count = counts[i];
+            boolean has = count > 0;
+            boolean act = active[i];
 
             // ── Active glow halo behind the slot ─────────────────────────────
             if (act) {
-                int glowAlpha = 60 + (int)(80 * pulse);
+                int glowAlpha = 60 + (int) (80 * invPulse);
                 g2.setColor(new Color(
                         def.borderFull.getRed(),
                         def.borderFull.getGreen(),
@@ -694,10 +685,11 @@ public class GameRenderer {
             g2.setColor(fill);
             g2.fillRoundRect(slotX, iconY, BOX, BOX, 10, 10);
 
-            // Border: active → pulsing gold/item-colour, full → dim item-colour, empty → very dim
+            // Border: active → pulsing gold/item-colour, full → dim item-colour, empty →
+            // very dim
             Color border;
             if (act) {
-                int ba = 160 + (int)(95 * pulse);
+                int ba = 160 + (int) (95 * invPulse);
                 border = new Color(
                         Math.min(255, def.borderFull.getRed()),
                         Math.min(255, def.borderFull.getGreen()),
@@ -724,7 +716,7 @@ public class GameRenderer {
 
             // ── Icon / empty-state ────────────────────────────────────────────
             int iconPad = 7;
-            int iconSz  = BOX - 2 * iconPad;
+            int iconSz = BOX - 2 * iconPad;
             if (has) {
                 if (icons[i] != null) {
                     g2.drawImage(icons[i], slotX + iconPad, iconY + iconPad, iconSz, iconSz, null);
@@ -733,22 +725,37 @@ public class GameRenderer {
                     g2.setColor(def.borderFull);
                     g2.fillOval(slotX + iconPad, iconY + iconPad, iconSz, iconSz);
                 }
+
+                // ── Stack counter badge ──────────────────────────────────────
+                if (count > 1) {
+                    String countStr = "x" + count;
+                    g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+                    FontMetrics cfm = g2.getFontMetrics();
+                    int cw = cfm.stringWidth(countStr);
+
+                    // Small dark background for the text
+                    g2.setColor(new Color(0, 0, 0, 180));
+                    g2.fillRoundRect(slotX + BOX - cw - 4, iconY + BOX - 15, cw + 2, 12, 4, 4);
+
+                    g2.setColor(Color.WHITE);
+                    g2.drawString(countStr, slotX + BOX - cw - 3, iconY + BOX - 5);
+                }
             } else {
                 // Empty: greyed X mark
                 int xPad = iconPad + 4;
                 g2.setColor(new Color(80, 80, 85, 120));
                 g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 g2.drawLine(slotX + xPad, iconY + xPad,
-                            slotX + BOX - xPad, iconY + BOX - xPad);
+                        slotX + BOX - xPad, iconY + BOX - xPad);
                 g2.drawLine(slotX + BOX - xPad, iconY + xPad,
-                            slotX + xPad, iconY + BOX - xPad);
+                        slotX + xPad, iconY + BOX - xPad);
             }
 
             // ── Item name label (above slot) ──────────────────────────────────
             String label = has ? def.itemName : "— empty —";
-            Color  labelColor = has
+            Color labelColor = has
                     ? new Color(def.borderFull.getRed(), def.borderFull.getGreen(),
-                                def.borderFull.getBlue(), act ? 230 : 180)
+                            def.borderFull.getBlue(), act ? 230 : 180)
                     : new Color(90, 90, 95, 160);
             g2.setFont(new Font("SansSerif", Font.BOLD, 9));
             FontMetrics lfm = g2.getFontMetrics();
@@ -757,20 +764,20 @@ public class GameRenderer {
             g2.drawString(label, slotX + (BOX - lw) / 2, iconY - 3);
 
             // ── Keybind badge (below slot) ────────────────────────────────────
-            //   Pill-shaped background + key character
-            String key    = def.key;
+            // Pill-shaped background + key character
+            String key = def.key;
             g2.setFont(new Font("SansSerif", Font.BOLD, 10));
             FontMetrics kfm = g2.getFontMetrics();
-            int kw        = kfm.stringWidth(key);
-            int pillW     = Math.max(kw + 10, 20);
-            int pillH     = 13;
-            int pillX     = slotX + (BOX - pillW) / 2;
-            int pillY     = iconY + BOX + 3;
+            int kw = kfm.stringWidth(key);
+            int pillW = Math.max(kw + 10, 20);
+            int pillH = 13;
+            int pillX = slotX + (BOX - pillW) / 2;
+            int pillY = iconY + BOX + 3;
 
             // Pill background
             Color pillBg = act
                     ? new Color(def.borderFull.getRed(), def.borderFull.getGreen(),
-                                def.borderFull.getBlue(), 60 + (int)(50 * pulse))
+                            def.borderFull.getBlue(), 60 + (int) (50 * invPulse))
                     : new Color(40, 40, 45, 180);
             g2.setColor(pillBg);
             g2.fillRoundRect(pillX, pillY, pillW, pillH, pillH, pillH);
@@ -778,7 +785,7 @@ public class GameRenderer {
             // Pill border
             g2.setColor(act
                     ? new Color(def.borderFull.getRed(), def.borderFull.getGreen(),
-                                def.borderFull.getBlue(), 160)
+                            def.borderFull.getBlue(), 160)
                     : new Color(90, 90, 100, 140));
             g2.setStroke(new BasicStroke(1f));
             g2.drawRoundRect(pillX, pillY, pillW, pillH, pillH, pillH);
@@ -786,7 +793,7 @@ public class GameRenderer {
             // Key character
             Color keyColor = act
                     ? new Color(def.borderFull.getRed(), def.borderFull.getGreen(),
-                                def.borderFull.getBlue(), 230)
+                            def.borderFull.getBlue(), 230)
                     : (has ? new Color(200, 200, 210, 210) : new Color(100, 100, 108, 150));
             g2.setColor(keyColor);
             g2.drawString(key,
@@ -799,7 +806,7 @@ public class GameRenderer {
                 g2.setFont(new Font("SansSerif", Font.BOLD, 8));
                 FontMetrics afm = g2.getFontMetrics();
                 int aw = afm.stringWidth(actLabel);
-                int actAlpha = 140 + (int)(115 * pulse);
+                int actAlpha = 140 + (int) (115 * invPulse);
                 g2.setColor(new Color(255, 220, 80, actAlpha));
                 g2.drawString(actLabel, slotX + (BOX - aw) / 2, iconY + BOX + 3 + pillH + afm.getAscent() + 1);
             }
@@ -813,15 +820,15 @@ public class GameRenderer {
 
     private void drawMap(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
-        boolean[][] visible    = levelManager.getVisible();
-        float[][]   lightLevel = levelManager.getLightLevel();
-        List<Smoke> smokes     = levelManager.getSmokes();
+        boolean[][] visible = levelManager.getVisible();
+        float[][] lightLevel = levelManager.getLightLevel();
+        List<Smoke> smokes = levelManager.getSmokes();
 
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
-                Tile tile  = levelManager.getMap().getTile(x, y);
-                int drawX  = x * Constants.TILE_SIZE;
-                int drawY  = y * Constants.TILE_SIZE;
+                Tile tile = levelManager.getMap().getTile(x, y);
+                int drawX = x * Constants.TILE_SIZE;
+                int drawY = y * Constants.TILE_SIZE;
                 switch (tile) {
                     case WALL:
                         if (AssetLoader.get().wall != null)
@@ -926,7 +933,8 @@ public class GameRenderer {
         for (unseen.game.StickyTrap trap : levelManager.getTraps()) {
             int tx = trap.getX();
             int ty = trap.getY();
-            if (!visible[ty][tx]) continue;
+            if (!visible[ty][tx])
+                continue;
             int drawX = tx * ts;
             int drawY = ty * ts;
             int pad = ts / 5;
@@ -1004,7 +1012,8 @@ public class GameRenderer {
         for (Enemy e : levelManager.getEnemies()) {
             int ex = e.getX();
             int ey = e.getY();
-            if (!visible[ey][ex]) continue;
+            if (!visible[ey][ex])
+                continue;
 
             java.awt.Image img = e.getEnemyImage();
             if (img != null) {
@@ -1026,7 +1035,8 @@ public class GameRenderer {
                     int centerX = ex * tileSize + tileSize / 2;
                     int badgeX = centerX - size / 2;
                     int badgeY = ey * tileSize - (size / 2);
-                    if (badgeY < 2) badgeY = 2;
+                    if (badgeY < 2)
+                        badgeY = 2;
 
                     g2.setColor(new Color(200, 40, 40, 220));
                     g2.fillOval(badgeX, badgeY, size, size);
@@ -1085,7 +1095,8 @@ public class GameRenderer {
         for (int i = 1; i <= 5; i++) {
             int tx = px + dx * i;
             int ty = py + dy * i;
-            if (tx < 0 || tx >= Constants.GRID_WIDTH || ty < 0 || ty >= Constants.GRID_HEIGHT) break;
+            if (tx < 0 || tx >= Constants.GRID_WIDTH || ty < 0 || ty >= Constants.GRID_HEIGHT)
+                break;
             if (map.getTile(tx, ty) == unseen.map.Tile.WALL) {
                 g2.setColor(new Color(200, 50, 50, 120));
                 g2.fillRect(tx * ts, ty * ts, ts, ts);
@@ -1119,10 +1130,10 @@ public class GameRenderer {
 
         int startCx = px * ts + ts / 2;
         int startCy = py * ts + ts / 2;
-        int endCx   = startCx + dx * 5 * ts;
-        int endCy   = startCy + dy * 5 * ts;
+        int endCx = startCx + dx * 5 * ts;
+        int endCy = startCy + dy * 5 * ts;
         g2.setColor(hitEnemy ? new Color(255, 80, 80, 160) : new Color(180, 240, 255, 120));
-        float[] dash = {4f, 4f};
+        float[] dash = { 4f, 4f };
         g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1f, dash, 0f));
         g2.drawLine(startCx, startCy, endCx, endCy);
 
@@ -1141,14 +1152,16 @@ public class GameRenderer {
 
     private void drawFlares(Graphics g) {
         List<ActiveFlare> flares = levelManager.getFlares();
-        if (flares.isEmpty()) return;
+        if (flares.isEmpty())
+            return;
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         boolean[][] visible = levelManager.getVisible();
         long now = System.currentTimeMillis();
         int ts = Constants.TILE_SIZE;
         for (ActiveFlare f : flares) {
-            if (!visible[f.getY()][f.getX()]) continue;
+            if (!visible[f.getY()][f.getX()])
+                continue;
             int cx = f.getX() * ts + ts / 2;
             int cy = f.getY() * ts + ts / 2;
 
@@ -1156,7 +1169,8 @@ public class GameRenderer {
             int frame = (int) (animCycle * 8);
 
             int alpha = 40;
-            if (frame >= 2 && frame <= 4) alpha = 60;
+            if (frame >= 2 && frame <= 4)
+                alpha = 60;
             int auraR = (int) (ts * 1.5f + (ts * 0.2f * (frame == 3 || frame == 4 ? 1.0 : 0.0)));
             g2.setColor(new Color(255, 255, 100, alpha));
             g2.fillOval(cx - auraR, cy - auraR, auraR * 2, auraR * 2);
@@ -1169,14 +1183,25 @@ public class GameRenderer {
             double r = 0, innerCore = 0;
             if (frame == 0 || frame == 7) {
                 r = ts * 0.1;
-                star.moveTo(cx - r, cy - r); star.lineTo(cx + r, cy - r);
-                star.lineTo(cx + r, cy + r); star.lineTo(cx - r, cy + r);
+                star.moveTo(cx - r, cy - r);
+                star.lineTo(cx + r, cy - r);
+                star.lineTo(cx + r, cy + r);
+                star.lineTo(cx - r, cy + r);
                 star.closePath();
             } else {
-                if      (frame == 1 || frame == 6) { r = ts * 0.2; innerCore = r * 0.15; }
-                else if (frame == 2 || frame == 5) { r = ts * 0.4; innerCore = r * 0.15; }
-                else if (frame == 3)               { r = ts * 0.6; innerCore = r * 0.15; }
-                else if (frame == 4)               { r = ts * 0.4; innerCore = r * 0.15; }
+                if (frame == 1 || frame == 6) {
+                    r = ts * 0.2;
+                    innerCore = r * 0.15;
+                } else if (frame == 2 || frame == 5) {
+                    r = ts * 0.4;
+                    innerCore = r * 0.15;
+                } else if (frame == 3) {
+                    r = ts * 0.6;
+                    innerCore = r * 0.15;
+                } else if (frame == 4) {
+                    r = ts * 0.4;
+                    innerCore = r * 0.15;
+                }
                 star.moveTo(cx, cy - r);
                 star.quadTo(cx + innerCore, cy - innerCore, cx + r, cy);
                 star.quadTo(cx + innerCore, cy + innerCore, cx, cy + r);
@@ -1188,10 +1213,18 @@ public class GameRenderer {
             g2.fill(star);
 
             if (frame >= 4 && frame <= 6) {
-                float partDist; int pSize;
-                if      (frame == 4) { partDist = ts * 0.45f; pSize = 3; }
-                else if (frame == 5) { partDist = ts * 0.65f; pSize = 2; }
-                else                 { partDist = ts * 0.8f;  pSize = 1; }
+                float partDist;
+                int pSize;
+                if (frame == 4) {
+                    partDist = ts * 0.45f;
+                    pSize = 3;
+                } else if (frame == 5) {
+                    partDist = ts * 0.65f;
+                    pSize = 2;
+                } else {
+                    partDist = ts * 0.8f;
+                    pSize = 1;
+                }
                 g2.fillOval(cx - (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2);
                 g2.fillOval(cx + (int) partDist - pSize, cy - (int) partDist - pSize, pSize * 2, pSize * 2);
                 g2.fillOval(cx - (int) partDist - pSize, cy + (int) partDist - pSize, pSize * 2, pSize * 2);
@@ -1202,7 +1235,8 @@ public class GameRenderer {
 
     private void drawNoiseFlashes(Graphics g) {
         List<FlashEffect> noiseFlashes = levelManager.getNoiseFlashes();
-        if (noiseFlashes.isEmpty()) return;
+        if (noiseFlashes.isEmpty())
+            return;
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         java.awt.Stroke saved = g2.getStroke();
@@ -1230,7 +1264,8 @@ public class GameRenderer {
 
     private void drawShurikenProjectiles(Graphics g) {
         java.util.List<ShurikenProjectile> projs = panel.getShurikenProjectiles();
-        if (projs.isEmpty()) return;
+        if (projs.isEmpty())
+            return;
 
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -1250,10 +1285,10 @@ public class GameRenderer {
                 continue;
             }
 
-            float[] pos     = proj.getPixelPos();
-            float   cx      = pos[0];
-            float   cy      = pos[1];
-            double  angleDeg = proj.getAngleDeg();
+            float[] pos = proj.getPixelPos();
+            float cx = pos[0];
+            float cy = pos[1];
+            double angleDeg = proj.getAngleDeg();
 
             // ── Trail: 4 ghost copies stepping back along the direction ─────
             int tdx = proj.getDx();
@@ -1263,7 +1298,7 @@ public class GameRenderer {
             for (int ghost = 4; ghost >= 1; ghost--) {
                 float gx = cx - tdx * stepPx * ghost;
                 float gy = cy - tdy * stepPx * ghost;
-                int   alpha = (int) (28 * (5 - ghost)); // 28 → 112, fades to tip
+                int alpha = (int) (28 * (5 - ghost)); // 28 → 112, fades to tip
 
                 java.awt.geom.AffineTransform at = new java.awt.geom.AffineTransform();
                 at.translate(gx - spriteSize / 2.0, gy - spriteSize / 2.0);
@@ -1282,7 +1317,7 @@ public class GameRenderer {
                 } else {
                     // Fallback: draw a small star shape
                     g2.setColor(new Color(180, 230, 255, alpha));
-                    g2.fillOval((int)(gx - spriteSize/2f), (int)(gy - spriteSize/2f),
+                    g2.fillOval((int) (gx - spriteSize / 2f), (int) (gy - spriteSize / 2f),
                             spriteSize, spriteSize);
                 }
                 g2.setComposite(savedComp);
@@ -1349,18 +1384,22 @@ public class GameRenderer {
 
         if (validTile) {
             if (panel.isTargetingFlare()) {
-                g2.setColor(new Color(255, 240, 100, 130)); g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(255, 240, 100, 130));
+                g2.fillRect(tx, ty, ts, ts);
                 g2.setColor(new Color(255, 255, 150, 220));
-                g2.setStroke(new BasicStroke(2.5f)); g2.drawRect(tx, ty, ts, ts);
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRect(tx, ty, ts, ts);
                 int cx = tx + ts / 2, cy = ty + ts / 2;
                 g2.setColor(new Color(255, 255, 150, 200));
                 g2.setStroke(new BasicStroke(1.5f));
                 g2.drawLine(cx - ts / 2, cy, cx + ts / 2, cy);
                 g2.drawLine(cx, cy - ts / 2, cx, cy + ts / 2);
             } else {
-                g2.setColor(new Color(255, 200, 50, 130)); g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(255, 200, 50, 130));
+                g2.fillRect(tx, ty, ts, ts);
                 g2.setColor(new Color(255, 220, 80, 220));
-                g2.setStroke(new BasicStroke(2.5f)); g2.drawRect(tx, ty, ts, ts);
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRect(tx, ty, ts, ts);
                 int cx = tx + ts / 2, cy = ty + ts / 2;
                 g2.setColor(new Color(255, 220, 80, 200));
                 g2.setStroke(new BasicStroke(1.5f));
@@ -1369,9 +1408,11 @@ public class GameRenderer {
             }
         } else if (mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT) {
-            g2.setColor(new Color(200, 50, 50, 100)); g2.fillRect(tx, ty, ts, ts);
+            g2.setColor(new Color(200, 50, 50, 100));
+            g2.fillRect(tx, ty, ts, ts);
             g2.setColor(new Color(200, 80, 80, 180));
-            g2.setStroke(new BasicStroke(2f)); g2.drawRect(tx, ty, ts, ts);
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawRect(tx, ty, ts, ts);
         }
 
         String actionName = panel.isTargetingFlare() ? "flare" : "noise";

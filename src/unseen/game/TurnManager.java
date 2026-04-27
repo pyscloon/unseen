@@ -56,7 +56,21 @@ public class TurnManager {
 
                 if (player.takeDamage()) {
                     wasHit = true;
-                    player.knockback(enemy.getX(), enemy.getY(), map);
+                    int ex = enemy.getX();
+                    int ey = enemy.getY();
+                    int ax = ex;
+                    int ay = ey;
+
+                    // If enemy and player are on same tile, infer push from enemy direction
+                    if (ex == player.getX() && ey == player.getY()) {
+                        switch (enemy.getDirection()) {
+                            case UP:    ay++; break;
+                            case DOWN:  ay--; break;
+                            case LEFT:  ax++; break;
+                            case RIGHT: ax--; break;
+                        }
+                    }
+                    player.knockback(ax, ay, map);
 
                     if (player.isDead()) {
                         // Count kills before returning

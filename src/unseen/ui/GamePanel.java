@@ -101,17 +101,76 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         loadAndPlayBackgroundSound();
     }
 
+    private final String[] playlist = {"unseen/assets/sound/caves1.wav", "unseen/assets/sound/caves2.wav"};
+    private int currentTrackIndex = 0;
+    private boolean musicEnabled = true;
+
+    public boolean isMusicEnabled() { return musicEnabled; }
+    public void toggleMusic() {
+        musicEnabled = !musicEnabled;
+        if (!musicEnabled) {
+            if (backgroundClip != null) backgroundClip.stop();
+        } else {
+            if (backgroundClip != null) {
+                backgroundClip.start();
+            } else {
+                loadAndPlayBackgroundSound();
+            }
+        }
+    }
+
     private void loadAndPlayBackgroundSound() {
+        if (backgroundClip != null) {
+            backgroundClip.stop();
+            backgroundClip.close();
+        }
+
         try {
-            java.net.URL soundURL = getClass().getClassLoader().getResource("assets/background.wav");
+            String path = playlist[currentTrackIndex];
+            java.net.URL soundURL = getClass().getClassLoader().getResource(path);
+            
+            if (soundURL == null) {
+                // Try the other one if this one is missing (e.g. still downloading)
+                currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+                path = playlist[currentTrackIndex];
+                soundURL = getClass().getClassLoader().getResource(path);
+            }
+
             if (soundURL != null) {
                 javax.sound.sampled.AudioInputStream audioIn =
                         javax.sound.sampled.AudioSystem.getAudioInputStream(soundURL);
                 backgroundClip = javax.sound.sampled.AudioSystem.getClip();
                 backgroundClip.open(audioIn);
-                backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+                
+                // Add listener to alternate when finished
+                backgroundClip.addLineListener(event -> {
+                    if (event.getType() == javax.sound.sampled.LineEvent.Type.STOP) {
+                        // Check if it reached the end (not stopped manually)
+                        if (backgroundClip != null && backgroundClip.getFramePosition() >= backgroundClip.getFrameLength()) {
+                            currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+                            // Need to run this on a separate thread or invoke later because 
+                            // we're currently in a callback that might hold locks.
+                            SwingUtilities.invokeLater(this::loadAndPlayBackgroundSound);
+                        }
+                    }
+                });
+                
+                // Apply volume (50%)
+                if (backgroundClip.isControlSupported(javax.sound.sampled.FloatControl.Type.MASTER_GAIN)) {
+                    javax.sound.sampled.FloatControl gainControl = 
+                        (javax.sound.sampled.FloatControl) backgroundClip.getControl(javax.sound.sampled.FloatControl.Type.MASTER_GAIN);
+                    float dB = (float) (Math.log(0.5) / Math.log(10.0) * 20.0);
+                    gainControl.setValue(dB);
+                }
+
+                if (musicEnabled) {
+                    backgroundClip.start();
+                }
             }
-        } catch (Exception e) { backgroundClip = null; }
+        } catch (Exception e) {
+            System.err.println("Audio Error: Could not play " + playlist[currentTrackIndex] + ". Details: " + e.getMessage());
+            backgroundClip = null;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -155,7 +214,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         state = GameState.MENU;
         if (backgroundClip != null) {
             backgroundClip.setFramePosition(0);
-            backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+            backgroundClip.start();
         }
         requestFocusInWindow();
         repaint();
@@ -170,7 +229,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         requestFocusInWindow();
         if (backgroundClip != null) {
             backgroundClip.setFramePosition(0);
-            backgroundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+            backgroundClip.start();
         }
         repaint();
     }
@@ -270,7 +329,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             }
         }
         if (nm == null) { targetingNoiseMaker = false; repaint(); return; }
-
+        unseen.utils.SoundManager.get().play("noisemaker");
         nm.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
         inv.remove(idx);
         levelManager.addNoiseFlash(gx, gy);
@@ -294,6 +353,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
         if (flareItem == null) { targetingFlare = false; repaint(); return; }
 
+        unseen.utils.SoundManager.get().play("lantern");
         flareItem.useAt(levelManager.getPlayer(), levelManager.getMap(), gx, gy);
         inv.remove(idx);
         targetingFlare = false;
@@ -313,6 +373,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         int px = levelManager.getPlayer().getX();
         int py = levelManager.getPlayer().getY();
+        unseen.utils.SoundManager.get().play("shuriken");
         shuriken.fireInDirection(px, py, shurikenDx, shurikenDy,
                 levelManager.getMap(), levelManager.getEnemies());
         inv.remove(idx);
@@ -370,6 +431,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         levelManager.getPlayer().addItem(it);
         levelManager.getMap().removeItem(px, py);
+        unseen.utils.SoundManager.get().play("item_pickup");
         showToast("Picked up " + it.getClass().getSimpleName(), new Color(120, 255, 160));
 
         processTurnAndApply();

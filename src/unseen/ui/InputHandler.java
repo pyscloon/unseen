@@ -61,14 +61,23 @@ public class InputHandler extends KeyAdapter {
 
         // Retry after death
         if (panel.getGameState() == GameState.LOSE) {
-            if (key == KeyEvent.VK_R) { panel.restartGame(); return; }
-            if (key == KeyEvent.VK_M) { panel.returnToMenu(); return; }
+            if (key == KeyEvent.VK_R) {
+                panel.restartGame();
+                return;
+            }
+            if (key == KeyEvent.VK_M) {
+                panel.returnToMenu();
+                return;
+            }
             return;
         }
 
         // Win screen — next floor or back to menu
         if (panel.getGameState() == GameState.WIN) {
-            if (key == KeyEvent.VK_M) { panel.returnToMenu(); return; }
+            if (key == KeyEvent.VK_M) {
+                panel.returnToMenu();
+                return;
+            }
             panel.nextFloor();
             return;
         }
@@ -92,27 +101,54 @@ public class InputHandler extends KeyAdapter {
             } else if (panel.getGameState() == GameState.PLAYING) {
                 panel.pauseGame();
             } else if (panel.getGameState() == GameState.PAUSED) {
-                panel.showQuitConfirm();   // second ESC -> "Return to menu?" prompt
+                panel.showQuitConfirm(); // second ESC -> "Return to menu?" prompt
             }
             return;
         }
 
-        if (key == KeyEvent.VK_P) {
-            if (panel.getGameState() == GameState.PLAYING)     panel.pauseGame();
-            else if (panel.getGameState() == GameState.PAUSED) panel.resumeGame();
+        if (key == KeyEvent.VK_M) {
+            panel.toggleMusic();
             return;
         }
 
-        if (panel.getGameState() != GameState.PLAYING) return;
+        if (key == KeyEvent.VK_N) {
+            unseen.utils.SoundManager.get().setSfxEnabled(!unseen.utils.SoundManager.get().isSfxEnabled());
+            return;
+        }
+
+        if (key == KeyEvent.VK_P) {
+            if (panel.getGameState() == GameState.PLAYING)
+                panel.pauseGame();
+            else if (panel.getGameState() == GameState.PAUSED)
+                panel.resumeGame();
+            return;
+        }
+
+        if (panel.getGameState() != GameState.PLAYING)
+            return;
 
         if (panel.isTargetingShuriken()) {
             switch (key) {
-                case KeyEvent.VK_W: case KeyEvent.VK_UP:    panel.setShurikenDirection(0, -1); return;
-                case KeyEvent.VK_S: case KeyEvent.VK_DOWN:  panel.setShurikenDirection(0,  1); return;
-                case KeyEvent.VK_A: case KeyEvent.VK_LEFT:  panel.setShurikenDirection(-1, 0); return;
-                case KeyEvent.VK_D: case KeyEvent.VK_RIGHT: panel.setShurikenDirection( 1, 0); return;
+                case KeyEvent.VK_W:
+                case KeyEvent.VK_UP:
+                    panel.setShurikenDirection(0, -1);
+                    return;
+                case KeyEvent.VK_S:
+                case KeyEvent.VK_DOWN:
+                    panel.setShurikenDirection(0, 1);
+                    return;
+                case KeyEvent.VK_A:
+                case KeyEvent.VK_LEFT:
+                    panel.setShurikenDirection(-1, 0);
+                    return;
+                case KeyEvent.VK_D:
+                case KeyEvent.VK_RIGHT:
+                    panel.setShurikenDirection(1, 0);
+                    return;
                 case KeyEvent.VK_ENTER:
-                case KeyEvent.VK_SPACE: panel.confirmShurikenThrow(); return;
+                case KeyEvent.VK_SPACE:
+                    panel.confirmShurikenThrow();
+                    return;
             }
             panel.cancelTargeting();
             return;
@@ -124,13 +160,14 @@ public class InputHandler extends KeyAdapter {
         }
 
         Player player = panel.getPlayer();
-        Map map       = panel.getMap();
+        Map map = panel.getMap();
 
         // ── Item keys ────────────────────────────────────────────────────────
 
         if (key == KeyEvent.VK_1) {
             boolean hasNoise = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
-            if (hasNoise) panel.enterNoiseMakerTargeting();
+            if (hasNoise)
+                panel.enterNoiseMakerTargeting();
             return;
         }
 
@@ -138,7 +175,10 @@ public class InputHandler extends KeyAdapter {
             List<Item> inv = player.getInventory();
             int idx = -1;
             for (int i = 0; i < inv.size(); i++) {
-                if (inv.get(i) instanceof SmokeBomb) { idx = i; break; }
+                if (inv.get(i) instanceof SmokeBomb) {
+                    idx = i;
+                    break;
+                }
             }
             if (idx >= 0) {
                 player.useItem(idx, map, panel.getEnemies());
@@ -149,19 +189,22 @@ public class InputHandler extends KeyAdapter {
 
         if (key == KeyEvent.VK_3) {
             boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.Flare);
-            if (hasFlare) panel.enterFlareTargeting();
+            if (hasFlare)
+                panel.enterFlareTargeting();
             return;
         }
 
         if (key == KeyEvent.VK_4) {
             boolean hasShuriken = player.getInventory().stream().anyMatch(i -> i instanceof Shuriken);
-            if (hasShuriken) panel.enterShurikenTargeting();
+            if (hasShuriken)
+                panel.enterShurikenTargeting();
             return;
         }
 
         if (key == KeyEvent.VK_E) {
             boolean picked = panel.attemptPickup();
-            if (!picked) panel.showToast("Nothing to pick up here", new java.awt.Color(160, 160, 170));
+            if (!picked)
+                panel.showToast("Nothing to pick up here", new java.awt.Color(160, 160, 170));
             return;
         }
 
@@ -187,22 +230,47 @@ public class InputHandler extends KeyAdapter {
         boolean moved = false;
 
         switch (key) {
-            case KeyEvent.VK_W: case KeyEvent.VK_UP:    y--;    moved = true; break;
-            case KeyEvent.VK_S: case KeyEvent.VK_DOWN:  y++;    moved = true; break;
-            case KeyEvent.VK_A: case KeyEvent.VK_LEFT:
-                if (x > 0 && map.isPassable(x - 1, y)) { x--; moved = true; }
-                else { player.setFacing(Player.Facing.LEFT); panel.repaint(); return; }
+            case KeyEvent.VK_W:
+            case KeyEvent.VK_UP:
+                y--;
+                moved = true;
                 break;
-            case KeyEvent.VK_D: case KeyEvent.VK_RIGHT:
-                if (x < unseen.utils.Constants.GRID_WIDTH - 1 && map.isPassable(x + 1, y)) { x++; moved = true; }
-                else { player.setFacing(Player.Facing.RIGHT); panel.repaint(); return; }
+            case KeyEvent.VK_S:
+            case KeyEvent.VK_DOWN:
+                y++;
+                moved = true;
                 break;
-            default: return;
+            case KeyEvent.VK_A:
+            case KeyEvent.VK_LEFT:
+                if (x > 0 && map.isPassable(x - 1, y)) {
+                    x--;
+                    moved = true;
+                } else {
+                    player.setFacing(Player.Facing.LEFT);
+                    panel.repaint();
+                    return;
+                }
+                break;
+            case KeyEvent.VK_D:
+            case KeyEvent.VK_RIGHT:
+                if (x < unseen.utils.Constants.GRID_WIDTH - 1 && map.isPassable(x + 1, y)) {
+                    x++;
+                    moved = true;
+                } else {
+                    player.setFacing(Player.Facing.RIGHT);
+                    panel.repaint();
+                    return;
+                }
+                break;
+            default:
+                return;
         }
 
         if (moved && map.isPassable(x, y)) {
-            if (x < player.getX())      player.setFacing(Player.Facing.LEFT);
-            else if (x > player.getX()) player.setFacing(Player.Facing.RIGHT);
+            if (x < player.getX())
+                player.setFacing(Player.Facing.LEFT);
+            else if (x > player.getX())
+                player.setFacing(Player.Facing.RIGHT);
             player.setPosition(x, y);
 
             final int movedX = x, movedY = y;
@@ -214,6 +282,7 @@ public class InputHandler extends KeyAdapter {
                 return false;
             });
 
+            unseen.utils.SoundManager.get().playRandom(0.6f, "footstep1", "footstep2");
             panel.processTurnAndApply();
         }
     }

@@ -67,6 +67,20 @@
             int dx = Integer.signum(x - attackerX);
             int dy = Integer.signum(y - attackerY);
 
+            // Handle same-tile collision (virtual direction didn't specify or wasn't provided)
+            if (dx == 0 && dy == 0) {
+                int[][] fallbackDirs = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+                for (int[] d : fallbackDirs) {
+                    int nx = x + d[0];
+                    int ny = y + d[1];
+                    if (inBounds(nx, ny) && map.isPassable(nx, ny)) {
+                        setPosition(nx, ny);
+                        return;
+                    }
+                }
+                return; // Completely cornered
+            }
+
             // Try direct push-back first
             if (dx != 0 || dy != 0) {
                 int nx = x + dx;

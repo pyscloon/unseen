@@ -12,6 +12,7 @@ public class SmokeBomb extends Item {
     public void use(Player player, Map map, List<Enemy> enemies) {
         SmokeSpawner spawner = player.getSmokeSpawner();
         if (spawner != null) {
+            unseen.utils.SoundManager.get().play("smoke");
             spawner.spawnSmoke(player.getX(), player.getY());
         }
     }
