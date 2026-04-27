@@ -71,8 +71,13 @@ public class LevelManager implements SmokeSpawner {
     private int phantomX = -1, phantomY = -1;
     private int phantomTurns = 0;
 
-    public int getPhantomX() { return phantomX; }
-    public int getPhantomY() { return phantomY; }
+    public int getPhantomX() {
+        return phantomX;
+    }
+
+    public int getPhantomY() {
+        return phantomY;
+    }
 
     private List<Smoke> smokes = new ArrayList<>();
     private List<FlashEffect> noiseFlashes = new ArrayList<>();
@@ -149,7 +154,7 @@ public class LevelManager implements SmokeSpawner {
                 highTensionMode = !highTensionMode;
                 tensionTimer = 15 + new Random().nextInt(15);
                 if (highTensionMode) {
-                    unseen.utils.SoundManager.get().play("bone_break", 0.4f);
+                    unseen.utils.SoundManager.get().play("heartbeat", 0.4f);
                 }
             }
 
@@ -187,7 +192,7 @@ public class LevelManager implements SmokeSpawner {
                     float vol = 0.1f + (terrorLevel * 0.02f);
                     // Added 'breathing' back to the mix
                     unseen.utils.SoundManager.get().playRandom(vol, "laugh", "scream", "iseeyou", "breathing",
-                            "iseeyou");
+                            "suspense", "no_more");
                 }
             }
 
@@ -284,7 +289,7 @@ public class LevelManager implements SmokeSpawner {
                                 if (Math.random() < 0.6) {
                                     unseen.utils.SoundManager.get().play("iseeyou", 0.5f);
                                 } else {
-                                    unseen.utils.SoundManager.get().play("bone_break", 0.4f);
+                                    unseen.utils.SoundManager.get().play("suspense", 0.4f);
                                 }
                             }
                         }
@@ -315,18 +320,22 @@ public class LevelManager implements SmokeSpawner {
                         }
                     }
                 }
-            } else if (panel.isHorrorMode() && Math.random() < 0.015) { // Increased to 1.5% per turn
-                Random r = new Random();
-                for (int i = 0; i < 30; i++) {
-                    int tx = r.nextInt(Constants.GRID_WIDTH);
-                    int ty = r.nextInt(Constants.GRID_HEIGHT);
-                    double d = Math.hypot(tx - player.getX(), ty - player.getY());
-                    // Spawn IN VISION but at a distance
-                    if (map.getTile(tx, ty) == Tile.FLOOR && visible[ty][tx] && d > 3 && d < 6) {
-                        phantomX = tx;
-                        phantomY = ty;
-                        phantomTurns = 2; // Lasts 2 turns
-                        break;
+            } else if (panel.isHorrorMode()) {
+                // Higher chance in horror mode
+                double spawnChance = 0.05;
+                if (Math.random() < spawnChance) {
+                    Random r = new Random();
+                    for (int i = 0; i < 100; i++) { // More attempts to find a valid spot
+                        int tx = r.nextInt(Constants.GRID_WIDTH);
+                        int ty = r.nextInt(Constants.GRID_HEIGHT);
+                        double d = Math.hypot(tx - player.getX(), ty - player.getY());
+                        // Spawn IN VISION but at a distance
+                        if (map.getTile(tx, ty) == Tile.FLOOR && visible[ty][tx] && d > 4 && d < 7) {
+                            phantomX = tx;
+                            phantomY = ty;
+                            phantomTurns = 2; // Lasts 2 turns
+                            break;
+                        }
                     }
                 }
             }

@@ -70,7 +70,7 @@ public class InputHandler extends KeyAdapter {
                 panel.restartGame();
                 return;
             }
-            if (key == KeyEvent.VK_M) {
+            if (key == KeyEvent.VK_ESCAPE) {
                 panel.returnToMenu();
                 return;
             }
@@ -79,7 +79,7 @@ public class InputHandler extends KeyAdapter {
 
         // Win screen — next floor or back to menu
         if (panel.getGameState() == GameState.WIN) {
-            if (key == KeyEvent.VK_M) {
+            if (key == KeyEvent.VK_ESCAPE) {
                 panel.returnToMenu();
                 return;
             }
@@ -89,24 +89,33 @@ public class InputHandler extends KeyAdapter {
 
         // ── Confirm-quit overlay ────────────────────────────────────────────────
         if (panel.getGameState() == GameState.CONFIRM_QUIT) {
-            if (key == KeyEvent.VK_M) {
+            if (key == KeyEvent.VK_ESCAPE) {
                 panel.returnToMenu();
             } else {
-                // Any other key (ESC, P, space, ...) cancels back to PAUSED
+                // Any other key (M, P, space, ...) cancels back to PAUSED
                 panel.setGameState(GameState.PAUSED);
                 panel.repaint();
             }
             return;
         }
 
-        // Escape: cancel targeting -> pause -> show quit-confirm
+        // Pause state: any key to resume (except ESC/P which have toggle/menu roles)
+        if (panel.getGameState() == GameState.PAUSED) {
+            if (key == KeyEvent.VK_ESCAPE) {
+                panel.showQuitConfirm(); // ESC -> "Return to menu?" prompt
+                return;
+            } else if (key != KeyEvent.VK_P && key != KeyEvent.VK_R) {
+                panel.resumeGame();
+                return;
+            }
+        }
+
+        // Escape: cancel targeting -> pause
         if (key == KeyEvent.VK_ESCAPE) {
             if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingShuriken()) {
                 panel.cancelTargeting();
             } else if (panel.getGameState() == GameState.PLAYING) {
                 panel.pauseGame();
-            } else if (panel.getGameState() == GameState.PAUSED) {
-                panel.showQuitConfirm(); // second ESC -> "Return to menu?" prompt
             }
             return;
         }

@@ -9,7 +9,8 @@ import java.util.Map;
 
 /**
  * Singleton that manages one-shot sound effects (SFX).
- * Background music is still handled separately in GamePanel to allow looping/alternating.
+ * Background music is still handled separately in GamePanel to allow
+ * looping/alternating.
  */
 public class SoundManager {
 
@@ -22,34 +23,43 @@ public class SoundManager {
     private boolean sfxEnabled = true;
     private float globalSfxVolume = 1.0f;
 
-    public void setSfxEnabled(boolean enabled) { this.sfxEnabled = enabled; }
-    public boolean isSfxEnabled() { return sfxEnabled; }
-    public void setGlobalSfxVolume(float volume) { this.globalSfxVolume = volume; }
+    public void setSfxEnabled(boolean enabled) {
+        this.sfxEnabled = enabled;
+    }
+
+    public boolean isSfxEnabled() {
+        return sfxEnabled;
+    }
+
+    public void setGlobalSfxVolume(float volume) {
+        this.globalSfxVolume = volume;
+    }
 
     private SoundManager() {
         // Pre-load common sounds if they exist
-        load("footstep1",    "unseen/assets/sound/footstep1.wav");
-        load("footstep2",    "unseen/assets/sound/footstep2.wav");
-        load("item_pickup",  "unseen/assets/sound/item_pickup_sf.wav");
-        load("lantern",      "unseen/assets/sound/lantern_sf.wav");
-        load("noisemaker",   "unseen/assets/sound/noisemaker_sf.wav");
-        load("shuriken",     "unseen/assets/sound/shuriken_sf.wav");
-        load("smoke",        "unseen/assets/sound/smoke_sf.wav");
-        load("alert",        "unseen/assets/sound/alert.wav");
-        load("ladder",       "unseen/assets/sound/ladder.wav");
-        load("player_hit",   "unseen/assets/sound/player_hit.wav");
+        load("footstep1", "unseen/assets/sound/footstep1.wav");
+        load("footstep2", "unseen/assets/sound/footstep2.wav");
+        load("item_pickup", "unseen/assets/sound/item_pickup_sf.wav");
+        load("lantern", "unseen/assets/sound/lantern_sf.wav");
+        load("noisemaker", "unseen/assets/sound/noisemaker_sf.wav");
+        load("shuriken", "unseen/assets/sound/shuriken_sf.wav");
+        load("smoke", "unseen/assets/sound/smoke_sf.wav");
+        load("alert", "unseen/assets/sound/alert.wav");
+        load("ladder", "unseen/assets/sound/ladder.wav");
+        load("player_hit", "unseen/assets/sound/player_hit.wav");
 
         // Horror Mode Sounds
-        load("jumpscare",    "unseen/assets/sound/horror-mode/jumpscare1.wav");
-        load("laugh",        "unseen/assets/sound/horror-mode/possessed-laugh.wav");
-        load("breathing",    "unseen/assets/sound/horror-mode/heavy-breathing.wav");
-        load("no_more",      "unseen/assets/sound/horror-mode/no-more-running.wav");
-        load("bone_break",   "unseen/assets/sound/horror-mode/bone-break.wav");
-        load("scream",       "unseen/assets/sound/horror-mode/person-screaming.wav");
+        load("jumpscare", "unseen/assets/sound/horror-mode/jumpscare1.wav");
+        load("laugh", "unseen/assets/sound/horror-mode/possessed-laugh.wav");
+        load("breathing", "unseen/assets/sound/horror-mode/heavy-breathing.wav");
+        load("no_more", "unseen/assets/sound/horror-mode/no-more-running.wav");
+        load("bone_break", "unseen/assets/sound/horror-mode/bone-break.wav");
+        load("scream", "unseen/assets/sound/horror-mode/person-screaming.wav");
         load("ghostwhisper", "unseen/assets/sound/horror-mode/ghostwhisper.wav");
-        load("iseeyou",      "unseen/assets/sound/horror-mode/iseeyou.wav");
-        load("spooky_jump",  "unseen/assets/sound/horror-mode/spooky-jumpscare.wav");
-        load("heartbeat",    "unseen/assets/sound/horror-mode/heartbeat.wav");
+        load("iseeyou", "unseen/assets/sound/horror-mode/iseeyou.wav");
+        load("spooky_jump", "unseen/assets/sound/horror-mode/spooky-jumpscare.wav");
+        load("heartbeat", "unseen/assets/sound/horror-mode/heartbeat.wav");
+        load("suspense", "unseen/assets/sound/horror-mode/suspense.wav");
     }
 
     public static SoundManager get() {
@@ -60,19 +70,21 @@ public class SoundManager {
     }
 
     /**
-     * Loads a sound file into memory as a byte array to allow fast multiple playbacks.
+     * Loads a sound file into memory as a byte array to allow fast multiple
+     * playbacks.
      */
     public void load(String name, String path) {
         try {
             URL url = getClass().getClassLoader().getResource(path);
-            if (url == null) return;
+            if (url == null)
+                return;
 
             InputStream is = new BufferedInputStream(url.openStream());
             AudioInputStream ais = AudioSystem.getAudioInputStream(is);
-            
+
             AudioFormat format = ais.getFormat();
             byte[] data = ais.readAllBytes();
-            
+
             soundData.put(name, data);
             formats.put(name, format);
             ais.close();
@@ -90,17 +102,19 @@ public class SoundManager {
     }
 
     public void play(String name, float localVolume) {
-        if (!sfxEnabled) return;
-        
+        if (!sfxEnabled)
+            return;
+
         byte[] data = soundData.get(name);
         AudioFormat format = formats.get(name);
-        
-        if (data == null || format == null) return;
+
+        if (data == null || format == null)
+            return;
 
         try {
             Clip clip = AudioSystem.getClip();
             clip.open(format, data, 0, data.length);
-            
+
             // Apply volume
             if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
                 FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
@@ -115,7 +129,7 @@ public class SoundManager {
                     clip.close();
                 }
             });
-            
+
             clip.start();
         } catch (Exception e) {
             System.err.println("SoundManager Error: Could not play " + name);
@@ -126,7 +140,8 @@ public class SoundManager {
      * Helper to play a random sound from a list (e.g. footsteps).
      */
     public void playRandom(float volume, String... names) {
-        if (names.length == 0) return;
+        if (names.length == 0)
+            return;
         int idx = (int) (Math.random() * names.length);
         play(names[idx], volume);
     }

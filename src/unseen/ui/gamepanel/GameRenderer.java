@@ -200,7 +200,7 @@ public class GameRenderer {
             int w2 = g.getFontMetrics().stringWidth(line2);
             g.drawString(line2, cx - w2 / 2, cy + 16);
 
-            String line3 = "M  --  Return to Menu";
+            String line3 = "ESC  —  Return to Menu";
             g.setColor(new Color(180, 180, 180));
             g.setFont(new Font("SansSerif", Font.PLAIN, 16));
             int w3 = g.getFontMetrics().stringWidth(line3);
@@ -247,7 +247,7 @@ public class GameRenderer {
                 g.drawString(hs, lcx - hsw / 2, lcy - 4);
             }
 
-            String loseHint = "R -- Restart     M -- Main Menu";
+            String loseHint = "R -- Restart     ESC -- Main Menu";
             g.setColor(new Color(200, 200, 200));
             g.setFont(new Font("SansSerif", Font.PLAIN, 18));
             int lhw = g.getFontMetrics().stringWidth(loseHint);
@@ -264,7 +264,7 @@ public class GameRenderer {
             int pw = g.getFontMetrics().stringWidth(pauseText);
             g.drawString(pauseText, (panel.getWidth() - pw) / 2, panel.getHeight() / 2 - 20);
 
-            String resumeHint = "P  —  Resume";
+            String resumeHint = "Any Key  —  Resume";
             g.setFont(new Font("Arial", Font.PLAIN, 18));
             int rw = g.getFontMetrics().stringWidth(resumeHint);
             g.setColor(new Color(200, 200, 200));
@@ -315,7 +315,7 @@ public class GameRenderer {
             g2.drawLine(cardX + 30, cardY + 66, cardX + cardW - 30, cardY + 66);
 
             // Options
-            String yes = "M  —  Yes, go to menu";
+            String yes = "ESC  —  Yes, go to menu";
             String no = "Any other key  —  Stay";
             g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
             FontMetrics ofm = g2.getFontMetrics();
@@ -1284,12 +1284,13 @@ public class GameRenderer {
         int py = levelManager.getPhantomY();
         if (px != -1) {
             Player player = levelManager.getPlayer();
+            int ts = Constants.TILE_SIZE;
+            
+            java.awt.Composite saved = g2.getComposite();
+            g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.6f));
+            
             if (player.getHeroImage() != null) {
                 // Draw a desaturated/darker version of the player facing AWAY
-                java.awt.Composite saved = g2.getComposite();
-                g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.6f));
-                
-                int ts = Constants.TILE_SIZE;
                 int scaledSize = ts * 2;
                 int drawX = px * ts + (ts - scaledSize) / 2;
                 int drawY = py * ts + (ts - scaledSize) / 2;
@@ -1300,9 +1301,14 @@ public class GameRenderer {
                 } else {
                     g2.drawImage(player.getHeroImage(), drawX, drawY, scaledSize, scaledSize, null);
                 }
-                
-                g2.setComposite(saved);
+            } else {
+                // Fallback: simple dark silhouette
+                g2.setColor(new Color(0, 0, 0, 180));
+                g2.fillOval(px * ts + 8, py * ts + 4, ts - 16, ts - 8);
+                g2.fillRect(px * ts + 6, py * ts + 12, ts - 12, ts - 12);
             }
+            
+            g2.setComposite(saved);
         }
     }
 

@@ -6,7 +6,7 @@ import java.util.List;
 
 public class TutorialManager {
 
-    public enum PageType { INTRO, ITEMS, ENEMIES, CONTROLS }
+    public enum PageType { INTRO, ITEMS, ENEMIES, HORROR, CONTROLS }
 
     public static class TutorialPage {
         public final PageType type;
@@ -75,8 +75,8 @@ public class TutorialManager {
                 "2               —   Use Smoke Bomb   (instant, centred on you)",
                 "3               —   Use Flare / Lantern  (click tile to target)",
                 "4               —   Use Shuriken  (WASD to aim, Space to throw)",
-                "ESC             —   Cancel targeting  /  Pause game",
-                "P               —   Pause / Resume",
+                "ESC             —   Cancel targeting / Pause / Return to Menu",
+                "P               —   Pause / Resume (Any key also resumes)",
                 "M               —   Toggle Music",
                 "N               —   Toggle Sound Effects",
                 "R               —   Restart  (on death screen)"
@@ -142,17 +142,59 @@ public class TutorialManager {
                 "Sentry", "",
                 new Color(240, 140, 40),
                 "Stationary guard with a wide detection arc.",
-                "When it spots something suspicious it flashes a red badge",
-                "and alerts all nearby enemies simultaneously.",
-                "Sneak around it or take it out silently with a Shuriken."
+                "When it spots you, it alerts all nearby enemies.",
+                "BEWARE: It has a chance to leave its post and CHASE you!"
         ));
         // ── END ENEMIES ──
 
         pages.add(new TutorialPage(
                 PageType.ENEMIES,
                 "ENEMIES",
-                "Threat level increases with each floor.",
+                "Standard threats found on every floor.",
                 enemyRows
+        ));
+
+        pages.add(new TutorialPage(
+                PageType.HORROR,
+                "HORROR MODE",
+                "A more intense, psychological experience.",
+                "Horror Mode is toggled with 'X' in the Main Menu.",
+                "It introduces new mechanics to challenge your sanity:",
+                " ",
+                "• TOTAL DARKNESS: Lights may fail, forcing you to move blind.",
+                "• UNRELIABLE TOOLS: Your lantern may flicker or fail in the dark.",
+                "• TENSION CYCLE: High-tension pulses bring audio hallucinations.",
+                "• THE LIMIT: You cannot linger. Something hunts you after Turn 70."
+        ));
+
+        List<EntryRow> horrorRows = new ArrayList<>();
+        horrorRows.add(new EntryRow(
+                "Shadow Figure", "",
+                new Color(40, 40, 45),
+                "Manifests only in total darkness.",
+                "It watches from the edge of your vision.",
+                "If it catches your gaze... it will vanish with a scream."
+        ));
+        horrorRows.add(new EntryRow(
+                "The Stalker", "",
+                new Color(120, 20, 20),
+                "A persistent, invincible predator.",
+                "Spawns if you linger too long on a floor (Turn 70+).",
+                "It knows where you are. It cannot be killed. ESCAPE."
+        ));
+        horrorRows.add(new EntryRow(
+                "Mirror Phantom", "",
+                new Color(150, 150, 160),
+                "A psychological manifestation of your guilt.",
+                "Appears briefly in the distance, facing away.",
+                "If you approach your own reflection... it will evade you."
+        ));
+
+        pages.add(new TutorialPage(
+                PageType.HORROR,
+                "HORROR THREATS",
+                "Strictly limited to HORROR MODE (Press 'X' in Menu).",
+                horrorRows
         ));
 
         return pages;
@@ -263,6 +305,13 @@ public class TutorialManager {
             case ITEMS:
             case ENEMIES:
                 drawEntryPage(g2, page, contentX, contentY, contentW, contentMaxH);
+                break;
+            case HORROR:
+                if (page.entries != null && !page.entries.isEmpty()) {
+                    drawEntryPage(g2, page, contentX, contentY, contentW, contentMaxH);
+                } else {
+                    drawTextPage(g2, page, contentX, contentY, contentW, contentMaxH);
+                }
                 break;
         }
 
