@@ -1762,7 +1762,7 @@ public class GameRenderer {
         boolean validTile = mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT
                 && (panel.isTargetingGrapplingHook()
-                    ? levelManager.getMap().getTile(mouseGridX, mouseGridY) == Tile.WALL
+                    ? panel.isValidGrapplingHookTarget(mouseGridX, mouseGridY)
                     : levelManager.getMap().isPassable(mouseGridX, mouseGridY));
 
         int tx = mouseGridX * ts;
@@ -1816,7 +1816,7 @@ public class GameRenderer {
         String msg;
         if (panel.isTargetingGrapplingHook()) {
             msg = validTile ? "WASD aim wall  |  SPACE hook  |  Esc cancel"
-                    : "Need wall tile  |  Esc cancel";
+                    : "Need straight wall with clear path  |  Esc cancel";
         } else {
             String actionName = panel.isTargetingFlare() ? "flare" : "noise";
             msg = validTile ? "Click to throw " + actionName + "  |  Esc to cancel"

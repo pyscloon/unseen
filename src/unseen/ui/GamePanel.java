@@ -46,6 +46,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private int grappleStartX, grappleStartY;
     private int grappleEndX, grappleEndY;
     private int grappleWallX, grappleWallY;
+    private int grapplePathHits = 0;
     private boolean grappleHitWall = false;
     private unseen.items.Item grappleUsedItem = null;
 
@@ -458,6 +459,19 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         return targetingGrapplingHook;
     }
 
+    public boolean isValidGrapplingHookTarget(int gx, int gy) {
+        java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
+        for (unseen.items.Item item : inv) {
+            if (item instanceof unseen.items.GrapplingHook) {
+                unseen.items.GrapplingHook hook = (unseen.items.GrapplingHook) item;
+                return hook.isValidWallTarget(levelManager.getPlayer(), levelManager.getMap(), gx, gy)
+                        && hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(),
+                        levelManager.getEnemies(), gx, gy) != null;
+            }
+        }
+        return false;
+    }
+
     private void confirmNoiseTarget(int gx, int gy) {
         if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
             return;
@@ -544,32 +558,28 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             return;
         }
 
-        if (!hook.isWallTarget(levelManager.getMap(), gx, gy)) {
-            showToast("Must target a wall!", new Color(200, 150, 50));
+        int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
+        if (landing == null) {
+            showToast("Hook need straight wall. No wall block way. Need open land spot.", new Color(220, 120, 90));
+            repaint();
             return;
         }
 
-        // Check if useAt would succeed (landing spot check)
-        int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
-        if (landing != null) {
-            // Start animation instead of immediate move
-            unseen.utils.SoundManager.get().play("grapple", 0.8f);
-            
-            grappling = true;
-            grappleProgress = 0f;
-            grappleStartX = levelManager.getPlayer().getX();
-            grappleStartY = levelManager.getPlayer().getY();
-            grappleEndX = landing[0];
-            grappleEndY = landing[1];
-            grappleWallX = gx;
-            grappleWallY = gy;
+        unseen.utils.SoundManager.get().play("grapple", 0.8f);
+
+        grappling = true;
+        grappleProgress = 0f;
+        grappleStartX = levelManager.getPlayer().getX();
+        grappleStartY = levelManager.getPlayer().getY();
+        grappleEndX = landing[0];
+        grappleEndY = landing[1];
+        grappleWallX = gx;
+        grappleWallY = gy;
+        grapplePathHits = hook.countEnemiesInPath(levelManager.getPlayer(), levelManager.getMap(),
+                levelManager.getEnemies(), gx, gy);
             grappleHitWall = false;
-            grappleUsedItem = inv.remove(idx);
-            
-            targetingGrapplingHook = false;
-        } else {
-            showToast("No landing spot available!", new Color(200, 100, 50));
-        }
+        grappleUsedItem = inv.remove(idx);
+        targetingGrapplingHook = false;
         repaint();
     }
 
@@ -592,12 +602,40 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             // Update facing
             if (grappleEndX < grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.LEFT);
             else if (grappleEndX > grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.RIGHT);
-            
+
+            if (grapplePathHits > 0) {
+                applyDirectPlayerDamage();
+            }
+
             showToast("Grapple zip!", new Color(150, 220, 255));
-            processTurnAndApply();
+            grapplePathHits = 0;
+            if (state != GameState.LOSE) {
+                processTurnAndApply();
+            }
             requestFocusInWindow();
         }
         repaint();
+    }
+
+    private void applyDirectPlayerDamage() {
+        if (!levelManager.getPlayer().takeDamage()) {
+            return;
+        }
+
+        lastHitTime = System.currentTimeMillis();
+        if (horrorMode) {
+            unseen.utils.SoundManager.get().play("blood_splatter", 0.8f);
+        } else {
+            unseen.utils.SoundManager.get().play("player_hit");
+        }
+
+        int hp = levelManager.getPlayer().getHealth();
+        if (hp > 0) {
+            screenShake.trigger(12, 6f);
+            showToast("HIT! " + hp + " HP remaining", new Color(255, 80, 60));
+        } else {
+            setGameState(GameState.LOSE);
+        }
     }
 
     public boolean isGrappling() { return grappling; }

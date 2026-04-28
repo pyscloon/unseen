@@ -1,5 +1,6 @@
 package unseen.items;
 
+import unseen.ai.LineOfSight;
 import unseen.entities.Enemy;
 import unseen.entities.Player;
 import unseen.map.Map;
@@ -17,7 +18,7 @@ public class GrapplingHook extends Item {
     }
 
     public boolean useAt(Player player, Map map, List<Enemy> enemies, int wallX, int wallY) {
-        if (!isWallTarget(map, wallX, wallY)) {
+        if (!isValidWallTarget(player, map, wallX, wallY)) {
             return false;
         }
 
@@ -37,7 +38,7 @@ public class GrapplingHook extends Item {
     }
 
     public int[] findLandingSpot(Player player, Map map, List<Enemy> enemies, int wallX, int wallY) {
-        if (!isWallTarget(map, wallX, wallY)) {
+        if (!isValidWallTarget(player, map, wallX, wallY)) {
             return null;
         }
         return findLandingSpotInternal(player, map, enemies, wallX, wallY);
@@ -65,6 +66,23 @@ public class GrapplingHook extends Item {
                 && x < unseen.utils.Constants.GRID_WIDTH
                 && y < unseen.utils.Constants.GRID_HEIGHT
                 && map.getTile(x, y) == Tile.WALL;
+    }
+
+    public boolean isValidWallTarget(Player player, Map map, int x, int y) {
+        if (!isWallTarget(map, x, y)) {
+            return false;
+        }
+
+        boolean cardinal = player.getX() == x || player.getY() == y;
+        if (!cardinal || (player.getX() == x && player.getY() == y)) {
+            return false;
+        }
+
+        return LineOfSight.hasLineOfSight(
+                map,
+                player.getX(), player.getY(),
+                x, y,
+                unseen.utils.Constants.GRID_WIDTH + unseen.utils.Constants.GRID_HEIGHT);
     }
 
     private int[] findLandingSpotInternal(Player player, Map map, List<Enemy> enemies, int wallX, int wallY) {
