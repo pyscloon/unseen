@@ -78,14 +78,10 @@ public class TutorialManager {
                 "without being caught. There are no second chances -- if an",
                 "enemy steps onto your tile, the run is over.",
                 " ",
-<<<<<<< Updated upstream
-                "Use items, shadows, and cunning to slip past every threat."));
-=======
                 "Use items, shadows, and cunning to slip past every threat.",
                 " ",
                 "WATCH YOUR STEP: Environmental hazards like PUDDLES",
                 "can alert nearby enemies if you step on them!"));
->>>>>>> Stashed changes
 
         pages.add(new TutorialPage(
                 PageType.CONTROLS,
@@ -93,19 +89,9 @@ public class TutorialManager {
                 "Every action costs one turn. Enemies move after you.",
                 "W / A / S / D   --   Move up / left / down / right",
                 "E               --   Pick up item on current tile",
-<<<<<<< Updated upstream
-                "1               --   Use Noise Maker  (click tile to target)",
-                "2               --   Use Smoke Bomb   (instant, centred on you)",
-                "3               --   Use Flare / Lantern  (click tile to target)",
-                "4               --   Use Shuriken  (WASD to aim, Space to throw)",
-                "5               --   Use Holy Cross (Purify Floor - Horror Mode Only)",
-                "ESC             --   Cancel targeting / Pause / Return to Menu",
-                "P               --   Pause / Resume (Any key also resumes)",
-=======
                 "1-6             --   Use item in corresponding slot",
                 "ESC             --   Cancel targeting / Pause",
                 "P               --   Pause / Resume",
->>>>>>> Stashed changes
                 "M               --   Toggle Music",
                 "N               --   Toggle Sound Effects",
                 "R               --   Restart  (on death screen)"));
@@ -131,27 +117,6 @@ public class TutorialManager {
                 "lit areas than they do in the dark."));
         itemRows1.add(new EntryRow(
                 "Shuriken", "[4]",
-<<<<<<< Updated upstream
-                new Color(180, 220, 255),
-                "Press 4 to enter aim mode. Use WASD to set direction.",
-                "Press Space or Enter to throw. Travels up to 5 tiles",
-                "in a straight line and silently eliminates the first enemy hit.",
-                "Wall stops the shuriken. Only one throw per shuriken."));
-        itemRows.add(new EntryRow(
-                "Holy Cross", "[5]",
-                new Color(255, 255, 180),
-                "A sacred artifact that only functions in HORROR MODE.",
-                "Instantly purifies the floor: banishes the Stalker,",
-                "cleanses blood, and reverts atmosphere to Normal Mode.",
-                "Extremely rare. Use it when the darkness becomes too much."));
-        // -- END ITEMS --
-
-        pages.add(new TutorialPage(
-                PageType.ITEMS,
-                "ITEMS",
-                "Each item is consumed on use. Pick up more on each floor.",
-                itemRows));
-=======
                 new Color(180, 180, 190), assets.shuriken,
                 "A silent throwing weapon. Aim with WASD.",
                 "Hits the first enemy in its path, removing them",
@@ -187,7 +152,6 @@ public class TutorialManager {
                 "Enemies nearby will hear you and investigate.",
                 "Watch your step in Normal Mode."));
         pages.add(new TutorialPage(PageType.ENVIRONMENT, "ENVIRONMENT", "Interactable objects and hazards.", envRows));
->>>>>>> Stashed changes
 
         List<EntryRow> enemyRows = new ArrayList<>();
         enemyRows.add(new EntryRow(

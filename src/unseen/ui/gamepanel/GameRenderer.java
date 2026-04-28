@@ -615,12 +615,8 @@ public class GameRenderer {
         
         drawMenuOption(g2, "Q : Quit", w, optY + 114, new Color(140, 120, 90), false);
 
-<<<<<<< Updated upstream
-        String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
-=======
         // Bottom Hints
         String hint = "WASD - Move     E - Pick up     1/2/3/4/5/6 - Items";
->>>>>>> Stashed changes
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
         int hintW = g2.getFontMetrics().stringWidth(hint);
         g2.setColor(new Color(0, 0, 0, 200));
