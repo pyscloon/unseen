@@ -499,7 +499,7 @@ public class GameRenderer {
         g2.setColor(new Color(237, 192, 94, 226));
         g2.drawString(chapter, w / 2 - chapterFm.stringWidth(chapter) / 2, cardY + 42);
 
-        String title = "THE LEGEND BELOW ROOM 205";
+        String title = "THE LEGEND OF 205, THE UNSEEN";
         g2.setFont(new Font("Serif", Font.BOLD, 38));
         FontMetrics titleFm = g2.getFontMetrics();
         int titleW = titleFm.stringWidth(title);
@@ -583,7 +583,6 @@ public class GameRenderer {
 
         g2.dispose();
     }
-
 
     private Font fitIntroBodyFont(Graphics2D g2, int maxWidth, int maxHeight) {
         for (int size = 30; size >= 20; size--) {

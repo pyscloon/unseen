@@ -141,29 +141,41 @@ public class TurnManager {
             // Only every other floor (e.g. if rested on floor 1, can't rest on floor 2, must wait for floor 3+)
             boolean canRestOnThisFloor = (lastRested == -1 || (currentFloor - lastRested) >= 2);
 
-            if (!steppedOntoTile && canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
-                int campfireTurns = Math.max(0, player.getCampfireTurns()) + 1;
-                player.setCampfireTurns(campfireTurns);
+            if (!steppedOntoTile && canRestOnThisFloor) {
+                if (player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
+                    int campfireTurns = Math.max(0, player.getCampfireTurns()) + 1;
+                    player.setCampfireTurns(campfireTurns);
 
-                if (campfireTurns >= 5) {
-                    player.heal(1);
-                    player.setCampfireTurns(0);
-                    player.setLastRestedFloor(currentFloor);
-                    if (panel != null) {
-                        panel.showToast("Rested and Recovered! +1 HP", new java.awt.Color(255, 140, 40));
+                    if (campfireTurns >= 3) {
+                        player.heal(1);
+                        player.setCampfireTurns(0);
+                        player.setLastRestedFloor(currentFloor);
+                        if (panel != null) {
+                            panel.showToast("Rested and Recovered! +1 HP", new java.awt.Color(255, 140, 40));
+                        }
+                    } else {
+                        if (panel != null) {
+                            panel.showToast("Resting... (" + player.getCampfireTurns() + "/3)", new java.awt.Color(255, 180, 100));
+                        }
                     }
                 } else {
-                    if (panel != null) {
-                        panel.showToast("Resting... (" + player.getCampfireTurns() + "/5)", new java.awt.Color(255, 180, 100));
+                    if (panel != null && player.getCampfireTurns() == 0) {
+                        panel.showToast("You are already at full health.", java.awt.Color.WHITE);
+                        player.setCampfireTurns(-1); // Warned
                     }
                 }
-            } else if (!steppedOntoTile && !canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
+            } else if (!steppedOntoTile && !canRestOnThisFloor) {
                  if (panel != null && player.getCampfireTurns() == 0) {
                      panel.showToast("The fire is warm, but you've rested recently.", java.awt.Color.GRAY);
                      player.setCampfireTurns(-1); // Mark as warned for this tile stay
                  }
-            } else if (steppedOntoTile && player.getCampfireTurns() != 0) {
-                player.setCampfireTurns(0);
+            } else if (steppedOntoTile) {
+                if (player.getCampfireTurns() != 0) {
+                    player.setCampfireTurns(0);
+                }
+                if (panel != null && canRestOnThisFloor) {
+                    panel.showToast("Healing Sanctuary. Stand still to rest.", new java.awt.Color(100, 255, 100));
+                }
             }
         } else {
             // Reset turns if we leave the campfire

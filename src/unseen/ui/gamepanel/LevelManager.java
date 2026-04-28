@@ -443,9 +443,19 @@ public class LevelManager implements SmokeSpawner {
 
         PathValidator validator = new PathValidator();
 
+        // Calculate if we should allow campfires this floor
+        // Rule: Start of game (no player yet) OR hasn't rested yet OR every 2 floors after resting
+        boolean allowCampfire = true;
+        if (player != null && floorNumber > 1) {
+            int lastRested = player.getLastRestedFloor();
+            if (lastRested != -1) {
+                allowCampfire = (floorNumber - lastRested) >= 2;
+            }
+        }
+
         // Keep generating until valid
         do {
-            map = MapGenerator.generate(panel.isHorrorMode()); // also updates Constants.START_X/Y
+            map = MapGenerator.generate(panel.isHorrorMode(), allowCampfire);
             ExitPlacer.placeExit(map);
         } while (!validator.isValid(map));
 
@@ -535,21 +545,22 @@ public class LevelManager implements SmokeSpawner {
             }
         }
 
-        // Pick a flickering campfire in Horror Mode
+        // Pick a flickering light in Horror Mode
         flickerCampfireX = -1;
         flickerCampfireY = -1;
         if (panel.isHorrorMode()) {
-            List<int[]> campfires = new ArrayList<>();
+            List<int[]> lights = new ArrayList<>();
             for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
                 for (int x = 0; x < Constants.GRID_WIDTH; x++) {
-                    if (map.getTile(x, y) == unseen.map.Tile.CAMPFIRE) {
-                        campfires.add(new int[] { x, y });
+                    Tile t = map.getTile(x, y);
+                    if (t == Tile.CAMPFIRE || t == Tile.TORCH) {
+                        lights.add(new int[] { x, y });
                     }
                 }
             }
-            if (!campfires.isEmpty()) {
+            if (!lights.isEmpty()) {
                 Random frand = new Random();
-                int[] pick = campfires.get(frand.nextInt(campfires.size()));
+                int[] pick = lights.get(frand.nextInt(lights.size()));
                 flickerCampfireX = pick[0];
                 flickerCampfireY = pick[1];
             }

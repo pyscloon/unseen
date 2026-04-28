@@ -67,7 +67,7 @@ public class MapGenerator {
         }
     }
 
-    public static Map generate(boolean horrorMode) {
+    public static Map generate(boolean horrorMode, boolean allowCampfire) {
 
         Map map = new Map();
         Random rand = new Random();
@@ -155,9 +155,9 @@ public class MapGenerator {
             }
 
             if (horrorMode) {
-                map.setTile(tx, ty, Tile.CAMPFIRE);
+                map.setTile(tx, ty, allowCampfire ? Tile.CAMPFIRE : Tile.TORCH);
             } else {
-                map.setTile(tx, ty, rand.nextDouble() < 0.4 ? Tile.CAMPFIRE : Tile.TORCH);
+                map.setTile(tx, ty, allowCampfire ? Tile.CAMPFIRE : Tile.TORCH);
             }
         }
 
