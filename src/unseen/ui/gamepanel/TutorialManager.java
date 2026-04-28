@@ -11,7 +11,7 @@ public class TutorialManager {
     private final GamePanel panel;
 
     public enum PageType {
-        INTRO, ITEMS, ENEMIES, HORROR, CONTROLS
+        INTRO, ITEMS, ENVIRONMENT, ENEMIES, HORROR, CONTROLS
     }
 
     public static class TutorialPage {
@@ -81,7 +81,7 @@ public class TutorialManager {
                 "Use items, shadows, and cunning to slip past every threat.",
                 " ",
                 "WATCH YOUR STEP: Environmental hazards like PUDDLES",
-                "can alert nearby enemies if you step on them!"));
+                "can alert nearby enemies if you step on them! (Normal Mode)"));
 
         pages.add(new TutorialPage(
                 PageType.CONTROLS,
@@ -89,9 +89,14 @@ public class TutorialManager {
                 "Every action costs one turn. Enemies move after you.",
                 "W / A / S / D   --   Move up / left / down / right",
                 "E               --   Pick up item on current tile",
-                "1-6             --   Use item in corresponding slot",
-                "ESC             --   Cancel targeting / Pause",
-                "P               --   Pause / Resume",
+                "1               --   Use Noise Maker  (click tile to target)",
+                "2               --   Use Smoke Bomb   (instant, centred on you)",
+                "3               --   Use Flare / Lantern  (click tile to target)",
+                "4               --   Use Shuriken  (WASD to aim, Space to throw)",
+                "5               --   Use Grappling Hook  (click wall within 6 tiles)",
+                "6               --   Use Holy Cross (Purify Floor - Horror Mode Only)",
+                "ESC             --   Cancel targeting / Pause / Return to Menu",
+                "P               --   Pause / Resume (Any key also resumes)",
                 "M               --   Toggle Music",
                 "N               --   Toggle Sound Effects",
                 "R               --   Restart  (on death screen)"));
@@ -117,41 +122,60 @@ public class TutorialManager {
                 "lit areas than they do in the dark."));
         itemRows1.add(new EntryRow(
                 "Shuriken", "[4]",
-                new Color(180, 180, 190), assets.shuriken,
-                "A silent throwing weapon. Aim with WASD.",
-                "Hits the first enemy in its path, removing them",
-                "instantly. Limited supply -- use wisely."));
-        pages.add(new TutorialPage(PageType.ITEMS, "ITEMS (1/2)", "Tools for distraction and survival.", itemRows1));
-
-        List<EntryRow> itemRows2 = new ArrayList<>();
-        itemRows2.add(new EntryRow(
+                new Color(180, 220, 255),
+                "Press 4 to enter aim mode. Use WASD to set direction.",
+                "Press Space or Enter to throw. Travels up to 5 tiles",
+                "in a straight line and silently eliminates the first enemy hit.",
+                "Wall stops the shuriken. Only one throw per shuriken."));
+        itemRows.add(new EntryRow(
                 "Grappling Hook", "[5]",
-                new Color(100, 200, 255), assets.grapplingHook,
-                "Target a wall within 6 tiles to pull yourself to it.",
-                "Allows rapid movement across rooms and",
-                "over hazards. Essential for mobility."));
-        itemRows2.add(new EntryRow(
+                new Color(120, 200, 255),
+                "Fire a hook at any wall tile within 6 tiles (non-straight paths OK).",
+                "You'll zip to the nearest floor tile next to the wall.",
+                "Can bypass enemies, but zipping through them deals damage!"));
+        itemRows.add(new EntryRow(
                 "Holy Cross", "[6]",
-                new Color(255, 255, 200), assets.cross,
-                "HORROR MODE ONLY. Purifies the current floor.",
-                "Banishes darkness and reveals the exit.",
-                "Extremely rare and powerful."));
-        pages.add(new TutorialPage(PageType.ITEMS, "ITEMS (2/2)", "Advanced equipment.", itemRows2));
+                new Color(255, 255, 180),
+                "A sacred artifact that only functions in HORROR MODE.",
+                "Instantly purifies the floor: banishes the Stalker,",
+                "cleanses blood, and reverts atmosphere to Normal Mode.",
+                "Extremely rare. Use it when the darkness becomes too much."));
+        // -- END ITEMS --
+
+        List<EntryRow> itemRows1 = new ArrayList<>(itemRows.subList(0, 4));
+        List<EntryRow> itemRows2 = new ArrayList<>(itemRows.subList(4, itemRows.size()));
+
+        pages.add(new TutorialPage(
+                PageType.ITEMS,
+                "ITEMS (1/2)",
+                "Each item is consumed on use. Pick up more on each floor.",
+                itemRows1));
+
+        pages.add(new TutorialPage(
+                PageType.ITEMS,
+                "ITEMS (2/2)",
+                "More tools at your disposal.",
+                itemRows2));
 
         List<EntryRow> envRows = new ArrayList<>();
         envRows.add(new EntryRow(
-                "Campfire", "Rest",
-                new Color(255, 120, 40), assets.campfire,
-                "Stand on a campfire for 5 turns to REST.",
-                "Restoring +1 HP. Can only be used ONCE",
-                "every 2 floors. High risk, high reward."));
+                "Puddles", "Hazard",
+                new Color(100, 180, 255),
+                "Floor decals found in Normal Mode.",
+                "Stepping here creates a loud SPLASH!",
+                "Nearby enemies will investigate the noise immediately."));
         envRows.add(new EntryRow(
-                "Puddle", "Hazard",
-                new Color(100, 150, 255), assets.puddle,
-                "Stepping here creates a loud SPLASH.",
-                "Enemies nearby will hear you and investigate.",
-                "Watch your step in Normal Mode."));
-        pages.add(new TutorialPage(PageType.ENVIRONMENT, "ENVIRONMENT", "Interactable objects and hazards.", envRows));
+                "Campfire", "Sanctuary",
+                new Color(255, 140, 40),
+                "A rare, warm light source.",
+                "Resting (staying still) for 5 turns restores 1 HP.",
+                "Restriction: Can only rest once every two floors."));
+
+        pages.add(new TutorialPage(
+                PageType.ENVIRONMENT,
+                "ENVIRONMENT",
+                "Learn to use your surroundings to survive.",
+                envRows));
 
         List<EntryRow> enemyRows = new ArrayList<>();
         enemyRows.add(new EntryRow(
@@ -161,12 +185,37 @@ public class TutorialManager {
                 "High vision range. If it spots you, it alerts",
                 "all nearby guards to your position."));
         enemyRows.add(new EntryRow(
-                "Patrol Guard", "Moving",
-                new Color(200, 100, 40), assets.patrol,
-                "Follows a fixed route through the floor.",
-                "Move when they are looking away. They move",
-                "one tile every time you take a turn."));
-        pages.add(new TutorialPage(PageType.ENEMIES, "ENEMIES", "The threats that dwell in the dark.", enemyRows));
+                "Hunter", "",
+                new Color(200, 60, 60),
+                "Actively hunts -- smarter pathfinding than the Patrol Guard.",
+                "On higher floors it may place Sticky Traps in your path.",
+                "Once alerted it is very persistent."));
+        enemyRows.add(new EntryRow(
+                "Sentry", "",
+                new Color(240, 140, 40),
+                "Stationary guard with a wide detection arc.",
+                "When it spots you, it alerts all nearby enemies.",
+                "BEWARE: It has a chance to leave its post and CHASE you!"));
+        // -- END ENEMIES --
+
+        pages.add(new TutorialPage(
+                PageType.ENEMIES,
+                "ENEMIES",
+                "Standard threats found on every floor.",
+                enemyRows));
+
+        pages.add(new TutorialPage(
+                PageType.HORROR,
+                "HORROR MODE",
+                "A more intense, psychological experience.",
+                "Horror Mode is toggled with 'X' in the Main Menu.",
+                "It introduces new mechanics to challenge your sanity:",
+                " ",
+                "* TOTAL DARKNESS: Lights may fail, forcing you to move blind.",
+                "* UNRELIABLE TOOLS: Your lantern may flicker or fail in the dark.",
+                "* TENSION CYCLE: High-tension pulses bring audio hallucinations.",
+                "* THE LIMIT: You cannot linger. Something hunts you after Turn 40.",
+                "* PURIFICATION: Use the Holy Cross [6] to return to Normal Mode."));
 
         List<EntryRow> horrorRows = new ArrayList<>();
         horrorRows.add(new EntryRow(
@@ -277,7 +326,9 @@ public class TutorialManager {
             case CONTROLS:
                 drawTextPage(g2, page, contentX, contentY, contentW, contentMaxH);
                 break;
-            default:
+            case ITEMS:
+            case ENVIRONMENT:
+            case ENEMIES:
                 drawEntryPage(g2, page, contentX, contentY, contentW, contentMaxH);
                 break;
         }
