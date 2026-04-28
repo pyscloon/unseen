@@ -588,12 +588,14 @@ public class TutorialManager {
 
         for (int i = 0; i < layout.dots.size(); i++) {
             if (layout.dots.get(i).contains(mouseX, mouseY)) {
+                unseen.utils.SoundManager.get().play("ui_click", 0.75f);
                 pageIdx = i;
                 return true;
             }
         }
 
         if (layout.nextButton.contains(mouseX, mouseY)) {
+            unseen.utils.SoundManager.get().play("ui_click", 0.75f);
             if (pageIdx == PAGES.size() - 1) {
                 dismiss();
                 return false;
@@ -603,6 +605,7 @@ public class TutorialManager {
         }
 
         if (pageIdx > 0 && layout.prevButton.contains(mouseX, mouseY)) {
+            unseen.utils.SoundManager.get().play("ui_click", 0.75f);
             prevPage();
             return true;
         }

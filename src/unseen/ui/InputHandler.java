@@ -29,13 +29,16 @@ public class InputHandler extends KeyAdapter {
         // Tutorial navigation intercepts all keys while open
         if (panel.getTutorial().isActive()) {
             if (key == KeyEvent.VK_RIGHT || key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
+                panel.playUiClick();
                 panel.getTutorial().nextPage();
                 if (!panel.getTutorial().isActive()) {
                     panel.startFromMenu();
                 }
             } else if (key == KeyEvent.VK_LEFT) {
+                panel.playUiClick();
                 panel.getTutorial().prevPage();
             } else if (key == KeyEvent.VK_ESCAPE) {
+                panel.playUiClick();
                 panel.getTutorial().dismiss();
             }
             panel.repaint();
@@ -44,8 +47,10 @@ public class InputHandler extends KeyAdapter {
 
         if (panel.getGameState() == GameState.INTRO) {
             if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
+                panel.playUiClick();
                 panel.advanceIntro();
             } else if (key == KeyEvent.VK_ESCAPE) {
+                panel.playUiClick();
                 panel.skipIntroToMenu();
             }
             return;
@@ -55,19 +60,23 @@ public class InputHandler extends KeyAdapter {
         // Main menu controls
         if (panel.getGameState() == GameState.MENU) {
             if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
+                panel.playUiClick();
                 panel.startFromMenu();
                 return;
             }
             if (key == KeyEvent.VK_ESCAPE || key == KeyEvent.VK_Q) {
+                panel.playUiClick();
                 System.exit(0);
                 return;
             }
             if (key == KeyEvent.VK_H) {
+                panel.playUiClick();
                 panel.getTutorial().reset();
                 panel.repaint();
                 return;
             }
             if (key == KeyEvent.VK_X) {
+                panel.playHorrorToggleClick(!panel.isHorrorMode());
                 panel.setHorrorMode(!panel.isHorrorMode());
                 panel.repaint();
                 return;
@@ -78,10 +87,12 @@ public class InputHandler extends KeyAdapter {
         // Retry after death
         if (panel.getGameState() == GameState.LOSE) {
             if (key == KeyEvent.VK_R) {
+                panel.playUiClick();
                 panel.restartGame();
                 return;
             }
             if (key == KeyEvent.VK_ESCAPE) {
+                panel.playUiClick();
                 panel.returnToMenu();
                 return;
             }
@@ -91,9 +102,11 @@ public class InputHandler extends KeyAdapter {
         // Win screen -- next floor or back to menu
         if (panel.getGameState() == GameState.WIN) {
             if (key == KeyEvent.VK_ESCAPE) {
+                panel.playUiClick();
                 panel.returnToMenu();
                 return;
             }
+            panel.playUiClick();
             panel.nextFloor();
             return;
         }
@@ -101,8 +114,10 @@ public class InputHandler extends KeyAdapter {
         // -- Confirm-quit overlay ------------------------------------------
         if (panel.getGameState() == GameState.CONFIRM_QUIT) {
             if (key == KeyEvent.VK_ESCAPE) {
+                panel.playUiClick();
                 panel.returnToMenu();
             } else {
+                panel.playUiClick();
                 // Any other key (M, P, space, ...) cancels back to PAUSED
                 panel.setGameState(GameState.PAUSED);
                 panel.repaint();
@@ -113,9 +128,11 @@ public class InputHandler extends KeyAdapter {
         // Pause state: any key to resume (except ESC/P which have toggle/menu roles)
         if (panel.getGameState() == GameState.PAUSED) {
             if (key == KeyEvent.VK_ESCAPE) {
+                panel.playUiClick();
                 panel.showQuitConfirm(); // ESC -> "Return to menu?" prompt
                 return;
             } else if (key != KeyEvent.VK_P && key != KeyEvent.VK_R) {
+                panel.playUiClick();
                 panel.resumeGame();
                 return;
             }
@@ -125,24 +142,29 @@ public class InputHandler extends KeyAdapter {
         if (key == KeyEvent.VK_ESCAPE) {
             if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare()
                     || panel.isTargetingShuriken() || panel.isTargetingGrapplingHook()) {
+                panel.playUiClick();
                 panel.cancelTargeting();
             } else if (panel.getGameState() == GameState.PLAYING) {
+                panel.playUiClick();
                 panel.pauseGame();
             }
             return;
         }
 
         if (key == KeyEvent.VK_M) {
+            panel.playUiClick();
             panel.toggleMusic();
             return;
         }
 
         if (key == KeyEvent.VK_N) {
+            panel.playUiClick();
             unseen.utils.SoundManager.get().setSfxEnabled(!unseen.utils.SoundManager.get().isSfxEnabled());
             return;
         }
 
         if (key == KeyEvent.VK_P) {
+            panel.playUiClick();
             if (panel.getGameState() == GameState.PLAYING)
                 panel.pauseGame();
             else if (panel.getGameState() == GameState.PAUSED)
@@ -151,6 +173,7 @@ public class InputHandler extends KeyAdapter {
         }
 
         if (key == KeyEvent.VK_R && panel.getGameState() == GameState.PAUSED) {
+            panel.playUiClick();
             panel.restartGame();
             return;
         }
@@ -178,6 +201,7 @@ public class InputHandler extends KeyAdapter {
                     return;
                 case KeyEvent.VK_ENTER:
                 case KeyEvent.VK_SPACE:
+                    panel.playUiClick();
                     panel.confirmTargeting();
                     return;
             }
@@ -203,14 +227,17 @@ public class InputHandler extends KeyAdapter {
                     return;
                 case KeyEvent.VK_ENTER:
                 case KeyEvent.VK_SPACE:
+                    panel.playUiClick();
                     panel.confirmShurikenThrow();
                     return;
             }
+            panel.playUiClick();
             panel.cancelTargeting();
             return;
         }
 
         if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingGrapplingHook()) {
+            panel.playUiClick();
             panel.cancelTargeting();
             return;
         }
@@ -222,8 +249,10 @@ public class InputHandler extends KeyAdapter {
 
         if (key == KeyEvent.VK_1) {
             boolean hasNoise = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
-            if (hasNoise)
+            if (hasNoise) {
+                panel.playUiClick();
                 panel.enterNoiseMakerTargeting();
+            }
             return;
         }
 
@@ -237,6 +266,7 @@ public class InputHandler extends KeyAdapter {
                 }
             }
             if (idx >= 0) {
+                panel.playUiClick();
                 player.useItem(idx, map, panel.getEnemies());
                 panel.processTurnAndApply();
             }
@@ -245,22 +275,28 @@ public class InputHandler extends KeyAdapter {
 
         if (key == KeyEvent.VK_3) {
             boolean hasFlare = player.getInventory().stream().anyMatch(i -> i instanceof unseen.items.Flare);
-            if (hasFlare)
+            if (hasFlare) {
+                panel.playUiClick();
                 panel.enterFlareTargeting();
+            }
             return;
         }
 
         if (key == KeyEvent.VK_4) {
             boolean hasShuriken = player.getInventory().stream().anyMatch(i -> i instanceof Shuriken);
-            if (hasShuriken)
+            if (hasShuriken) {
+                panel.playUiClick();
                 panel.enterShurikenTargeting();
+            }
             return;
         }
 
         if (key == KeyEvent.VK_5) {
             boolean hasHook = player.getInventory().stream().anyMatch(i -> i instanceof GrapplingHook);
-            if (hasHook)
+            if (hasHook) {
+                panel.playUiClick();
                 panel.enterGrapplingHookTargeting();
+            }
             return;
         }
 
@@ -274,6 +310,7 @@ public class InputHandler extends KeyAdapter {
                 }
             }
             if (idx >= 0) {
+                panel.playUiClick();
                 player.useItem(idx, map, panel.getEnemies());
                 panel.processTurnAndApply();
             }

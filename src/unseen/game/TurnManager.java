@@ -33,7 +33,6 @@ public class TurnManager {
             List<Smoke> smokes) {
 
         boolean wasHit = false;
-        boolean anyNewAlert = false;
 
         // 1. Identify all enemies in CHASE mode to assign flanking roles
         List<Enemy> chasers = new ArrayList<>();
@@ -80,7 +79,6 @@ public class TurnManager {
                     && enemy.getState() == Enemy.State.CHASE) {
                 panel.addTileEffect(enemy.getX(), enemy.getY(),
                         unseen.ui.gamepanel.TileEffect.Kind.ALERT);
-                anyNewAlert = true;
             }
 
             // If this enemy is a sentry, let it alert nearby enemies
@@ -197,9 +195,6 @@ public class TurnManager {
 
         player.updateLastPosition();
 
-        if (panel != null && anyNewAlert) {
-            panel.showToast("Enemy alerted!", new java.awt.Color(255, 110, 70));
-        }
 
         panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
 

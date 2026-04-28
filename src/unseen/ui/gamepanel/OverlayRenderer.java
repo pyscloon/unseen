@@ -171,8 +171,7 @@ class OverlayRenderer {
         g2.dispose();
     }
 
-
-private Font fitIntroBodyFont(Graphics2D g2, int maxWidth, int maxHeight) {
+    private Font fitIntroBodyFont(Graphics2D g2, int maxWidth, int maxHeight) {
         for (int size = 30; size >= 20; size--) {
             Font font = new Font("Serif", Font.PLAIN, size);
             FontMetrics fm = g2.getFontMetrics(font);
@@ -184,8 +183,7 @@ private Font fitIntroBodyFont(Graphics2D g2, int maxWidth, int maxHeight) {
         return new Font("Serif", Font.PLAIN, 20);
     }
 
-
-private int measureIntroHeight(List<String> lines, FontMetrics fm) {
+    private int measureIntroHeight(List<String> lines, FontMetrics fm) {
         int lineHeight = fm.getHeight() + 1;
         int paraGap = 10;
         int height = 0;
@@ -195,8 +193,7 @@ private int measureIntroHeight(List<String> lines, FontMetrics fm) {
         return height;
     }
 
-
-private List<String> buildIntroLines(int maxWidth, FontMetrics fm, int visibleTicks) {
+    private List<String> buildIntroLines(int maxWidth, FontMetrics fm, int visibleTicks) {
         List<String> lines = new java.util.ArrayList<>();
         int remainingTicks = visibleTicks;
         int paragraphPauseTicks = panel.getIntroParagraphPauseTicks();
@@ -232,8 +229,7 @@ private List<String> buildIntroLines(int maxWidth, FontMetrics fm, int visibleTi
         return lines;
     }
 
-
-private void wrapParagraph(List<String> lines, String text, int maxWidth, FontMetrics fm) {
+    private void wrapParagraph(List<String> lines, String text, int maxWidth, FontMetrics fm) {
         String[] words = text.split("\\s+");
         StringBuilder current = new StringBuilder();
         for (String word : words) {
@@ -251,7 +247,6 @@ private void wrapParagraph(List<String> lines, String text, int maxWidth, FontMe
             lines.add(current.toString());
         }
     }
-
 
     void drawShurikenAimOverlay(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
@@ -342,7 +337,6 @@ private void wrapParagraph(List<String> lines, String text, int maxWidth, FontMe
                 : (hitEnemy ? new Color(255, 160, 160) : new Color(180, 240, 255)));
         g2.drawString(msg, bx + 12, by + 20);
     }
-
 
     void drawTargetingOverlay(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
@@ -481,56 +475,112 @@ private void wrapParagraph(List<String> lines, String text, int maxWidth, FontMe
         g2.drawString(msg, bx + 12, by + 20);
     }
 
-
     void drawJumpscare(Graphics2D g2) {
         int w = panel.getWidth();
         int h = panel.getHeight();
+        Random rand = new Random();
 
-        // Dark red background with static flicker
-        g2.setColor(new Color(20, 0, 0, 230));
+        // 1. Deep Void Background
+        g2.setColor(new Color(5, 2, 2));
         g2.fillRect(0, 0, w, h);
 
-        Random rand = new Random();
-        // Static noise
-        for (int i = 0; i < 100; i++) {
-            g2.setColor(new Color(rand.nextInt(100), 0, 0, 50));
-            g2.fillRect(rand.nextInt(w), rand.nextInt(h), rand.nextInt(200), 2);
+        // 2. Grainy Static / Noise
+        for (int i = 0; i < 400; i++) {
+            int alpha = rand.nextInt(40);
+            g2.setColor(new Color(rand.nextInt(50), 0, 0, alpha));
+            g2.fillRect(rand.nextInt(w), rand.nextInt(h), 2, 2);
         }
 
-        // Draw a terrifying distorted face
         int centerX = w / 2;
         int centerY = h / 2;
 
-        // The "Eyes" (distorted red voids)
-        g2.setColor(new Color(255, 0, 0, 180 + rand.nextInt(75)));
-        int eyeSize = 120 + rand.nextInt(20);
-        int eyeDist = 140;
-
-        // Left Eye
-        g2.fillOval(centerX - eyeDist - eyeSize / 2 + rand.nextInt(10),
-                centerY - 100 + rand.nextInt(10), eyeSize, eyeSize + rand.nextInt(50));
-        // Right Eye
-        g2.fillOval(centerX + eyeDist - eyeSize / 2 + rand.nextInt(10),
-                centerY - 100 + rand.nextInt(10), eyeSize, eyeSize + rand.nextInt(50));
-
-        // Pupils (pitch black)
-        g2.setColor(Color.BLACK);
-        g2.fillOval(centerX - eyeDist - 20, centerY - 80, 40, 40);
-        g2.fillOval(centerX + eyeDist - 20, centerY - 80, 40, 40);
-
-        // The "Mouth" (a screaming void)
-        int mouthW = 200 + rand.nextInt(40);
-        int mouthH = 300 + rand.nextInt(100);
-        g2.setColor(new Color(0, 0, 0, 240));
-        g2.fillOval(centerX - mouthW / 2 + rand.nextInt(5),
-                centerY + 50 + rand.nextInt(10), mouthW, mouthH);
-
-        // Sudden white flash pulses
-        if (rand.nextBoolean()) {
-            g2.setColor(new Color(255, 255, 255, 30));
-            g2.fillRect(0, 0, w, h);
+        // 3. Glitch - Shift slices of the screen
+        if (rand.nextDouble() < 0.7) {
+            int slices = 3 + rand.nextInt(8);
+            for (int i = 0; i < slices; i++) {
+                int sy = rand.nextInt(h);
+                int sh = 5 + rand.nextInt(30);
+                int offset = rand.nextInt(40) - 20;
+                g2.copyArea(0, sy, w, sh, offset, 0);
+            }
         }
+
+        // 4. The "Many Eyes" - Tiny white pinpricks in the dark
+        g2.setColor(new Color(255, 255, 255, 180));
+        for (int i = 0; i < 15; i++) {
+            int ex = rand.nextInt(w);
+            int ey = rand.nextInt(h);
+            int es = 1 + rand.nextInt(3);
+            g2.fillOval(ex, ey, es, es);
+        }
+
+        // 5. The Main Face - Distorted and Melting
+        // Left Eye (Void)
+        drawDistortedEye(g2, centerX - 160 + rand.nextInt(15), centerY - 120 + rand.nextInt(15), 140, rand);
+        // Right Eye (Void)
+        drawDistortedEye(g2, centerX + 160 - rand.nextInt(15), centerY - 120 + rand.nextInt(15), 140, rand);
+
+        // 6. The Mouth (Needle Teeth)
+        int mouthW = 240 + rand.nextInt(60);
+        int mouthH = 350 + rand.nextInt(150);
+        g2.setColor(new Color(0, 0, 0, 255));
+        g2.fillOval(centerX - mouthW / 2, centerY + 20, mouthW, mouthH);
+
+        // Jagged Teeth
+        g2.setColor(new Color(200, 200, 180, 180));
+        for (int i = 0; i < 20; i++) {
+            int tx = centerX - mouthW / 2 + (mouthW * i / 20);
+            int ty = centerY + 40 + rand.nextInt(20);
+            int tw = 4 + rand.nextInt(6);
+            int th = 15 + rand.nextInt(40);
+            // Top teeth
+            g2.fillPolygon(new int[] { tx, tx + tw, tx + tw / 2 }, new int[] { ty, ty, ty + th }, 3);
+            // Bottom teeth
+            int bty = centerY + 40 + mouthH - 60 - rand.nextInt(20);
+            g2.fillPolygon(new int[] { tx, tx + tw, tx + tw / 2 }, new int[] { bty, bty, bty - th }, 3);
+        }
+
+        // 7. Blood-like Drips
+        g2.setColor(new Color(150, 0, 0, 200));
+        for (int i = 0; i < 8; i++) {
+            int dx = centerX - 200 + rand.nextInt(400);
+            int dy = centerY - 50 + rand.nextInt(100);
+            int dw = 2 + rand.nextInt(4);
+            int dh = 40 + rand.nextInt(150);
+            g2.fillRect(dx, dy, dw, dh);
+        }
+
+        // 8. Sudden Flash of "HIM"
+        if (rand.nextDouble() < 0.15) {
+            g2.setColor(new Color(255, 255, 255, 40));
+            g2.fillRect(0, 0, w, h);
+            g2.setColor(Color.BLACK);
+            g2.setFont(new Font("Monospaced", Font.BOLD, 120));
+            g2.drawString("SAW YOU", centerX - 250, centerY);
+        }
+
+        // 9. Vignette
+        RadialGradientPaint vignette = new RadialGradientPaint(
+                centerX, centerY, (float) Math.max(w, h) * 0.7f,
+                new float[] { 0.0f, 1.0f },
+                new Color[] { new Color(0, 0, 0, 0), new Color(0, 0, 0, 255) });
+        g2.setPaint(vignette);
+        g2.fillRect(0, 0, w, h);
     }
 
+    private void drawDistortedEye(Graphics2D g2, int x, int y, int baseSize, Random rand) {
+        // Outer glow
+        g2.setColor(new Color(180, 0, 0, 40 + rand.nextInt(40)));
+        g2.fillOval(x - baseSize / 2 - 10, y - baseSize / 2 - 10, baseSize + 20, baseSize + 20);
+
+        // Eye void
+        g2.setColor(Color.BLACK);
+        g2.fillOval(x - baseSize / 2, y - baseSize / 2, baseSize, baseSize + rand.nextInt(40));
+
+        // Pupil (pulsing red)
+        g2.setColor(new Color(255, 0, 0, 150 + rand.nextInt(100)));
+        int pSize = 10 + rand.nextInt(30);
+        g2.fillOval(x - pSize / 2 + rand.nextInt(10) - 5, y - pSize / 2 + rand.nextInt(10) - 5, pSize, pSize);
+    }
 
 }

@@ -52,6 +52,8 @@ public class SoundManager {
         load("player_hit", "unseen/assets/sound/player_hit.wav");
         load("grapple", "unseen/assets/sound/grapple_sf.wav");
         load("splash", "unseen/assets/sound/splash_sf.wav");
+        load("ui_click", "unseen/assets/sound/clicksfx.wav");
+        load("horror_click", "unseen/assets/sound/horrorclick.wav");
 
         // Horror Mode Sounds
         load("jumpscare", "unseen/assets/sound/horror-mode/jumpscare1.wav");

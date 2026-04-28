@@ -161,6 +161,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 if (state == GameState.INTRO) {
+                    playUiClick();
                     advanceIntro();
                     requestFocusInWindow();
                     return;
@@ -183,17 +184,21 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                             getHeight());
                     switch (action) {
                         case START:
+                            playUiClick();
                             startFromMenu();
                             return;
                         case TUTORIAL:
+                            playUiClick();
                             tutorial.reset();
                             repaint();
                             return;
                         case TOGGLE_HORROR:
+                            playHorrorToggleClick(!isHorrorMode());
                             setHorrorMode(!isHorrorMode());
                             repaint();
                             return;
                         case QUIT:
+                            playUiClick();
                             System.exit(0);
                             return;
                         default:
@@ -202,12 +207,16 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 }
 
                 // Noise/Flare targeting clicks during gameplay
-                if (targetingNoiseMaker)
+                if (targetingNoiseMaker) {
+                    playUiClick();
                     confirmNoiseTarget(targetGridX, targetGridY);
-                else if (targetingFlare)
+                } else if (targetingFlare) {
+                    playUiClick();
                     confirmFlareTarget(targetGridX, targetGridY);
-                else if (targetingGrapplingHook)
+                } else if (targetingGrapplingHook) {
+                    playUiClick();
                     confirmGrapplingHookTarget(targetGridX, targetGridY);
+                }
             }
         });
 
@@ -354,6 +363,18 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     public void showToast(String message, Color color) {
         toasts.add(new HudToast(message, color));
+    }
+
+    public void playUiClick() {
+        unseen.utils.SoundManager.get().play("ui_click", 0.75f);
+    }
+
+    public void playHorrorToggleClick(boolean turningOn) {
+        if (turningOn) {
+            unseen.utils.SoundManager.get().play("horror_click", 0.85f);
+        } else {
+            playUiClick();
+        }
     }
 
     // -------------------------------------------------------------------------

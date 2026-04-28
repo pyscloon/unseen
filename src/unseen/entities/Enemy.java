@@ -20,12 +20,15 @@ public abstract class Enemy extends Entity {
 
     public enum State { PATROL, CHASE, SEARCH }
 
+    protected boolean hasPlayedAlertSound = false;
+
     protected State state = State.PATROL;
     public void setState(State newState) {
         if (this.state != State.CHASE && newState == State.CHASE) {
-            // Only play alert sound for Sentries.
-            if (this.type == EnemyType.SENTRY) {
+            // Only play alert sound for Sentries once.
+            if (this.type == EnemyType.SENTRY && !hasPlayedAlertSound) {
                 unseen.utils.SoundManager.get().play("alert", 0.6f);
+                hasPlayedAlertSound = true;
             }
         }
         this.state = newState;

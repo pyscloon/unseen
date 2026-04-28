@@ -243,7 +243,7 @@ public class LevelManager implements SmokeSpawner {
                 boolean wasSeen = sf.isSeen();
                 sf.update(player.getX(), player.getY(), visible, map);
                 if (!wasSeen && sf.isSeen()) {
-                    unseen.utils.SoundManager.get().playRandom(0.45f, "iseeyou", "suspense", "ghostwhisper");
+                    unseen.utils.SoundManager.get().playRandom(0.45f, "iseeyou", "laugh", "ghostwhisper");
                     panel.triggerShake(5, 1.5f); // Tiny shake
                 }
                 return sf.isSeen();
@@ -256,13 +256,13 @@ public class LevelManager implements SmokeSpawner {
                     stalkerSpawnCount++;
                     enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y,
                             new unseen.ai.AStar()));
-                    unseen.utils.SoundManager.get().playRandom(1.2f, "no_more", "scream", "jumpscare");
+                    unseen.utils.SoundManager.get().playRandom(1.2f, "no_more", "suspense", "ghostwhisper");
                     panel.triggerShake(20, 3f);
                 } else if (stalkerSpawnCount == 1 && turnCount > 80) {
                     stalkerSpawnCount++;
                     enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y,
                             new unseen.ai.AStar()));
-                    unseen.utils.SoundManager.get().playRandom(1.0f, "scream", "ghostwhisper", "iseeyou"); // Different
+                    unseen.utils.SoundManager.get().playRandom(1.0f, "scream", "iseeyou"); // Different
                                                                                                            // sound for
                                                                                                            // 2nd
                                                                                                            // appearance
@@ -341,10 +341,10 @@ public class LevelManager implements SmokeSpawner {
         int pressureGain = 1;
         if (minD < 5.0) {
             terrorLevel = 10;
-            pressureGain += 7;
+            pressureGain += 5;
         } else if (minD < 10.0) {
             terrorLevel = 7;
-            pressureGain += 4;
+            pressureGain += 3;
         } else {
             terrorLevel = highTensionMode ? 5 : 2;
         }
@@ -375,14 +375,14 @@ public class LevelManager implements SmokeSpawner {
         if (horrorPressure < 25) {
             playSubtleScare();
             scareCooldownTurns = 6 + new Random().nextInt(4);
-        } else if (horrorPressure < 65) {
+        } else if (horrorPressure < 90) {
             playMediumScare();
             scareCooldownTurns = 8 + new Random().nextInt(5);
         } else {
             playMajorScare(minD);
-            scareCooldownTurns = 12 + new Random().nextInt(7);
+            scareCooldownTurns = 25 + new Random().nextInt(10);
             directorReleaseTurns = 5;
-            horrorPressure = Math.max(22, horrorPressure - 35);
+            horrorPressure = Math.max(22, horrorPressure - 55);
         }
     }
 
@@ -407,7 +407,7 @@ public class LevelManager implements SmokeSpawner {
             unseen.utils.SoundManager.get().play("ghostwhisper", 0.45f);
         } else if (roll < 0.65) {
             spawnShadowFigure();
-            unseen.utils.SoundManager.get().playRandom(0.35f, "suspense", "breathing", "iseeyou");
+            unseen.utils.SoundManager.get().playRandom(0.35f, "jumpscare", "breathing", "heartbeat");
         } else {
             lanternFlickerTurns = 1 + new Random().nextInt(2);
             unseen.utils.SoundManager.get().play("suspense", 0.35f);
@@ -416,14 +416,14 @@ public class LevelManager implements SmokeSpawner {
 
     private void playMajorScare(double minD) {
         if (darkEventTurns <= 0 && (minD < 8.0 || highTensionMode)) {
-            darkEventTurns = 2 + (int) (Math.random() * 2);
-            unseen.utils.SoundManager.get().play("ghostwhisper", 0.9f);
+            darkEventTurns = 5 + (int) (Math.random() * 2);
+            unseen.utils.SoundManager.get().playRandom(1.2f, "jumpscare", "ghostwhisper", "laugh", "no_more");
             panel.triggerShake(10, 2f);
             return;
         }
         spawnShadowFigure();
         spawnPhantom();
-        unseen.utils.SoundManager.get().playRandom(0.7f, "no_more", "scream", "iseeyou");
+        unseen.utils.SoundManager.get().playRandom(0.7f, "no_more", "scream", "laugh");
         panel.triggerShake(8, 2.5f);
     }
 
