@@ -531,6 +531,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             return;
         }
 
+        int pathHits = hook.countEnemiesInPath(levelManager.getPlayer(), levelManager.getMap(),
+                levelManager.getEnemies(), gx, gy);
         boolean used = hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
         if (!used) {
             showToast("Hook needs wall with open landing spot", new Color(220, 120, 90));
@@ -541,6 +543,23 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         inv.remove(idx);
         targetingGrapplingHook = false;
         showToast("Grapple zip!", new Color(150, 220, 255));
+
+        for (int i = 0; i < pathHits; i++) {
+            if (levelManager.getPlayer().takeDamage()) {
+                lastHitTime = System.currentTimeMillis();
+                unseen.utils.SoundManager.get().play("player_hit");
+                int hp = levelManager.getPlayer().getHealth();
+                if (hp > 0) {
+                    showToast("Hook path hurt! " + hp + " HP left", new Color(255, 100, 90));
+                }
+            }
+            if (levelManager.getPlayer().isDead()) {
+                setGameState(GameState.LOSE);
+                requestFocusInWindow();
+                repaint();
+                return;
+            }
+        }
 
         processTurnAndApply();
         requestFocusInWindow();
