@@ -50,28 +50,29 @@ public class GameRenderer {
             return;
         }
 
-        // ── Screen shake ────────────────────────────────────────────────────────
+        // -- Screen shake --------------------------------------------------------
         unseen.ui.gamepanel.ScreenShake shake = panel.getScreenShake();
         shake.update();
         Graphics2D world = (Graphics2D) g.create();
         if (shake.isActive()) {
             world.translate((int) shake.getOffsetX(), (int) shake.getOffsetY());
         }
-        // ────────────────────────────────────────────────────────────────────────
+        // ------------------------------------------------------------------------
 
         drawMap(world);
         drawEntities(world);
         drawFlares(world);
         drawNoiseFlashes(world);
         drawShurikenProjectiles(world);
-        
+
         // --- HORROR ATMOSPHERE ---
         if (panel.isHorrorMode() && !levelManager.isFloorPurified()) {
             drawAtmosphericEffects(world);
         }
 
         // --- HORROR MODE: Heartbeat Vignette ---
-        if (panel.isHorrorMode() && !levelManager.isFloorPurified() && panel.getGameState() == unseen.game.GameState.PLAYING) {
+        if (panel.isHorrorMode() && !levelManager.isFloorPurified()
+                && panel.getGameState() == unseen.game.GameState.PLAYING) {
             double minEnemyDist = Double.MAX_VALUE;
             unseen.entities.Player p = levelManager.getPlayer();
 
@@ -155,8 +156,8 @@ public class GameRenderer {
 
         world.dispose();
 
-        // ── Red vignette flash on player hit
-        // ──────────────────────────────────────────
+        // -- Red vignette flash on player hit
+        // ------------------------------------------
         long hitAge = System.currentTimeMillis() - panel.getLastHitTime();
         if (hitAge < 600) { // 600ms red flash
             float fade = 1f - (hitAge / 600f);
@@ -206,7 +207,7 @@ public class GameRenderer {
             int w2 = g.getFontMetrics().stringWidth(line2);
             g.drawString(line2, cx - w2 / 2, cy + 16);
 
-            String line3 = "ESC  —  Return to Menu";
+            String line3 = "ESC  --  Return to Menu";
             g.setColor(new Color(180, 180, 180));
             g.setFont(new Font("SansSerif", Font.PLAIN, 16));
             int w3 = g.getFontMetrics().stringWidth(line3);
@@ -270,20 +271,20 @@ public class GameRenderer {
             int pw = g.getFontMetrics().stringWidth(pauseText);
             g.drawString(pauseText, (panel.getWidth() - pw) / 2, panel.getHeight() / 2 - 20);
 
-            String resumeHint = "Any Key  —  Resume";
+            String resumeHint = "Any Key  --  Resume";
             g.setFont(new Font("Arial", Font.PLAIN, 18));
             int rw = g.getFontMetrics().stringWidth(resumeHint);
             g.setColor(new Color(200, 200, 200));
             g.drawString(resumeHint, (panel.getWidth() - rw) / 2, panel.getHeight() / 2 + 25);
 
-            String menuHint = "ESC  —  Return to Menu";
+            String menuHint = "ESC  --  Return to Menu";
             g.setFont(new Font("Arial", Font.PLAIN, 16));
             int mw = g.getFontMetrics().stringWidth(menuHint);
             g.setColor(new Color(160, 160, 160));
             g.drawString(menuHint, (panel.getWidth() - mw) / 2, panel.getHeight() / 2 + 55);
         }
 
-        // ── Return-to-menu confirmation overlay ──────────────────────────────────
+        // -- Return-to-menu confirmation overlay ----------------------------------
         if (panel.getGameState() == GameState.CONFIRM_QUIT) {
             // Darken everything behind
             g.setColor(new Color(0, 0, 0, 180));
@@ -321,8 +322,8 @@ public class GameRenderer {
             g2.drawLine(cardX + 30, cardY + 66, cardX + cardW - 30, cardY + 66);
 
             // Options
-            String yes = "ESC  —  Yes, go to menu";
-            String no = "Any other key  —  Stay";
+            String yes = "ESC  --  Yes, go to menu";
+            String no = "Any other key  --  Stay";
             g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
             FontMetrics ofm = g2.getFontMetrics();
 
@@ -334,7 +335,7 @@ public class GameRenderer {
             g2.setColor(new Color(180, 180, 180));
             g2.drawString(no, cardX + (cardW - nw) / 2, cardY + 126);
         }
-        // ────────────────────────────────────────────────────────────────────────
+        // ------------------------------------------------------------------------
 
         // Floor number in top-right corner
         if (panel.getGameState() == GameState.PLAYING) {
@@ -366,6 +367,7 @@ public class GameRenderer {
             drawHealthBar(g);
             drawToasts(g);
         }
+        drawLoreNote(g);
     }
 
     /** Draws a simple heart shape (filled or outline). */
@@ -399,7 +401,7 @@ public class GameRenderer {
     }
 
     // -------------------------------------------------------------------------
-    // Toast notifications — drawn from bottom-center, stacking upward
+    // Toast notifications -- drawn from bottom-center, stacking upward
     // -------------------------------------------------------------------------
     private void drawToasts(Graphics g) {
         java.util.List<HudToast> toasts = panel.getToasts();
@@ -592,7 +594,7 @@ public class GameRenderer {
         g2.setColor(new Color(140, 90, 25, 220));
         g2.fillPolygon(dpx, dpy, 4);
 
-        // ── Menu options — all uniform plain text style ──────────────────────────
+        // -- Menu options -- all uniform plain text style --------------------------
         int optY = sepY + 52;
 
         String start = "SPACE  to  Start";
@@ -630,7 +632,7 @@ public class GameRenderer {
         g2.drawString(quit, (w - qw) / 2 + 1, optY + 101);
         g2.setColor(new Color(118, 100, 72));
         g2.drawString(quit, (w - qw) / 2, optY + 100);
-        // ── end menu options ─────────────────────────────────────────────────────
+        // -- end menu options -----------------------------------------------------
 
         String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
@@ -680,10 +682,10 @@ public class GameRenderer {
     }
 
     // =========================================================================
-    // Inventory HUD — slots 1–4 with keybind badges, item names, empty state
+    // Inventory HUD -- slots 1-4 with keybind badges, item names, empty state
     // =========================================================================
 
-    /** One descriptor per inventory slot (order = visual left→right). */
+    /** One descriptor per inventory slot (order = visual left->right). */
     private static final class SlotDef {
         final String key; // keyboard hint shown in badge
         final String itemName; // human-readable label shown above slot
@@ -725,7 +727,7 @@ public class GameRenderer {
         int barX = (panel.getWidth() - barW) / 2;
         int barY = 6;
 
-        // ── Bar background ────────────────────────────────────────────────────
+        // -- Bar background ----------------------------------------------------
         g2.setColor(new Color(12, 12, 14, 210));
         g2.fillRoundRect(barX, barY, barW, barH, 20, 20);
 
@@ -734,7 +736,7 @@ public class GameRenderer {
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawRoundRect(barX, barY, barW, barH, 20, 20);
 
-        // ── Inventory state ───────────────────────────────────────────────────
+        // -- Inventory state ---------------------------------------------------
         Player player = levelManager.getPlayer();
         int countNoise = (int) player.getInventory().stream().filter(i -> i instanceof NoiseMaker).count();
         int countSmoke = (int) player.getInventory().stream().filter(i -> i instanceof SmokeBomb).count();
@@ -773,7 +775,7 @@ public class GameRenderer {
             boolean has = count > 0;
             boolean act = active[i];
 
-            // ── Active glow halo behind the slot ─────────────────────────────
+            // -- Active glow halo behind the slot -----------------------------
             if (act) {
                 int glowAlpha = 60 + (int) (80 * invPulse);
                 g2.setColor(new Color(
@@ -785,14 +787,14 @@ public class GameRenderer {
                 g2.fillRoundRect(slotX - g2r, iconY - g2r, BOX + g2r * 2, BOX + g2r * 2, 18, 18);
             }
 
-            // ── Slot body ─────────────────────────────────────────────────────
+            // -- Slot body -----------------------------------------------------
             Color fill = has
                     ? new Color(50, 52, 58, 230)
                     : new Color(28, 28, 32, 180);
             g2.setColor(fill);
             g2.fillRoundRect(slotX, iconY, BOX, BOX, 10, 10);
 
-            // Border: active → pulsing gold/item-colour, full → dim item-colour, empty →
+            // Border: active -> pulsing gold/item-colour, full -> dim item-colour, empty ->
             // very dim
             Color border;
             if (act) {
@@ -821,7 +823,7 @@ public class GameRenderer {
             g2.setColor(border);
             g2.drawRoundRect(slotX, iconY, BOX, BOX, 10, 10);
 
-            // ── Icon / empty-state ────────────────────────────────────────────
+            // -- Icon / empty-state --------------------------------------------
             int iconPad = 7;
             int iconSz = BOX - 2 * iconPad;
             if (has) {
@@ -833,7 +835,7 @@ public class GameRenderer {
                     g2.fillOval(slotX + iconPad, iconY + iconPad, iconSz, iconSz);
                 }
 
-                // ── Stack counter badge ──────────────────────────────────────
+                // -- Stack counter badge ----------------------------------------
                 if (count > 1) {
                     String countStr = "x" + count;
                     g2.setFont(new Font("SansSerif", Font.BOLD, 11));
@@ -858,8 +860,8 @@ public class GameRenderer {
                         slotX + xPad, iconY + BOX - xPad);
             }
 
-            // ── Item name label (above slot) ──────────────────────────────────
-            String label = has ? def.itemName : "— empty —";
+            // -- Item name label (above slot) ----------------------------------
+            String label = has ? def.itemName : "-- empty --";
             Color labelColor = has
                     ? new Color(def.borderFull.getRed(), def.borderFull.getGreen(),
                             def.borderFull.getBlue(), act ? 230 : 180)
@@ -870,7 +872,7 @@ public class GameRenderer {
             g2.setColor(labelColor);
             g2.drawString(label, slotX + (BOX - lw) / 2, iconY - 3);
 
-            // ── Keybind badge (below slot) ────────────────────────────────────
+            // -- Keybind badge (below slot) ------------------------------------
             // Pill-shaped background + key character
             String key = def.key;
             g2.setFont(new Font("SansSerif", Font.BOLD, 10));
@@ -907,7 +909,7 @@ public class GameRenderer {
                     pillX + (pillW - kw) / 2,
                     pillY + kfm.getAscent() + (pillH - kfm.getHeight()) / 2);
 
-            // ── "ACTIVE" micro-label when targeting ───────────────────────────
+            // -- "ACTIVE" micro-label when targeting ---------------------------
             if (act) {
                 String actLabel = "ACTIVE";
                 g2.setFont(new Font("SansSerif", Font.BOLD, 8));
@@ -1295,16 +1297,16 @@ public class GameRenderer {
         if (px != -1) {
             Player player = levelManager.getPlayer();
             int ts = Constants.TILE_SIZE;
-            
+
             java.awt.Composite saved = g2.getComposite();
             g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 0.6f));
-            
+
             if (player.getHeroImage() != null) {
                 // Draw a desaturated/darker version of the player facing AWAY
                 int scaledSize = ts * 2;
                 int drawX = px * ts + (ts - scaledSize) / 2;
                 int drawY = py * ts + (ts - scaledSize) / 2;
-                
+
                 // Always draw facing away (if player faces right, phantom faces left)
                 if (player.getFacing() == Player.Facing.RIGHT) {
                     g2.drawImage(player.getHeroImage(), drawX + scaledSize, drawY, -scaledSize, scaledSize, null);
@@ -1317,7 +1319,7 @@ public class GameRenderer {
                 g2.fillOval(px * ts + 8, py * ts + 4, ts - 16, ts - 8);
                 g2.fillRect(px * ts + 6, py * ts + 12, ts - 12, ts - 12);
             }
-            
+
             g2.setComposite(saved);
         }
     }
@@ -1495,26 +1497,28 @@ public class GameRenderer {
                 // --- HOLY PURIFICATION EFFECT (Smooth time-based) ---
                 long elapsed = now - f.getStartTime();
                 float progress = Math.min(1.0f, elapsed / 1000.0f); // 1 second full animation
-                
+
                 // Expand from 0 to 3 tiles radius
-                int r = (int) (ts * 0.2f + ts * 2.8f * (float) Math.pow(progress, 0.5)); 
+                int r = (int) (ts * 0.2f + ts * 2.8f * (float) Math.pow(progress, 0.5));
                 // Fade out at the end
                 int alpha = (int) (220 * (1.0f - progress));
-                if (f.getCountdown() <= 1) alpha *= 0.5; // Extra fade if almost gone
-                
-                if (alpha <= 0) continue;
+                if (f.getCountdown() <= 1)
+                    alpha *= 0.5; // Extra fade if almost gone
+
+                if (alpha <= 0)
+                    continue;
 
                 // 1. Golden Aura
                 g2.setColor(new Color(255, 255, 180, alpha / 3));
                 g2.fillOval(cx - r, cy - r, r * 2, r * 2);
-                
+
                 // 2. Expanding Cross
                 g2.setColor(new Color(255, 240, 100, alpha));
                 g2.setStroke(new BasicStroke(2f + 4f * (1.0f - progress)));
                 int arm = r;
                 g2.drawLine(cx - arm, cy, cx + arm, cy);
                 g2.drawLine(cx, cy - arm, cx, cy + arm);
-                
+
                 // 3. Sparkles (using progress for movement)
                 Random sparkleRand = new Random(f.getX() * 100 + f.getY());
                 for (int i = 0; i < 8; i++) {
@@ -1522,7 +1526,7 @@ public class GameRenderer {
                     float sDist = (float) (r * 0.2f + r * 0.8f * sparkleRand.nextDouble());
                     int sx = cx + (int) (Math.cos(sAngle) * sDist);
                     int sy = cy + (int) (Math.sin(sAngle) * sDist);
-                    
+
                     int sAlpha = (int) (alpha * (0.5 + 0.5 * Math.sin(now * 0.01 + i)));
                     g2.setColor(new Color(255, 255, 255, Math.max(0, sAlpha)));
                     g2.fillRect(sx, sy, 2, 2);
@@ -1536,7 +1540,7 @@ public class GameRenderer {
                 g2.setColor(new Color(255, 210, 50, a1));
                 g2.setStroke(new BasicStroke(3f));
                 g2.drawOval(cx - r1, cy - r1, r1 * 2, r1 * 2);
-                
+
                 float t2 = (float) (((now + 200) % 600) / 600.0);
                 int r2 = ts / 4 + (int) (ts * 0.9f * t2);
                 int a2 = Math.min(baseAlpha, (int) (baseAlpha * (1.0f - t2)));
@@ -1576,7 +1580,7 @@ public class GameRenderer {
             float cy = pos[1];
             double angleDeg = proj.getAngleDeg();
 
-            // ── Trail: 4 ghost copies stepping back along the direction ─────
+            // -- Trail: 4 ghost copies stepping back along the direction -----------------
             int tdx = proj.getDx();
             int tdy = proj.getDy();
             float stepPx = ts * 0.35f; // spacing between ghost frames
@@ -1584,7 +1588,7 @@ public class GameRenderer {
             for (int ghost = 4; ghost >= 1; ghost--) {
                 float gx = cx - tdx * stepPx * ghost;
                 float gy = cy - tdy * stepPx * ghost;
-                int alpha = (int) (28 * (5 - ghost)); // 28 → 112, fades to tip
+                int alpha = (int) (28 * (5 - ghost)); // 28 -> 112, fades to tip
 
                 java.awt.geom.AffineTransform at = new java.awt.geom.AffineTransform();
                 at.translate(gx - spriteSize / 2.0, gy - spriteSize / 2.0);
@@ -1609,7 +1613,7 @@ public class GameRenderer {
                 g2.setComposite(savedComp);
             }
 
-            // ── Main sprite — rotated ────────────────────────────────────────
+            // -- Main sprite -- rotated ------------------------------------------------
             java.awt.geom.AffineTransform saved = g2.getTransform();
             g2.translate(cx, cy);
             g2.rotate(Math.toRadians(angleDeg));
@@ -1629,10 +1633,10 @@ public class GameRenderer {
 
             g2.setTransform(saved);
 
-            // ── Impact flash at destination ──────────────────────────────────
+            // -- Impact flash at destination ------------------------------------------
             float progress = proj.getProgress();
             if (progress > 0.85f) {
-                float fade = (progress - 0.85f) / 0.15f; // 0→1 as it arrives
+                float fade = (progress - 0.85f) / 0.15f; // 0->1 as it arrives
                 int flashAlpha = (int) (200 * fade);
                 int destX = (proj.getOriginX() + proj.getDx() * proj.getTravelTiles()) * ts + ts / 2;
                 int destY = (proj.getOriginY() + proj.getDy() * proj.getTravelTiles()) * ts + ts / 2;
@@ -1807,29 +1811,233 @@ public class GameRenderer {
                 break;
             case BLOOD_TILE:
             case DIE_TILE:
-                Image img = (type == DecalType.BLOOD_TILE) 
-                    ? unseen.utils.AssetLoader.get().horrorFloor 
-                    : unseen.utils.AssetLoader.get().dieTile;
+                Image img = (type == DecalType.BLOOD_TILE)
+                        ? unseen.utils.AssetLoader.get().horrorFloor
+                        : unseen.utils.AssetLoader.get().dieTile;
                 if (img != null) {
                     int variant = (gx * 31 + gy * 17) & 3;
                     int ts = Constants.TILE_SIZE;
                     java.awt.geom.AffineTransform saved = g2.getTransform();
-                    
+
                     // Center for rotation
-                    g2.translate(drawX + ts/2, drawY + ts/2);
-                    
+                    g2.translate(drawX + ts / 2, drawY + ts / 2);
+
                     // Rotate based on variant
                     g2.rotate(Math.toRadians(variant * 90));
-                    
+
                     // Flip logic (optional, but adds more variety)
-                    if ((variant & 1) != 0) g2.scale(-1, 1);
-                    
-                    g2.drawImage(img, -ts/2, -ts/2, ts, ts, null);
+                    if ((variant & 1) != 0)
+                        g2.scale(-1, 1);
+
+                    g2.drawImage(img, -ts / 2, -ts / 2, ts, ts, null);
                     g2.setTransform(saved);
+                }
+                break;
+            case NOTE_SCRAP:
+                g2.setColor(new Color(240, 230, 200)); // Parchment color
+                int nw = Constants.TILE_SIZE / 2;
+                int nh = Constants.TILE_SIZE / 2;
+                int nx = drawX + (Constants.TILE_SIZE - nw) / 2;
+                int ny = drawY + (Constants.TILE_SIZE - nh) / 2;
+                g2.fillRect(nx, ny, nw, nh);
+                g2.setColor(new Color(100, 90, 70));
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRect(nx, ny, nw, nh);
+                // Draw some "scribbles"
+                for (int i = 0; i < 3; i++) {
+                    g2.drawLine(nx + 4, ny + 4 + i * 4, nx + nw - 4, ny + 4 + i * 4);
                 }
                 break;
         }
     }
+
+    private void drawLoreNote(Graphics g) {
+        String lore = panel.getCurrentNoteLore();
+        if (lore == null)
+            return;
+
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int w = panel.getWidth();
+        int h = panel.getHeight();
+
+        g2.setFont(new Font("Serif", Font.ITALIC, 19));
+        FontMetrics fm = g2.getFontMetrics();
+
+        // Wrap text logic
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        String[] words = lore.split(" ");
+        StringBuilder sb = new StringBuilder();
+        int maxW = 380; // slightly wider
+        for (String word : words) {
+            if (fm.stringWidth(sb.toString() + word) < maxW) {
+                sb.append(word).append(" ");
+            } else {
+                lines.add(sb.toString());
+                sb = new StringBuilder(word).append(" ");
+            }
+        }
+        lines.add(sb.toString());
+
+        int padding = 30;
+        int boxW = maxW + padding * 2;
+        int boxH = lines.size() * fm.getHeight() + padding * 2 + 10;
+        int bx = (w - boxW) / 2;
+        int by = (h - boxH) / 2 - 40;
+
+        // 1. Draw "Torn Edge" background layers
+        Random paperRand = new Random(lore.hashCode());
+        g2.setColor(new Color(210, 200, 170, 240)); // Darker base for depth
+        g2.fillRoundRect(bx + 4, by + 4, boxW, boxH, 4, 4);
+
+        // Main parchment color
+        g2.setColor(new Color(245, 240, 220));
+        g2.fillRoundRect(bx, by, boxW, boxH, 2, 2);
+
+        // Subtle "grain" and "stains"
+        g2.setColor(new Color(230, 220, 190, 80));
+        for (int i = 0; i < 5; i++) {
+            int sx = bx + paperRand.nextInt(boxW - 40);
+            int sy = by + paperRand.nextInt(boxH - 40);
+            g2.fillOval(sx, sy, 30 + paperRand.nextInt(40), 20 + paperRand.nextInt(30));
+        }
+
+        // 2. Decorative borders (inner sketch lines)
+        g2.setColor(new Color(110, 90, 70, 150));
+        g2.setStroke(new BasicStroke(1.2f));
+        g2.drawRoundRect(bx + 6, by + 6, boxW - 12, boxH - 12, 2, 2);
+
+        // 3. Draw text in "Ink"
+        g2.setColor(new Color(40, 35, 30)); // Dark sepia/ink
+        int textY = by + padding + fm.getAscent();
+        for (String line : lines) {
+            int lw = fm.stringWidth(line.trim());
+            g2.drawString(line.trim(), bx + (boxW - lw) / 2, textY);
+
+            // Subtle "line" under the text like a notebook
+            g2.setColor(new Color(100, 90, 80, 40));
+            g2.drawLine(bx + padding, textY + 2, bx + boxW - padding, textY + 2);
+            g2.setColor(new Color(40, 35, 30));
+
+            textY += fm.getHeight();
+        }
+
+        // 4. Bloody Drips (Horror Mode only, 40% chance per note)
+        if (panel.isHorrorMode() && paperRand.nextFloat() < 0.7f) {
+            java.awt.Shape oldClip = g2.getClip();
+            g2.clipRect(bx, by, boxW, boxH);
+
+            // Realistic Blood Colors
+            Color bloodBase = new Color(110, 0, 0, 220); // Thick fresh blood
+            Color bloodDried = new Color(70, 5, 5, 180); // Dried clotted blood
+            Color bloodThin = new Color(130, 10, 10, 130); // Translucent edge
+
+            // Corner / Edge Splatters
+            int splatterCount = 2 + paperRand.nextInt(3);
+            for (int i = 0; i < splatterCount; i++) {
+                int side = paperRand.nextInt(4); // 0:Top, 1:Right, 2:Bottom, 3:Left
+                int sx, sy;
+                if (side == 0) {
+                    sx = bx + paperRand.nextInt(boxW);
+                    sy = by;
+                } else if (side == 1) {
+                    sx = bx + boxW;
+                    sy = by + paperRand.nextInt(boxH);
+                } else if (side == 2) {
+                    sx = bx + paperRand.nextInt(boxW);
+                    sy = by + boxH;
+                } else {
+                    sx = bx;
+                    sy = by + paperRand.nextInt(boxH);
+                }
+
+                // Main Splatter
+                int size = 25 + paperRand.nextInt(35);
+                drawRealisticSplatter(g2, sx, sy, size, paperRand, bloodBase, bloodDried, bloodThin);
+
+                // Satellite droplets (using all three color variations)
+                for (int s = 0; s < 5; s++) {
+                    int ssx = sx + (paperRand.nextInt(size * 2) - size);
+                    int ssy = sy + (paperRand.nextInt(size * 2) - size);
+                    int sSize = 2 + paperRand.nextInt(6);
+
+                    float colorRoll = paperRand.nextFloat();
+                    if (colorRoll < 0.33f)
+                        g2.setColor(bloodBase);
+                    else if (colorRoll < 0.66f)
+                        g2.setColor(bloodDried);
+                    else
+                        g2.setColor(bloodThin);
+
+                    g2.fillOval(ssx, ssy, sSize, sSize);
+                }
+            }
+
+            // Bloody Smears (like a hand dragged across)
+            if (paperRand.nextFloat() < 0.4f) {
+                int smearX = bx + 50 + paperRand.nextInt(boxW - 150);
+                int smearY = by + 50 + paperRand.nextInt(boxH - 100);
+                int smearLen = 80 + paperRand.nextInt(120);
+                g2.setStroke(new BasicStroke(15f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                for (int k = 0; k < 5; k++) {
+                    int off = k * 3;
+                    g2.setColor(new Color(90, 0, 0, 40 - k * 5));
+                    g2.drawLine(smearX + off, smearY, smearX + off + smearLen / 2, smearY + smearLen);
+                }
+            }
+
+            // High-Viscosity Drips
+            int drips = 1 + paperRand.nextInt(2);
+            for (int i = 0; i < drips; i++) {
+                boolean leftSide = paperRand.nextBoolean();
+                int dx = leftSide ? bx + 20 + paperRand.nextInt(80) : bx + boxW - 100 + paperRand.nextInt(80);
+                int startY = by + paperRand.nextInt(20);
+                int totalLen = 80 + paperRand.nextInt(150);
+
+                for (int j = 0; j < totalLen; j += 3) {
+                    float t = (float) j / totalLen;
+                    // Drip gets thinner as it falls, then pools slightly at the end
+                    int curW = (int) (6 * (1.0 - t * 0.7) + (t > 0.9 ? 3 : 0) + paperRand.nextInt(2));
+                    int curX = dx + (int) (Math.sin(j * 0.05) * 2);
+
+                    // Color darkens and gets more opaque at the bottom (pooling)
+                    g2.setColor(new Color(
+                            (int) (100 - t * 40),
+                            0, 0,
+                            (int) (180 + t * 75)));
+                    g2.fillOval(curX - curW / 2, startY + j, curW, curW + 3);
+
+                    // Occasional "bead" in the drip
+                    if (paperRand.nextFloat() < 0.05f) {
+                        g2.fillOval(curX - curW, startY + j, curW * 2, curW * 2);
+                    }
+                }
+            }
+            g2.setClip(oldClip);
+        }
+    }
+
+    private void drawRealisticSplatter(Graphics2D g2, int x, int y, int size, Random rand, Color base, Color dried,
+            Color thin) {
+        // Use multiple overlapping ovals with slightly different colors and sizes to
+        // create an organic shape
+        for (int i = 0; i < 4; i++) {
+            int ox = rand.nextInt(size / 2) - size / 4;
+            int oy = rand.nextInt(size / 2) - size / 4;
+            int curSize = size - rand.nextInt(size / 2);
+
+            // Outer semi-transparent ring (using the specific thin color)
+            g2.setColor(thin);
+            g2.fillOval(x + ox - 3, y + oy - 3, curSize + 6, curSize + 6);
+
+            // Thick center
+            g2.setColor(rand.nextBoolean() ? base : dried);
+            g2.fillOval(x + ox, y + oy, curSize, curSize);
+        }
+    }
+
     /**
      * Adds 'Found Footage' style grain, scanlines, and cold tint to the world.
      */
@@ -1841,13 +2049,13 @@ public class GameRenderer {
 
         // 1. COLD COLOR TINT (EERIE BLUE/GREEN)
         // This desaturates the scene and makes it feel colder.
-        g2.setColor(new Color(20, 40, 60, 15)); 
+        g2.setColor(new Color(20, 40, 60, 15));
         g2.fillRect(0, 0, w, h);
 
         // 2. FILM GRAIN / NOISE
         // Draw small random pixels of varying brightness to simulate ISO noise
         // Using a seed based on time so it 'flickers'
-        Random flickerRand = new Random(now / 50); 
+        Random flickerRand = new Random(now / 50);
         for (int i = 0; i < 1200; i++) {
             int rx = flickerRand.nextInt(w);
             int ry = flickerRand.nextInt(h);

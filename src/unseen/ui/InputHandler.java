@@ -77,7 +77,7 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        // Win screen — next floor or back to menu
+        // Win screen -- next floor or back to menu
         if (panel.getGameState() == GameState.WIN) {
             if (key == KeyEvent.VK_ESCAPE) {
                 panel.returnToMenu();
@@ -87,7 +87,7 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        // ── Confirm-quit overlay ────────────────────────────────────────────────
+        // -- Confirm-quit overlay ------------------------------------------
         if (panel.getGameState() == GameState.CONFIRM_QUIT) {
             if (key == KeyEvent.VK_ESCAPE) {
                 panel.returnToMenu();
@@ -206,7 +206,7 @@ public class InputHandler extends KeyAdapter {
         Player player = panel.getPlayer();
         Map map = panel.getMap();
 
-        // ── Item keys ────────────────────────────────────────────────────────
+        // -- Item keys -----------------------------------------------------
 
         if (key == KeyEvent.VK_1) {
             boolean hasNoise = player.getInventory().stream().anyMatch(i -> i instanceof NoiseMaker);
@@ -268,7 +268,7 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        // ── Wait / skip turn ─────────────────────────────────────────────────
+        // -- Wait / skip turn ----------------------------------------------
 
         if (key == KeyEvent.VK_SPACE) {
             panel.processTurnAndApply();
@@ -276,7 +276,7 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        // ── Trapped — struggle free ──────────────────────────────────────────
+        // -- Trapped -- struggle free --------------------------------------
 
         if (isMovementKey(key) && player.isTrapped()) {
             player.decrementTrapped();
@@ -284,7 +284,7 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        // ── Movement ─────────────────────────────────────────────────────────
+        // -- Movement ------------------------------------------------------
 
         int x = player.getX(), y = player.getY();
         boolean moved = false;

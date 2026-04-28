@@ -78,7 +78,7 @@ public abstract class Enemy extends Entity {
         return new java.awt.Point(px, py);
     }
 
-    // ── Path cache ──────────────────────────────────────────────────────────
+    // -- Path cache ----------------------------------------------------
     private java.util.List<unseen.ai.Node> cachedPath;
     private int cachedPlayerX = -1, cachedPlayerY = -1;
     private State cachedState;

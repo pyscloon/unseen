@@ -8,5 +8,6 @@ public enum DecalType {
     BLOODY_TEXT_WATCHING,
     BLOODY_TEXT_HIDE,
     BLOOD_TILE,
-    DIE_TILE
+    DIE_TILE,
+    NOTE_SCRAP
 }

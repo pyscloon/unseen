@@ -19,6 +19,8 @@ import unseen.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -42,10 +44,51 @@ public class LevelManager implements SmokeSpawner {
     }
 
     private int turnCount = 0;
-    private int     stalkerSpawnCount = 0;
+    private int stalkerSpawnCount = 0;
     private int darkEventTurns = 0;
     private int lanternFlickerTurns = 0;
     private boolean floorPurified = false;
+
+    // Flickering Campfire (Horror Mode)
+    private int flickerCampfireX = -1;
+    private int flickerCampfireY = -1;
+    private boolean flickerCampfireOn = true;
+
+    private List<String> availableLore = new ArrayList<>();
+    private java.util.Map<String, String> currentFloorLore = new HashMap<>();
+
+    private static final String[] LORE_NOTES = {
+            "Entry 1: They told me the artifact was here. I didn't listen to the warnings about the 'Unseen'.",
+            "Entry 7: The walls... they move when I'm not looking. The blood isn't mine, but it feels familiar.",
+            "Scrawled Note: Don't trust the lights. The campfires are just beacons for the things in the walls.",
+            "Torn Page: I found a cross. It hums when they are near. I must get to the lower floors.",
+            "Last Entry: If you find this, turn back. There is no exit, only deeper layers of the same nightmare.",
+            "Ilon's Log: Logic fails here. We tried to treat it like a debug session in Room 205, but you can't breakpoint a jumpscare.",
+            "Crumpled Paper: Dominic's code didn't work. The 'Unseen' don't follow syntax rules. They are the ultimate unhandled exception.",
+            "Blood-stained Script: Ahron said the dungeon is like a recursive function with no base case. We're looping into the abyss.",
+            "Software Student Diary: We were just kids from Room 205. Now we're just data points in their 'Unseen' experiment.",
+            "Final Warning: Dominic, Ahron, Ilon... they're all gone. I'm the only variable left in this corrupt environment.",
+            "Scrap: The campus feels like a lifetime ago. This isn't a dungeon, it's a server crash in physical form.",
+            "Note: Room 205 was our sanctuary. Now it's just a memory. If you find our project, delete it. It's what let them in.",
+            "Software Engineering Lab: They wanted 'innovative solutions'. We gave them a door to the void instead."
+    };
+
+    public void checkNoteAt(int x, int y) {
+        if (map.getDecal(x, y) == unseen.map.DecalType.NOTE_SCRAP) {
+            String key = x + "," + y;
+            if (!currentFloorLore.containsKey(key)) {
+                if (!availableLore.isEmpty()) {
+                    currentFloorLore.put(key, availableLore.remove(0));
+                } else {
+                    currentFloorLore.put(key,
+                            "The ink has faded into nothingness... the secrets are lost to the void.");
+                }
+            }
+            panel.setCurrentNoteLore(currentFloorLore.get(key));
+        } else {
+            panel.setCurrentNoteLore(null);
+        }
+    }
 
     // --- SUSPENSE SYSTEM ---
     private int terrorLevel = 0; // 0 to 10
@@ -219,19 +262,20 @@ public class LevelManager implements SmokeSpawner {
                 // Heartbeat frequency (Scales more aggressively now)
                 double hbChance = 0.15 + (1.0 - (chaseDist / 15.0)) * 0.45;
                 if (Math.random() < hbChance) {
-                    unseen.utils.SoundManager.get().play("heartbeat", 0.7f); // Louder volume
+                    unseen.utils.SoundManager.get().play("heartbeat", 1.0f); // Louder volume
                 }
             }
 
             // --- LOW HEALTH HEARTBEAT ---
             if (player.getHealth() == 1 && Math.random() < 0.25) {
-                unseen.utils.SoundManager.get().play("heartbeat", 0.4f);
+                unseen.utils.SoundManager.get().play("heartbeat", 0.8f);
             }
 
             // --- PLAYER BREATHING (General ambient tension) ---
-            if (panel.isHorrorMode() && !floorPurified && panel.getGameState() == unseen.game.GameState.PLAYING && Math.random() < 0.04) { // 4% chance per turn for ambient breathing
+            if (panel.isHorrorMode() && !floorPurified && panel.getGameState() == unseen.game.GameState.PLAYING
+                    && Math.random() < 0.1) { // 4% chance per turn for ambient breathing
                 unseen.utils.SoundManager.get().play("breathing", 0.3f);
-                unseen.utils.SoundManager.get().play("heartbeat", 0.5f);
+                unseen.utils.SoundManager.get().play("heartbeat", 0.8f);
             }
 
             // Spawn Shadow Figures in the dark - extremely rare now
@@ -253,9 +297,10 @@ public class LevelManager implements SmokeSpawner {
                 boolean wasSeen = sf.isSeen();
                 sf.update(player.getX(), player.getY(), visible, map);
                 if (!wasSeen && sf.isSeen()) {
-                    // Use 'jumpscare' (jumpscare1.wav) for shadow figure appearance
-                    unseen.utils.SoundManager.get().play("jumpscare", 0.7f);
-                    unseen.utils.SoundManager.get().play("iseeyou", 0.5f);
+                    // Randomize what they hear for variety
+                    unseen.utils.SoundManager.get().playRandom(0.2f, "laugh", "jumpscare");
+                    unseen.utils.SoundManager.get().playRandom(0.3f, "jumpscare", "scream");
+                    unseen.utils.SoundManager.get().playRandom(0.5f, "iseeyou", "scream");
                     panel.triggerShake(5, 1.5f); // Tiny shake
                 }
                 return sf.isSeen();
@@ -266,13 +311,18 @@ public class LevelManager implements SmokeSpawner {
             if (!isStalkerAlive) {
                 if (stalkerSpawnCount == 0 && turnCount > 40) {
                     stalkerSpawnCount++;
-                    enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y, new unseen.ai.AStar()));
-                    unseen.utils.SoundManager.get().play("no_more", 1.2f);
+                    enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y,
+                            new unseen.ai.AStar()));
+                    unseen.utils.SoundManager.get().playRandom(1.2f, "no_more", "scream", "jumpscare");
                     panel.triggerShake(20, 3f);
                 } else if (stalkerSpawnCount == 1 && turnCount > 80) {
                     stalkerSpawnCount++;
-                    enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y, new unseen.ai.AStar()));
-                    unseen.utils.SoundManager.get().play("horror_laugh", 1.0f); // Different sound for 2nd appearance
+                    enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y,
+                            new unseen.ai.AStar()));
+                    unseen.utils.SoundManager.get().playRandom(1.0f, "scream", "ghostwhisper", "iseeyou"); // Different
+                                                                                                          // sound for
+                                                                                                          // 2nd
+                                                                                                          // appearance
                     panel.triggerShake(30, 4f);
                 }
             }
@@ -314,7 +364,8 @@ public class LevelManager implements SmokeSpawner {
                     phantomX = -1;
                     phantomY = -1;
                 } else {
-                    // If player moved (we're in turn increment), check if they moved TOWARDS phantom
+                    // If player moved (we're in turn increment), check if they moved TOWARDS
+                    // phantom
                     double d = Math.hypot(phantomX - player.getX(), phantomY - player.getY());
                     if (d < 3.5) { // Player got quite close
                         // Move phantom away in the same direction
@@ -384,7 +435,7 @@ public class LevelManager implements SmokeSpawner {
 
     /**
      * Generates a new map and places enemies randomly.
-     * Does NOT touch the player or call updateVisibility — caller must do that.
+     * Does NOT touch the player or call updateVisibility -- caller must do that.
      */
     private void buildFloor() {
 
@@ -469,7 +520,6 @@ public class LevelManager implements SmokeSpawner {
             }
         }
 
-        // Every 3rd floor, place a Heart item
         if (floorNumber % 3 == 0) {
             for (int attempt = 0; attempt < 500; attempt++) {
                 int hx = 1 + rand.nextInt(Constants.GRID_WIDTH - 2);
@@ -478,6 +528,26 @@ public class LevelManager implements SmokeSpawner {
                     map.setItem(hx, hy, new unseen.items.Heart());
                     break;
                 }
+            }
+        }
+
+        // Pick a flickering campfire in Horror Mode
+        flickerCampfireX = -1;
+        flickerCampfireY = -1;
+        if (panel.isHorrorMode()) {
+            List<int[]> campfires = new ArrayList<>();
+            for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+                for (int x = 0; x < Constants.GRID_WIDTH; x++) {
+                    if (map.getTile(x, y) == unseen.map.Tile.CAMPFIRE) {
+                        campfires.add(new int[] { x, y });
+                    }
+                }
+            }
+            if (!campfires.isEmpty()) {
+                Random frand = new Random();
+                int[] pick = campfires.get(frand.nextInt(campfires.size()));
+                flickerCampfireX = pick[0];
+                flickerCampfireY = pick[1];
             }
         }
     }
@@ -493,6 +563,10 @@ public class LevelManager implements SmokeSpawner {
         this.highTensionMode = false;
         this.tensionTimer = 20;
         this.floorPurified = false;
+
+        this.availableLore = new ArrayList<>(Arrays.asList(LORE_NOTES));
+        Collections.shuffle(this.availableLore);
+        this.currentFloorLore.clear();
 
         this.player = new Player(Constants.START_X, Constants.START_Y);
         buildFloor();
@@ -521,6 +595,7 @@ public class LevelManager implements SmokeSpawner {
         highTensionMode = false;
         tensionTimer = 20;
         floorPurified = false;
+        this.currentFloorLore.clear();
 
         buildFloor();
         player.setPosition(Constants.START_X, Constants.START_Y);
@@ -547,7 +622,7 @@ public class LevelManager implements SmokeSpawner {
         int py = player.getY();
 
         // Player vision
-        int baseRange = panel.isHorrorMode() ? 5 : 6;
+        int baseRange = panel.isHorrorMode() ? 3 : 6;
 
         // --- UNRELIABLE LANTERN (Turn-based flicker) ---
         if (panel.isHorrorMode()) {
@@ -564,13 +639,13 @@ public class LevelManager implements SmokeSpawner {
                 if (LineOfSight.hasLineOfSight(map, px, py, x, y, baseRange, smokes)) {
                     visible[y][x] = true;
                     double dist = Math.hypot(px - x, py - y);
-                    float light = (float) Math.max(0, 1.0 - (dist / (double) baseRange));
+                    float light = (float) Math.max(0, 1.0 - Math.pow(dist / (double) baseRange, 1.3));
                     lightLevel[y][x] = Math.max(lightLevel[y][x], light);
                 }
             }
         }
 
-        // Torch illumination — skip if in total darkness
+        // Torch illumination -- skip if in total darkness
         if (darkEventTurns <= 0) {
             final int TORCH_RANGE = 3;
             for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
@@ -578,13 +653,41 @@ public class LevelManager implements SmokeSpawner {
 
                     if (map.getTile(x, y) == Tile.TORCH || map.getTile(x, y) == Tile.CAMPFIRE) {
 
+                        double currentRange = TORCH_RANGE;
+
+                        // --- CINEMATIC FLICKERING (Horror Mode) ---
+                        if (panel.isHorrorMode() && x == flickerCampfireX && y == flickerCampfireY) {
+                            long t = System.currentTimeMillis();
+
+                            // Macro state: Long periods of light vs. instability
+                            double macro = Math.sin(t * 0.0007); // ~9 second cycle
+
+                            boolean isOff = false;
+                            if (macro > 0.5) {
+                                isOff = false;
+                            } else if (macro < -0.85) {
+                                isOff = true;
+                            } else {
+                                double jitter = Math.sin(t * 0.08) + Math.sin(t * 0.037) + Math.sin(t * 0.011);
+                                isOff = jitter > 0.4;
+                            }
+
+                            if (isOff)
+                                continue;
+
+                            // Wobble the range slightly for a "living" fire effect
+                            currentRange += Math.sin(t * 0.05) * 0.4;
+                        }
+
                         for (int ty2 = 0; ty2 < Constants.GRID_HEIGHT; ty2++) {
                             for (int tx2 = 0; tx2 < Constants.GRID_WIDTH; tx2++) {
 
-                                if (LineOfSight.hasLineOfSight(map, x, y, tx2, ty2, TORCH_RANGE)) {
+                                if (LineOfSight.hasLineOfSight(map, x, y, tx2, ty2, (int) Math.ceil(currentRange))) {
                                     visible[ty2][tx2] = true;
                                     double dist = Math.hypot(x - tx2, y - ty2);
-                                    float light = (float) Math.max(0, 1.0 - (dist / TORCH_RANGE));
+
+                                    // Use a steeper falloff (squared) to create a circular look
+                                    float light = (float) Math.max(0, 1.0 - Math.pow(dist / currentRange, 1.3));
                                     lightLevel[ty2][tx2] = Math.max(lightLevel[ty2][tx2], light);
                                 }
                             }
@@ -594,7 +697,7 @@ public class LevelManager implements SmokeSpawner {
             }
         }
 
-        // Active flares — skip if in total darkness
+        // Active flares -- skip if in total darkness
         if (darkEventTurns <= 0) {
             for (ActiveFlare flare : flares) {
                 int cx = flare.getX();

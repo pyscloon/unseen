@@ -9,7 +9,7 @@ import java.util.List;
 public class TurnManager {
 
     /**
-     * Result of a turn — extends the simple state with damage metadata
+     * Result of a turn -- extends the simple state with damage metadata
      * so the caller can trigger visual feedback (shake, vignette, toast).
      */
     public static class TurnResult {
@@ -76,7 +76,7 @@ public class TurnManager {
                 ((unseen.entities.SentryEnemy) enemy).handleAlerts(enemies, player);
             }
 
-            // Check for player contact — damage + knockback instead of instant death
+            // Check for player contact -- damage + knockback instead of instant death
             if (enemy.isAlive()
                     && enemy.getX() == player.getX()
                     && enemy.getY() == player.getY()
@@ -85,7 +85,7 @@ public class TurnManager {
                 if (player.takeDamage()) {
                     wasHit = true;
                     if (panel != null && panel.isHorrorMode()) {
-                        unseen.utils.SoundManager.get().play("bone_break", 0.8f);
+                        unseen.utils.SoundManager.get().play("blood_splatter", 0.8f);
                     } else {
                         unseen.utils.SoundManager.get().play("player_hit");
                     }
@@ -121,6 +121,7 @@ public class TurnManager {
         int killsThisTurn = killsBefore - enemies.size();
 
         player.updateLastPosition();
+        panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
 
         if (map.getTile(player.getX(), player.getY())
                 == unseen.map.Tile.EXIT) {
@@ -130,7 +131,7 @@ public class TurnManager {
         return new TurnResult(GameState.PLAYING, wasHit, killsThisTurn);
     }
 
-    /** Legacy adapter — existing callers that only check the GameState still compile. */
+    /** Legacy adapter -- existing callers that only check the GameState still compile. */
     public static GameState processTurn(
             unseen.ui.GamePanel panel,
             Player player,

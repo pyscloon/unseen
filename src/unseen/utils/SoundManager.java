@@ -20,6 +20,9 @@ public class SoundManager {
     private final Map<String, byte[]> soundData = new HashMap<>();
     private final Map<String, AudioFormat> formats = new HashMap<>();
 
+    private final Map<String, Long> lastPlayTimes = new HashMap<>();
+    private final Map<String, Integer> soundDurations = new HashMap<>();
+
     private boolean sfxEnabled = true;
     private float globalSfxVolume = 1.0f;
 
@@ -54,6 +57,7 @@ public class SoundManager {
         load("breathing", "unseen/assets/sound/horror-mode/heavy-breathing.wav");
         load("no_more", "unseen/assets/sound/horror-mode/no-more-running.wav");
         load("bone_break", "unseen/assets/sound/horror-mode/bone-break.wav");
+        load("blood_splatter", "unseen/assets/sound/horror-mode/blood-splatter.wav");
         load("scream", "unseen/assets/sound/horror-mode/person-screaming.wav");
         load("ghostwhisper", "unseen/assets/sound/horror-mode/ghostwhisper.wav");
         load("iseeyou", "unseen/assets/sound/horror-mode/iseeyou.wav");
@@ -105,6 +109,16 @@ public class SoundManager {
     public void play(String name, float localVolume) {
         if (!sfxEnabled)
             return;
+
+        // Throttling for long ambient sounds to prevent overlapping (e.g. breathing)
+        if (name.equals("breathing")) {
+            long now = System.currentTimeMillis();
+            long last = lastPlayTimes.getOrDefault(name, 0L);
+            if (now - last < 3000) { // 3 second cooldown for breathing
+                return;
+            }
+            lastPlayTimes.put(name, now);
+        }
 
         byte[] data = soundData.get(name);
         AudioFormat format = formats.get(name);

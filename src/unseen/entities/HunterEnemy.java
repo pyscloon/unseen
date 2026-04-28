@@ -10,7 +10,7 @@ import unseen.utils.Constants;
 
 public class HunterEnemy extends Enemy {
 
-    /** Traps list shared with LevelManager; null when floor ≤ 5. */
+    /** Traps list shared with LevelManager; null when floor <= 5. */
     private List<StickyTrap> traps;
     /** Cooldown (in turns) before the hunter can drop another trap. */
     private int trapCooldown = 0;
@@ -95,7 +95,7 @@ public class HunterEnemy extends Enemy {
             x = next.x;
             y = next.y;
         } else {
-            // Reached last known position — search for a few turns before giving up
+            // Reached last known position -- search for a few turns before giving up
             setState(State.SEARCH);
             searchTurns = Constants.SEARCH_TURNS;
         }
