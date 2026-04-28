@@ -50,6 +50,7 @@ public class SoundManager {
         load("alert", "unseen/assets/sound/alert.wav");
         load("ladder", "unseen/assets/sound/ladder.wav");
         load("player_hit", "unseen/assets/sound/player_hit.wav");
+        load("grapple", "unseen/assets/sound/grapple_sf.wav");
 
         // Horror Mode Sounds
         load("jumpscare", "unseen/assets/sound/horror-mode/jumpscare1.wav");

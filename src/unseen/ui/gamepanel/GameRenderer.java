@@ -65,6 +65,7 @@ public class GameRenderer {
         drawFlares(world);
         drawNoiseFlashes(world);
         drawShurikenProjectiles(world);
+        drawGrappleAnimation(world);
 
         // --- HORROR ATMOSPHERE ---
         if (panel.isHorrorMode() && !levelManager.isFloorPurified()) {
@@ -1177,7 +1178,8 @@ public class GameRenderer {
         boolean[][] visible = levelManager.getVisible();
         Player player = levelManager.getPlayer();
 
-        if (visible[player.getY()][player.getX()]) {
+        boolean hidingPlayer = panel.isGrappling() && panel.getGrappleProgress() >= 0.4f;
+        if (!hidingPlayer && visible[player.getY()][player.getX()]) {
             if (player.getHeroImage() != null) {
                 int scaledSize = Constants.TILE_SIZE * 2;
                 int drawX = player.getX() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
@@ -1652,6 +1654,96 @@ public class GameRenderer {
                 g2.setColor(new Color(220, 240, 255));
                 g2.fillOval(destX - flashR, destY - flashR, flashR * 2, flashR * 2);
                 g2.setComposite(savedComp);
+            }
+        }
+    }
+
+    private void drawGrappleAnimation(Graphics2D g2) {
+        if (!panel.isGrappling()) return;
+
+        int ts = Constants.TILE_SIZE;
+        float progress = panel.getGrappleProgress();
+        
+        // Start pixel position (center of start tile)
+        int sx = panel.getGrappleStartX() * ts + ts / 2;
+        int sy = panel.getGrappleStartY() * ts + ts / 2;
+        
+        // Wall pixel position (center of wall tile)
+        int wx = panel.getGrappleWallX() * ts + ts / 2;
+        int wy = panel.getGrappleWallY() * ts + ts / 2;
+        
+        // End pixel position (center of landing tile)
+        int ex = panel.getGrappleEndX() * ts + ts / 2;
+        int ey = panel.getGrappleEndY() * ts + ts / 2;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Two phases:
+        // 0.0 -> 0.4: Hook flies to wall
+        // 0.4 -> 1.0: Player zips to landing spot
+        
+        if (progress < 0.4f) {
+            // PHASE 1: Hook flies out
+            float hookP = progress / 0.4f;
+            int hx = (int)(sx + (wx - sx) * hookP);
+            int hy = (int)(sy + (wy - sy) * hookP);
+            
+            // Draw rope (thick cable)
+            g2.setStroke(new BasicStroke(3f));
+            g2.setColor(new Color(100, 100, 110));
+            g2.drawLine(sx, sy, hx, hy);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.setColor(new Color(180, 180, 200));
+            g2.drawLine(sx, sy, hx, hy);
+            
+            // Draw hook sprite at the tip
+            Image hookImg = AssetLoader.get().grappleNoRope;
+            if (hookImg == null) hookImg = AssetLoader.get().grapplingHook; // Fallback
+            
+            if (hookImg != null) {
+                int sz = (int)(ts * 0.7);
+                double angle = Math.atan2(wy - sy, wx - sx);
+                java.awt.geom.AffineTransform at = new java.awt.geom.AffineTransform();
+                at.translate(hx, hy);
+                at.rotate(angle + Math.PI/2); // Align top of sprite to direction
+                at.translate(-sz/2.0, -sz/2.0);
+                g2.drawImage(hookImg, at, null);
+            }
+        } else {
+            // PHASE 2: Player zips
+            float zipP = (progress - 0.4f) / 0.6f;
+            int px = (int)(sx + (ex - sx) * zipP);
+            int py = (int)(sy + (ey - sy) * zipP);
+            
+            // Draw rope from player to wall
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.setColor(new Color(90, 90, 100));
+            g2.drawLine(px, py, wx, wy);
+            g2.setStroke(new BasicStroke(1f));
+            g2.setColor(new Color(160, 160, 180));
+            g2.drawLine(px, py, wx, wy);
+            
+            // Draw a motion blur/ghosting effect behind the zip
+            int blurSteps = 3;
+            for (int i = 1; i <= blurSteps; i++) {
+                float trailP = Math.max(0, zipP - i * 0.05f);
+                int tx = (int)(sx + (ex - sx) * trailP);
+                int ty = (int)(sy + (ey - sy) * trailP);
+                g2.setColor(new Color(150, 220, 255, 100 / i));
+                g2.fillOval(tx - ts/4, ty - ts/4, ts/2, ts/2);
+            }
+
+            // Draw player sprite at moving position
+            unseen.entities.Player player = levelManager.getPlayer();
+            if (player.getHeroImage() != null) {
+                int scaledSize = ts * 2;
+                int dx = px - scaledSize / 2;
+                int dy = py - scaledSize / 2;
+                if (player.getFacing() == unseen.entities.Player.Facing.LEFT) {
+                    g2.drawImage(player.getHeroImage(), dx + scaledSize, dy, -scaledSize, scaledSize, null);
+                } else {
+                    g2.drawImage(player.getHeroImage(), dx, dy, scaledSize, scaledSize, null);
+                }
             }
         }
     }

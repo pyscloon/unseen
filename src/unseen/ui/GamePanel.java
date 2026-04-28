@@ -40,6 +40,14 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private boolean targetingShuriken = false;
     private int shurikenDx = 1, shurikenDy = 0;
 
+    // -- Grapple Animation --
+    private boolean grappling = false;
+    private float grappleProgress = 0f;
+    private int grappleStartX, grappleStartY;
+    private int grappleEndX, grappleEndY;
+    private int grappleWallX, grappleWallY;
+    private unseen.items.Item grappleUsedItem = null;
+
     private final LevelManager levelManager;
     private final GameRenderer renderer;
     private final TutorialManager tutorial = new TutorialManager();
@@ -334,6 +342,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             if (state == GameState.PLAYING && horrorMode) {
                 levelManager.updateVisibility();
             }
+
+            if (grappling) {
+                updateGrappling();
+            }
             
             repaint();
             long elapsed = System.currentTimeMillis() - start;
@@ -517,11 +529,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1;
-        unseen.items.GrapplingHook hook = null;
+        GrapplingHook hook = null;
         for (int i = 0; i < inv.size(); i++) {
-            if (inv.get(i) instanceof unseen.items.GrapplingHook) {
+            if (inv.get(i) instanceof GrapplingHook) {
                 idx = i;
-                hook = (unseen.items.GrapplingHook) inv.get(i);
+                hook = (GrapplingHook) inv.get(i);
                 break;
             }
         }
@@ -531,21 +543,61 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             return;
         }
 
-        boolean used = hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
-        if (!used) {
-            showToast("Hook needs wall with open landing spot", new Color(220, 120, 90));
-            repaint();
+        if (!hook.isWallTarget(levelManager.getMap(), gx, gy)) {
+            showToast("Must target a wall!", new Color(200, 150, 50));
             return;
         }
 
-        inv.remove(idx);
-        targetingGrapplingHook = false;
-        showToast("Grapple zip!", new Color(150, 220, 255));
-
-        processTurnAndApply();
-        requestFocusInWindow();
+        // Check if useAt would succeed (landing spot check)
+        int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
+        if (landing != null) {
+            // Start animation instead of immediate move
+            unseen.utils.SoundManager.get().play("grapple", 0.8f);
+            
+            grappling = true;
+            grappleProgress = 0f;
+            grappleStartX = levelManager.getPlayer().getX();
+            grappleStartY = levelManager.getPlayer().getY();
+            grappleEndX = landing[0];
+            grappleEndY = landing[1];
+            grappleWallX = gx;
+            grappleWallY = gy;
+            grappleUsedItem = inv.remove(idx);
+            
+            targetingGrapplingHook = false;
+        } else {
+            showToast("No landing spot available!", new Color(200, 100, 50));
+        }
         repaint();
     }
+
+    private void updateGrappling() {
+        grappleProgress += 0.15f; // Animation speed
+        if (grappleProgress >= 1.0f) {
+            grappleProgress = 1.0f;
+            grappling = false;
+            
+            // Apply the actual movement now
+            levelManager.getPlayer().setPosition(grappleEndX, grappleEndY);
+            // Update facing
+            if (grappleEndX < grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.LEFT);
+            else if (grappleEndX > grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.RIGHT);
+            
+            showToast("Grapple zip!", new Color(150, 220, 255));
+            processTurnAndApply();
+            requestFocusInWindow();
+        }
+        repaint();
+    }
+
+    public boolean isGrappling() { return grappling; }
+    public float getGrappleProgress() { return grappleProgress; }
+    public int getGrappleStartX() { return grappleStartX; }
+    public int getGrappleStartY() { return grappleStartY; }
+    public int getGrappleWallX() { return grappleWallX; }
+    public int getGrappleWallY() { return grappleWallY; }
+    public int getGrappleEndX() { return grappleEndX; }
+    public int getGrappleEndY() { return grappleEndY; }
 
     public void confirmShurikenThrow() {
         List<Item> inv = levelManager.getPlayer().getInventory();

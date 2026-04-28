@@ -22,6 +22,7 @@ public class AssetLoader {
     public final Image nextFloor;
     public final Image shuriken; 
     public final Image grapplingHook;
+    public final Image grappleNoRope;
     public final Image heart;    
     public final Image campfire;
     public final Image horrorFloor;
@@ -48,6 +49,7 @@ public class AssetLoader {
         nextFloor  = load("unseen/assets/next_floor.png");
         shuriken   = load("unseen/assets/shuriken.png");
         grapplingHook = load("unseen/assets/grapple.png");
+        grappleNoRope = load("unseen/assets/grapple_norope.png");
         heart      = load("unseen/assets/heart.png");
         
         Image cf = load("unseen/assets/campfire.png");
