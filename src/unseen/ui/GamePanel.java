@@ -28,6 +28,7 @@ import unseen.ui.gamepanel.GameRenderer;
 import unseen.ui.gamepanel.HudToast;
 import unseen.ui.gamepanel.LevelManager;
 import unseen.ui.gamepanel.ScreenShake;
+import unseen.ui.gamepanel.TileEffect;
 import unseen.ui.gamepanel.TutorialManager;
 
 public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
@@ -660,11 +661,27 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         return false;
     }
 
+    public int[] getGrappleLandingPreview(int gx, int gy) {
+        java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
+        for (unseen.items.Item item : inv) {
+            if (item instanceof unseen.items.GrapplingHook) {
+                unseen.items.GrapplingHook hook = (unseen.items.GrapplingHook) item;
+                return hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(),
+                        levelManager.getEnemies(), gx, gy);
+            }
+        }
+        return null;
+    }
+
     private void confirmNoiseTarget(int gx, int gy) {
-        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
+        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT) {
+            showToast("Target is outside the floor.", new Color(220, 120, 90));
             return;
-        if (!levelManager.getMap().isPassable(gx, gy))
+        }
+        if (!levelManager.getMap().isPassable(gx, gy)) {
+            showToast("Noise makers need an open tile.", new Color(220, 120, 90));
             return;
+        }
 
         java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1;
@@ -685,6 +702,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         nm.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
         inv.remove(idx);
         levelManager.addNoiseFlash(gx, gy);
+        levelManager.addTileEffect(gx, gy, TileEffect.Kind.ALERT);
         targetingNoiseMaker = false;
 
         processTurnAndApply();
@@ -693,10 +711,14 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     private void confirmFlareTarget(int gx, int gy) {
-        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
+        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT) {
+            showToast("Target is outside the floor.", new Color(220, 120, 90));
             return;
-        if (!levelManager.getMap().isPassable(gx, gy))
+        }
+        if (!levelManager.getMap().isPassable(gx, gy)) {
+            showToast("Flares need an open tile.", new Color(220, 120, 90));
             return;
+        }
 
         java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1;
@@ -719,6 +741,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
         flareItem.useAt(levelManager.getPlayer(), levelManager.getMap(), gx, gy);
         inv.remove(idx);
+        levelManager.addTileEffect(gx, gy, TileEffect.Kind.PICKUP);
         targetingFlare = false;
 
         processTurnAndApply();
@@ -727,8 +750,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     private void confirmGrapplingHookTarget(int gx, int gy) {
-        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
+        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT) {
+            showToast("Target is outside the floor.", new Color(220, 120, 90));
             return;
+        }
 
         java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1;
@@ -749,7 +774,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(),
                 gx, gy);
         if (landing == null) {
-            showToast("Wall out of reach (max 6 tiles) or path blocked.", new Color(220, 120, 90));
+            showToast("Hook needs a reachable wall and open landing tile.", new Color(220, 120, 90));
             repaint();
             return;
         }
@@ -788,6 +813,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
             // Apply the actual movement now
             levelManager.getPlayer().setPosition(grappleEndX, grappleEndY);
+            levelManager.addTileEffect(grappleEndX, grappleEndY, TileEffect.Kind.PICKUP);
             // Update facing
             if (grappleEndX < grappleStartX)
                 levelManager.getPlayer().setFacing(Player.Facing.LEFT);
@@ -818,6 +844,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     private void handlePlayerDamaged() {
         lastHitTime = System.currentTimeMillis();
+        levelManager.addTileEffect(levelManager.getPlayer().getX(), levelManager.getPlayer().getY(),
+                TileEffect.Kind.DAMAGE);
         if (horrorMode) {
             unseen.utils.SoundManager.get().play("blood_splatter", 0.8f);
         } else {
@@ -883,33 +911,37 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         int px = levelManager.getPlayer().getX();
         int py = levelManager.getPlayer().getY();
+        int travelTiles;
+        boolean hitWall = false;
+        travelTiles = 0;
+        for (int i = 1; i <= unseen.items.Shuriken.RANGE; i++) {
+            int tx = px + shurikenDx * i;
+            int ty = py + shurikenDy * i;
+            if (tx < 0 || tx >= unseen.utils.Constants.GRID_WIDTH
+                    || ty < 0 || ty >= unseen.utils.Constants.GRID_HEIGHT) {
+                break;
+            }
+            if (levelManager.getMap().getTile(tx, ty) == unseen.map.Tile.WALL) {
+                hitWall = true;
+                break;
+            }
+            travelTiles = i;
+        }
+        if (travelTiles <= 0) {
+            showToast("Throw blocked.", new Color(220, 120, 90));
+            repaint();
+            return;
+        }
+
         unseen.utils.SoundManager.get().play("shuriken");
         shuriken.fireInDirection(px, py, shurikenDx, shurikenDy,
                 levelManager.getMap(), levelManager.getEnemies());
         inv.remove(idx);
         targetingShuriken = false;
 
-        // Determine how far the shuriken actually flew and spawn the visual
         int[] killPos = shuriken.getLastKillPos();
-        int travelTiles;
-        boolean hitWall = false;
         if (killPos != null) {
             travelTiles = Math.abs(killPos[0] - px) + Math.abs(killPos[1] - py);
-        } else {
-            // Stopped at wall or edge -- count the unobstructed tiles
-            travelTiles = 0;
-            for (int i = 1; i <= unseen.items.Shuriken.RANGE; i++) {
-                int tx = px + shurikenDx * i;
-                int ty = py + shurikenDy * i;
-                if (tx < 0 || tx >= unseen.utils.Constants.GRID_WIDTH
-                        || ty < 0 || ty >= unseen.utils.Constants.GRID_HEIGHT)
-                    break;
-                if (levelManager.getMap().getTile(tx, ty) == unseen.map.Tile.WALL) {
-                    hitWall = true;
-                    break;
-                }
-                travelTiles = i;
-            }
         }
 
         if (killPos != null || hitWall) {
@@ -950,6 +982,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     @Override
     public void purifyFloor() {
         levelManager.purifyFloor();
+        levelManager.addTileEffect(levelManager.getPlayer().getX(), levelManager.getPlayer().getY(),
+                TileEffect.Kind.PURIFY);
         loadAndPlayBackgroundSound(); // Immediately swap to normal music
     }
 
@@ -987,6 +1021,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             levelManager.getMap().removeItem(px, py);
             unseen.utils.SoundManager.get().play("item_pickup"); // Or a specific heal sound if available
             showToast("Restored 1 Health!", new Color(255, 100, 100));
+            levelManager.addTileEffect(px, py, TileEffect.Kind.PICKUP);
         } else {
             boolean pickedUp = levelManager.getPlayer().addItem(it);
             if (!pickedUp) {
@@ -996,6 +1031,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             levelManager.getMap().removeItem(px, py);
             unseen.utils.SoundManager.get().play("item_pickup");
             showToast("Picked up " + itemDisplayName(it), new Color(120, 255, 160));
+            levelManager.addTileEffect(px, py, TileEffect.Kind.PICKUP);
         }
 
         processTurnAndApply();
@@ -1102,6 +1138,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     public java.util.List<unseen.ui.gamepanel.ShurikenProjectile> getShurikenProjectiles() {
         return levelManager.getShurikenProjectiles();
+    }
+
+    public void addTileEffect(int x, int y, TileEffect.Kind kind) {
+        levelManager.addTileEffect(x, y, kind);
     }
 
     public int getMouseGridX() {

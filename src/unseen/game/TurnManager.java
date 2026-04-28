@@ -33,6 +33,7 @@ public class TurnManager {
             List<Smoke> smokes) {
 
         boolean wasHit = false;
+        boolean anyNewAlert = false;
 
         // 1. Identify all enemies in CHASE mode to assign flanking roles
         List<Enemy> chasers = new ArrayList<>();
@@ -69,8 +70,18 @@ public class TurnManager {
             // Skip enemies that were killed earlier this turn
             if (!enemy.isAlive()) continue;
 
+            Enemy.State previousState = enemy.getState();
+
             // Each enemy executes its logic based on current world state
             enemy.takeTurn(map, player, smokes, enemies);
+
+            if (panel != null
+                    && previousState != Enemy.State.CHASE
+                    && enemy.getState() == Enemy.State.CHASE) {
+                panel.addTileEffect(enemy.getX(), enemy.getY(),
+                        unseen.ui.gamepanel.TileEffect.Kind.ALERT);
+                anyNewAlert = true;
+            }
 
             // If this enemy is a sentry, let it alert nearby enemies
             if (enemy instanceof unseen.entities.SentryEnemy) {
@@ -186,10 +197,18 @@ public class TurnManager {
 
         player.updateLastPosition();
 
+        if (panel != null && anyNewAlert) {
+            panel.showToast("Enemy alerted!", new java.awt.Color(255, 110, 70));
+        }
+
         panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
 
         if (map.getTile(player.getX(), player.getY())
                 == unseen.map.Tile.EXIT) {
+            if (panel != null) {
+                panel.addTileEffect(player.getX(), player.getY(),
+                        unseen.ui.gamepanel.TileEffect.Kind.EXIT);
+            }
             return new TurnResult(GameState.WIN, wasHit, killsThisTurn);
         }
 

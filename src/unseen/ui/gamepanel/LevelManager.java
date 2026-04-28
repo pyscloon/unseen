@@ -95,6 +95,9 @@ public class LevelManager implements SmokeSpawner {
     private int terrorLevel = 0; // 0 to 10
     private boolean highTensionMode = false;
     private int tensionTimer = 20;
+    private int scareCooldownTurns = 8;
+    private int horrorPressure = 0;
+    private int directorReleaseTurns = 0;
 
     public int getDarkEventTurns() {
         return darkEventTurns;
@@ -129,6 +132,7 @@ public class LevelManager implements SmokeSpawner {
     private List<ActiveFlare> flares = new ArrayList<>();
     private List<unseen.game.StickyTrap> traps = new ArrayList<>();
     private List<ShurikenProjectile> shurikenProjectiles = new ArrayList<>();
+    private List<TileEffect> tileEffects = new ArrayList<>();
 
     // -------------------------------------------------------------------------
     // Getters
@@ -174,6 +178,14 @@ public class LevelManager implements SmokeSpawner {
         return shurikenProjectiles;
     }
 
+    public List<TileEffect> getTileEffects() {
+        return tileEffects;
+    }
+
+    public void addTileEffect(int x, int y, TileEffect.Kind kind) {
+        tileEffects.add(new TileEffect(x, y, kind));
+    }
+
     /**
      * Spawns a flying shuriken visual from {@code originX,originY} in direction
      * {@code dx,dy}, traveling {@code travelTiles} tiles.
@@ -193,16 +205,6 @@ public class LevelManager implements SmokeSpawner {
     public void incrementTurn() {
         turnCount++;
         if (panel.isHorrorMode() && !floorPurified) {
-            // --- Update Suspense Cycle ---
-            tensionTimer--;
-            if (tensionTimer <= 0) {
-                highTensionMode = !highTensionMode;
-                tensionTimer = 15 + new Random().nextInt(15);
-                if (highTensionMode) {
-                    unseen.utils.SoundManager.get().play("heartbeat", 0.4f);
-                }
-            }
-
             // Calculate Terror Level based on nearest enemy
             double minD = Double.MAX_VALUE;
             for (Enemy e : enemies) {
@@ -210,43 +212,7 @@ public class LevelManager implements SmokeSpawner {
                 if (d < minD)
                     minD = d;
             }
-            if (minD < 5.0)
-                terrorLevel = 10;
-            else if (minD < 10.0)
-                terrorLevel = 7;
-            else
-                terrorLevel = highTensionMode ? 5 : 2;
-
-            // Chance to trigger total darkness - only in High Tension or when close to
-            // enemy (REDUCED)
-            if (darkEventTurns <= 0 && (highTensionMode || minD < 8.0) && Math.random() < 0.015) {
-                darkEventTurns = 2 + (int) (Math.random() * 2); // 2 to 3 turns of darkness (shorter)
-                unseen.utils.SoundManager.get().play("ghostwhisper", 1.0f); // Eerie whisper for lights out
-                panel.triggerShake(10, 2f);
-            } else if (darkEventTurns > 0) {
-                darkEventTurns--;
-            }
-
-            // Random ambient horror sounds - frequency tied to terrorLevel
-            double ambientRoll = Math.random();
-            double chance = 0.001 + (terrorLevel * 0.002); // Slightly increased from ultra-rare
-            if (ambientRoll < chance) {
-                if (highTensionMode && Math.random() < 0.01) {
-                    unseen.utils.SoundManager.get().play("jumpscare", 0.4f);
-                } else {
-                    float vol = 0.1f + (terrorLevel * 0.02f);
-                    // Added 'breathing' back to the mix
-                    unseen.utils.SoundManager.get().playRandom(vol, "laugh", "scream", "iseeyou", "breathing",
-                            "suspense", "no_more");
-                }
-            }
-
-            // --- UNRELIABLE LANTERN ---
-            if (lanternFlickerTurns > 0) {
-                lanternFlickerTurns--;
-            } else if (panel.isHorrorMode() && Math.random() < 0.02) { // 2% chance per turn
-                lanternFlickerTurns = 1 + new Random().nextInt(2);
-            }
+            updateHorrorDirector(minD);
 
             // --- HEARTBEAT SOUND LOGIC ---
             boolean anyChase = false;
@@ -272,37 +238,12 @@ public class LevelManager implements SmokeSpawner {
                 unseen.utils.SoundManager.get().play("heartbeat", 0.8f);
             }
 
-            // --- PLAYER BREATHING (General ambient tension) ---
-            if (panel.isHorrorMode() && !floorPurified && panel.getGameState() == unseen.game.GameState.PLAYING
-                    && Math.random() < 0.1) { // 4% chance per turn for ambient breathing
-                unseen.utils.SoundManager.get().play("breathing", 0.3f);
-                unseen.utils.SoundManager.get().play("heartbeat", 0.8f);
-            }
-
-            // Spawn Shadow Figures in the dark - extremely rare now
-            double shadowChance = highTensionMode ? 0.04 : 0.01;
-            if (Math.random() < shadowChance && shadowFigures.size() < 2) {
-                Random r = new Random();
-                for (int i = 0; i < 50; i++) {
-                    int sx = r.nextInt(Constants.GRID_WIDTH);
-                    int sy = r.nextInt(Constants.GRID_HEIGHT);
-                    if (map.getTile(sx, sy) == Tile.FLOOR && !visible[sy][sx]) {
-                        shadowFigures.add(new unseen.entities.ShadowFigure(sx, sy));
-                        break;
-                    }
-                }
-            }
-
             // Update Shadow Figures
             shadowFigures.removeIf(sf -> {
                 boolean wasSeen = sf.isSeen();
                 sf.update(player.getX(), player.getY(), visible, map);
                 if (!wasSeen && sf.isSeen()) {
-                    // Randomize what they hear for variety
-                    unseen.utils.SoundManager.get().playRandom(0.2f, "laugh", "jumpscare");
-                    unseen.utils.SoundManager.get().playRandom(0.3f, "jumpscare", "scream");
-                    unseen.utils.SoundManager.get().playRandom(0.5f, "iseeyou", "jumpscare");
-                    unseen.utils.SoundManager.get().playRandom(0.5f, "no_more", "jumpscare");
+                    unseen.utils.SoundManager.get().playRandom(0.45f, "iseeyou", "suspense", "ghostwhisper");
                     panel.triggerShake(5, 1.5f); // Tiny shake
                 }
                 return sf.isSeen();
@@ -382,57 +323,150 @@ public class LevelManager implements SmokeSpawner {
                         }
                     }
                 }
-            } else if (panel.isHorrorMode()) {
-                // Higher chance in horror mode
-                double spawnChance = 0.05;
-                if (Math.random() < spawnChance) {
-                    Random r = new Random();
-                    for (int i = 0; i < 100; i++) { // More attempts to find a valid spot
-                        int tx = r.nextInt(Constants.GRID_WIDTH);
-                        int ty = r.nextInt(Constants.GRID_HEIGHT);
-                        double d = Math.hypot(tx - player.getX(), ty - player.getY());
-                        // Spawn IN VISION but at a distance
-                        if (map.getTile(tx, ty) == Tile.FLOOR && visible[ty][tx] && d > 4 && d < 7) {
-                            phantomX = tx;
-                            phantomY = ty;
-                            phantomTurns = 2; // Lasts 2 turns
-                            break;
-                        }
-                    }
-                }
-            }
-            // --- ECHOING FOOTSTEPS --- (Suspense element)
-            if (highTensionMode && Math.random() < 0.15) {
-                // Play a delayed footstep to make player paranoid
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(300);
-                    } catch (InterruptedException ex) {
-                    }
-                    unseen.utils.SoundManager.get().playRandom(0.3f, "footstep1", "footstep2");
-                }).start();
-            }
-
-            // --- WHISPERING WALLS ---
-            if (highTensionMode && Math.random() < 0.12) {
-                int px = player.getX();
-                int py = player.getY();
-                // Check neighbors for walls
-                boolean nearWall = false;
-                if (px > 0 && map.getTile(px - 1, py) == Tile.WALL)
-                    nearWall = true;
-                else if (px < Constants.GRID_WIDTH - 1 && map.getTile(px + 1, py) == Tile.WALL)
-                    nearWall = true;
-                else if (py > 0 && map.getTile(px, py - 1) == Tile.WALL)
-                    nearWall = true;
-                else if (py < Constants.GRID_HEIGHT - 1 && map.getTile(px, py + 1) == Tile.WALL)
-                    nearWall = true;
-
-                if (nearWall) {
-                    unseen.utils.SoundManager.get().play("smoke", 0.45f); // Use smoke as a whisper
-                }
             }
         }
+    }
+
+    private void updateHorrorDirector(double minD) {
+        if (darkEventTurns > 0) {
+            darkEventTurns--;
+        }
+        if (lanternFlickerTurns > 0) {
+            lanternFlickerTurns--;
+        }
+        if (scareCooldownTurns > 0) {
+            scareCooldownTurns--;
+        }
+
+        int pressureGain = 1;
+        if (minD < 5.0) {
+            terrorLevel = 10;
+            pressureGain += 7;
+        } else if (minD < 10.0) {
+            terrorLevel = 7;
+            pressureGain += 4;
+        } else {
+            terrorLevel = highTensionMode ? 5 : 2;
+        }
+        if (player.getHealth() == 1) {
+            pressureGain += 2;
+        }
+        if (turnCount > 35) {
+            pressureGain += 1;
+        }
+
+        if (directorReleaseTurns > 0) {
+            directorReleaseTurns--;
+            horrorPressure = Math.max(0, horrorPressure - 5);
+        } else {
+            horrorPressure = Math.min(100, horrorPressure + pressureGain);
+        }
+
+        boolean wasHighTension = highTensionMode;
+        highTensionMode = horrorPressure >= 35;
+        if (!wasHighTension && highTensionMode) {
+            unseen.utils.SoundManager.get().play("heartbeat", 0.45f);
+        }
+
+        if (scareCooldownTurns > 0 || panel.getGameState() != unseen.game.GameState.PLAYING) {
+            return;
+        }
+
+        if (horrorPressure < 25) {
+            playSubtleScare();
+            scareCooldownTurns = 6 + new Random().nextInt(4);
+        } else if (horrorPressure < 65) {
+            playMediumScare();
+            scareCooldownTurns = 8 + new Random().nextInt(5);
+        } else {
+            playMajorScare(minD);
+            scareCooldownTurns = 12 + new Random().nextInt(7);
+            directorReleaseTurns = 5;
+            horrorPressure = Math.max(22, horrorPressure - 35);
+        }
+    }
+
+    private void playSubtleScare() {
+        if (isPlayerNearWall() && Math.random() < 0.55) {
+            unseen.utils.SoundManager.get().play("smoke", 0.35f);
+        } else {
+            new Thread(() -> {
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException ex) {
+                }
+                unseen.utils.SoundManager.get().playRandom(0.25f, "footstep1", "footstep2", "breathing");
+            }).start();
+        }
+    }
+
+    private void playMediumScare() {
+        double roll = Math.random();
+        if (roll < 0.35) {
+            spawnPhantom();
+            unseen.utils.SoundManager.get().play("ghostwhisper", 0.45f);
+        } else if (roll < 0.65) {
+            spawnShadowFigure();
+            unseen.utils.SoundManager.get().playRandom(0.35f, "suspense", "breathing", "iseeyou");
+        } else {
+            lanternFlickerTurns = 1 + new Random().nextInt(2);
+            unseen.utils.SoundManager.get().play("suspense", 0.35f);
+        }
+    }
+
+    private void playMajorScare(double minD) {
+        if (darkEventTurns <= 0 && (minD < 8.0 || highTensionMode)) {
+            darkEventTurns = 2 + (int) (Math.random() * 2);
+            unseen.utils.SoundManager.get().play("ghostwhisper", 0.9f);
+            panel.triggerShake(10, 2f);
+            return;
+        }
+        spawnShadowFigure();
+        spawnPhantom();
+        unseen.utils.SoundManager.get().playRandom(0.7f, "no_more", "scream", "iseeyou");
+        panel.triggerShake(8, 2.5f);
+    }
+
+    private void spawnShadowFigure() {
+        if (shadowFigures.size() >= 2) {
+            return;
+        }
+        Random r = new Random();
+        for (int i = 0; i < 50; i++) {
+            int sx = r.nextInt(Constants.GRID_WIDTH);
+            int sy = r.nextInt(Constants.GRID_HEIGHT);
+            if (map.getTile(sx, sy) == Tile.FLOOR && !visible[sy][sx]) {
+                shadowFigures.add(new unseen.entities.ShadowFigure(sx, sy));
+                return;
+            }
+        }
+    }
+
+    private void spawnPhantom() {
+        if (phantomTurns > 0) {
+            return;
+        }
+        Random r = new Random();
+        for (int i = 0; i < 100; i++) {
+            int tx = r.nextInt(Constants.GRID_WIDTH);
+            int ty = r.nextInt(Constants.GRID_HEIGHT);
+            double d = Math.hypot(tx - player.getX(), ty - player.getY());
+            if (map.getTile(tx, ty) == Tile.FLOOR && visible[ty][tx] && d > 4 && d < 7) {
+                phantomX = tx;
+                phantomY = ty;
+                phantomTurns = 2;
+                return;
+            }
+        }
+    }
+
+    private boolean isPlayerNearWall() {
+        int px = player.getX();
+        int py = player.getY();
+        return (px > 0 && map.getTile(px - 1, py) == Tile.WALL)
+                || (px < Constants.GRID_WIDTH - 1 && map.getTile(px + 1, py) == Tile.WALL)
+                || (py > 0 && map.getTile(px, py - 1) == Tile.WALL)
+                || (py < Constants.GRID_HEIGHT - 1 && map.getTile(px, py + 1) == Tile.WALL);
     }
 
     /**
@@ -465,6 +499,7 @@ public class LevelManager implements SmokeSpawner {
         flares.clear();
         traps.clear();
         shurikenProjectiles.clear();
+        tileEffects.clear();
         enemies = new ArrayList<>();
         shadowFigures.clear(); // Clear old figures
 
@@ -577,6 +612,9 @@ public class LevelManager implements SmokeSpawner {
         this.terrorLevel = 0;
         this.highTensionMode = false;
         this.tensionTimer = 20;
+        this.scareCooldownTurns = 8;
+        this.horrorPressure = 0;
+        this.directorReleaseTurns = 0;
         this.floorPurified = false;
 
         this.availableLore = new ArrayList<>(Arrays.asList(LORE_NOTES));
@@ -610,6 +648,9 @@ public class LevelManager implements SmokeSpawner {
         terrorLevel = 0;
         highTensionMode = false;
         tensionTimer = 20;
+        scareCooldownTurns = 8;
+        horrorPressure = 0;
+        directorReleaseTurns = 0;
         floorPurified = false;
         this.currentFloorLore.clear();
 

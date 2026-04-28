@@ -356,6 +356,9 @@ public class InputHandler extends KeyAdapter {
             panel.getTraps().removeIf(trap -> {
                 if (trap.getX() == movedX && trap.getY() == movedY) {
                     player.setTrapped(1);
+                    panel.addTileEffect(movedX, movedY, unseen.ui.gamepanel.TileEffect.Kind.TRAP);
+                    panel.triggerShake(8, 3f);
+                    panel.showToast("Sticky trap!", new java.awt.Color(255, 130, 40));
                     return true;
                 }
                 return false;
