@@ -14,11 +14,12 @@ import java.util.Random;
 public class MapGenerator {
 
     private static final int MIN_ROOM_SIZE = 4;
-    private static final int MAX_ROOM_SIZE = 9;
-    private static final int ROOM_ATTEMPTS = 60;
-    private static final int TARGET_ROOMS = 11;
+    private static final int MAX_ROOM_SIZE = 5;
+    private static final int ROOM_ATTEMPTS = 420;
+    private static final int TARGET_ROOMS = 28;
     private static final int HALLWAY_WIDTH = 2;
-    private static final int ROOM_SPACING = 2;
+    private static final int ROOM_SPACING = 0;
+    private static final double MIN_OPEN_RATIO = 0.78;
 
     private static class Room {
         final int x;
@@ -83,7 +84,8 @@ public class MapGenerator {
         placeRoomInRegion(map, rooms, rand, 0, Constants.GRID_HEIGHT / 2, Constants.GRID_WIDTH / 2, Constants.GRID_HEIGHT);
         placeRoomInRegion(map, rooms, rand, Constants.GRID_WIDTH / 2, Constants.GRID_HEIGHT / 2, Constants.GRID_WIDTH, Constants.GRID_HEIGHT);
 
-        for (int attempt = 0; attempt < ROOM_ATTEMPTS && rooms.size() < TARGET_ROOMS; attempt++) {
+        for (int attempt = 0; attempt < ROOM_ATTEMPTS
+                && (rooms.size() < TARGET_ROOMS || openRatio(map) < MIN_OPEN_RATIO); attempt++) {
             tryPlaceRoom(map, rooms, rand, 1, 1, Constants.GRID_WIDTH - 1, Constants.GRID_HEIGHT - 1);
         }
 
@@ -300,6 +302,19 @@ public class MapGenerator {
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static double openRatio(Map map) {
+        int openTiles = 0;
+        int totalTiles = Constants.GRID_WIDTH * Constants.GRID_HEIGHT;
+        for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
+            for (int x = 0; x < Constants.GRID_WIDTH; x++) {
+                if (map.getTile(x, y) != Tile.WALL) {
+                    openTiles++;
+                }
+            }
+        }
+        return (double) openTiles / totalTiles;
     }
 
     private static void connectRooms(Map map, List<Room> rooms, Random rand) {

@@ -531,20 +531,19 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             return;
         }
 
-        if (!hook.isWallTarget(levelManager.getMap(), gx, gy)) {
-            showToast("Must target a wall!", new Color(200, 150, 50));
+        boolean used = hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
+        if (!used) {
+            showToast("Hook needs wall with open landing spot", new Color(220, 120, 90));
+            repaint();
             return;
         }
 
-        if (hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy)) {
-            unseen.utils.SoundManager.get().play("shuriken", 0.7f); // Use shuriken sound for now
-            inv.remove(idx);
-            targetingGrapplingHook = false;
-            processTurnAndApply();
-            requestFocusInWindow();
-        } else {
-            showToast("No landing spot available!", new Color(200, 100, 50));
-        }
+        inv.remove(idx);
+        targetingGrapplingHook = false;
+        showToast("Grapple zip!", new Color(150, 220, 255));
+
+        processTurnAndApply();
+        requestFocusInWindow();
         repaint();
     }
 
