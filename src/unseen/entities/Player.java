@@ -9,9 +9,10 @@
     import java.util.ArrayList;
     import java.util.List;
 
-    public class Player extends Entity {
+public class Player extends Entity {
 
-        public static final int MAX_HEALTH = 3;
+    public static final int MAX_HEALTH = 3;
+    public static final int MAX_ITEM_STACK = 5;
 
         public enum Facing { LEFT, RIGHT }
         private Facing facing = Facing.RIGHT;
@@ -28,6 +29,14 @@
 
         /** Brief invulnerability after taking a hit (in turns). */
         private int invincibleTurns = 0;
+
+        private int campfireTurns = 0;
+        private int lastRestedFloor = -1;
+
+        public int getCampfireTurns() { return campfireTurns; }
+        public void setCampfireTurns(int t) { this.campfireTurns = t; }
+        public int getLastRestedFloor() { return lastRestedFloor; }
+        public void setLastRestedFloor(int f) { this.lastRestedFloor = f; }
 
         private SmokeSpawner smokeSpawner;
 
@@ -120,7 +129,16 @@
 
         // -- Inventory -------------------------------------------------
 
-        public void addItem(Item item) { inventory.add(item); }
+    public boolean addItem(Item item) {
+        long heldCount = inventory.stream()
+            .filter(existingItem -> existingItem.getClass().equals(item.getClass()))
+            .count();
+        if (heldCount >= MAX_ITEM_STACK) {
+            return false;
+        }
+        inventory.add(item);
+        return true;
+    }
         public List<Item> getInventory() { return inventory; }
 
         public void useItem(int index, Map map, List<Enemy> enemies) {

@@ -8,6 +8,7 @@ import unseen.game.ActiveFlare;
 import unseen.game.GameState;
 import unseen.game.Smoke;
 import unseen.items.Flare;
+import unseen.items.GrapplingHook;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
@@ -64,6 +65,7 @@ public class GameRenderer {
         drawFlares(world);
         drawNoiseFlashes(world);
         drawShurikenProjectiles(world);
+        drawGrappleAnimation(world);
 
         // --- HORROR ATMOSPHERE ---
         if (panel.isHorrorMode() && !levelManager.isFloorPurified()) {
@@ -149,7 +151,7 @@ public class GameRenderer {
 
         // ----------------------------------------
 
-        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare())
+        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingGrapplingHook())
             drawTargetingOverlay(world);
         if (panel.isTargetingShuriken())
             drawShurikenAimOverlay(world);
@@ -634,7 +636,7 @@ public class GameRenderer {
         g2.drawString(quit, (w - qw) / 2, optY + 100);
         // -- end menu options -----------------------------------------------------
 
-        String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
+        String hint = "WASD - Move     E - Pick up     1/2/3/4/5/6 - Items";
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
         int hintW = g2.getFontMetrics().stringWidth(hint);
         g2.setColor(new Color(0, 0, 0, 180));
@@ -705,7 +707,8 @@ public class GameRenderer {
             new SlotDef("2", "Smoke Bomb", new Color(180, 200, 255), new Color(80, 85, 110)),
             new SlotDef("3", "Lantern", new Color(255, 230, 120), new Color(110, 100, 60)),
             new SlotDef("4", "Shuriken", new Color(140, 210, 255), new Color(65, 95, 120)),
-            new SlotDef("5", "Holy Cross", new Color(255, 255, 180), new Color(100, 100, 70)),
+            new SlotDef("5", "Grapple", new Color(150, 220, 255), new Color(70, 95, 110)),
+            new SlotDef("6", "Holy Cross", new Color(255, 255, 180), new Color(100, 100, 70)),
     };
 
     private void drawInventory(Graphics g) {
@@ -742,14 +745,16 @@ public class GameRenderer {
         int countSmoke = (int) player.getInventory().stream().filter(i -> i instanceof SmokeBomb).count();
         int countFlare = (int) player.getInventory().stream().filter(i -> i instanceof Flare).count();
         int countShuriken = (int) player.getInventory().stream().filter(i -> i instanceof Shuriken).count();
+        int countHook = (int) player.getInventory().stream().filter(i -> i instanceof GrapplingHook).count();
         int countCross = (int) player.getInventory().stream().filter(i -> i instanceof unseen.items.Cross).count();
-        int[] counts = { countNoise, countSmoke, countFlare, countShuriken, countCross };
+        int[] counts = { countNoise, countSmoke, countFlare, countShuriken, countHook, countCross };
 
         java.awt.Image[] icons = {
                 AssetLoader.get().noiseMaker,
                 AssetLoader.get().smokeBomb,
                 AssetLoader.get().lantern,
                 AssetLoader.get().shuriken,
+                AssetLoader.get().grapplingHook,
                 AssetLoader.get().cross,
         };
 
@@ -759,6 +764,7 @@ public class GameRenderer {
                 false, // smoke bomb has no targeting mode
                 panel.isTargetingFlare(),
                 panel.isTargetingShuriken(),
+                panel.isTargetingGrapplingHook(),
                 false, // cross is immediate
         };
 
@@ -1172,7 +1178,8 @@ public class GameRenderer {
         boolean[][] visible = levelManager.getVisible();
         Player player = levelManager.getPlayer();
 
-        if (visible[player.getY()][player.getX()]) {
+        boolean hidingPlayer = panel.isGrappling() && panel.getGrappleProgress() >= 0.4f;
+        if (!hidingPlayer && visible[player.getY()][player.getX()]) {
             if (player.getHeroImage() != null) {
                 int scaledSize = Constants.TILE_SIZE * 2;
                 int drawX = player.getX() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
@@ -1651,6 +1658,96 @@ public class GameRenderer {
         }
     }
 
+    private void drawGrappleAnimation(Graphics2D g2) {
+        if (!panel.isGrappling()) return;
+
+        int ts = Constants.TILE_SIZE;
+        float progress = panel.getGrappleProgress();
+        
+        // Start pixel position (center of start tile)
+        int sx = panel.getGrappleStartX() * ts + ts / 2;
+        int sy = panel.getGrappleStartY() * ts + ts / 2;
+        
+        // Wall pixel position (center of wall tile)
+        int wx = panel.getGrappleWallX() * ts + ts / 2;
+        int wy = panel.getGrappleWallY() * ts + ts / 2;
+        
+        // End pixel position (center of landing tile)
+        int ex = panel.getGrappleEndX() * ts + ts / 2;
+        int ey = panel.getGrappleEndY() * ts + ts / 2;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Two phases:
+        // 0.0 -> 0.4: Hook flies to wall
+        // 0.4 -> 1.0: Player zips to landing spot
+        
+        if (progress < 0.4f) {
+            // PHASE 1: Hook flies out
+            float hookP = progress / 0.4f;
+            int hx = (int)(sx + (wx - sx) * hookP);
+            int hy = (int)(sy + (wy - sy) * hookP);
+            
+            // Draw rope (thick cable)
+            g2.setStroke(new BasicStroke(3f));
+            g2.setColor(new Color(100, 100, 110));
+            g2.drawLine(sx, sy, hx, hy);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.setColor(new Color(180, 180, 200));
+            g2.drawLine(sx, sy, hx, hy);
+            
+            // Draw hook sprite at the tip
+            Image hookImg = AssetLoader.get().grappleNoRope;
+            if (hookImg == null) hookImg = AssetLoader.get().grapplingHook; // Fallback
+            
+            if (hookImg != null) {
+                int sz = (int)(ts * 0.7);
+                double angle = Math.atan2(wy - sy, wx - sx);
+                java.awt.geom.AffineTransform at = new java.awt.geom.AffineTransform();
+                at.translate(hx, hy);
+                at.rotate(angle + Math.PI/2); // Align top of sprite to direction
+                at.translate(-sz/2.0, -sz/2.0);
+                g2.drawImage(hookImg, at, null);
+            }
+        } else {
+            // PHASE 2: Player zips
+            float zipP = (progress - 0.4f) / 0.6f;
+            int px = (int)(sx + (ex - sx) * zipP);
+            int py = (int)(sy + (ey - sy) * zipP);
+            
+            // Draw rope from player to wall
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.setColor(new Color(90, 90, 100));
+            g2.drawLine(px, py, wx, wy);
+            g2.setStroke(new BasicStroke(1f));
+            g2.setColor(new Color(160, 160, 180));
+            g2.drawLine(px, py, wx, wy);
+            
+            // Draw a motion blur/ghosting effect behind the zip
+            int blurSteps = 3;
+            for (int i = 1; i <= blurSteps; i++) {
+                float trailP = Math.max(0, zipP - i * 0.05f);
+                int tx = (int)(sx + (ex - sx) * trailP);
+                int ty = (int)(sy + (ey - sy) * trailP);
+                g2.setColor(new Color(150, 220, 255, 100 / i));
+                g2.fillOval(tx - ts/4, ty - ts/4, ts/2, ts/2);
+            }
+
+            // Draw player sprite at moving position
+            unseen.entities.Player player = levelManager.getPlayer();
+            if (player.getHeroImage() != null) {
+                int scaledSize = ts * 2;
+                int dx = px - scaledSize / 2;
+                int dy = py - scaledSize / 2;
+                if (player.getFacing() == unseen.entities.Player.Facing.LEFT) {
+                    g2.drawImage(player.getHeroImage(), dx + scaledSize, dy, -scaledSize, scaledSize, null);
+                } else {
+                    g2.drawImage(player.getHeroImage(), dx, dy, scaledSize, scaledSize, null);
+                }
+            }
+        }
+    }
+
     private void drawTargetingOverlay(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -1664,7 +1761,9 @@ public class GameRenderer {
 
         boolean validTile = mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT
-                && levelManager.getMap().isPassable(mouseGridX, mouseGridY);
+                && (panel.isTargetingGrapplingHook()
+                    ? panel.isValidGrapplingHookTarget(mouseGridX, mouseGridY)
+                    : levelManager.getMap().isPassable(mouseGridX, mouseGridY));
 
         int tx = mouseGridX * ts;
         int ty = mouseGridY * ts;
@@ -1673,7 +1772,16 @@ public class GameRenderer {
             drawShurikenAimOverlay(g);
 
         if (validTile) {
-            if (panel.isTargetingFlare()) {
+            if (panel.isTargetingGrapplingHook()) {
+                g2.setColor(new Color(120, 200, 255, 130));
+                g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(180, 230, 255, 220));
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRect(tx, ty, ts, ts);
+                int cx = tx + ts / 2, cy = ty + ts / 2;
+                g2.drawOval(cx - ts / 4, cy - ts / 4, ts / 2, ts / 2);
+                g2.drawLine(cx, cy, cx, cy + ts / 3);
+            } else if (panel.isTargetingFlare()) {
                 g2.setColor(new Color(255, 240, 100, 130));
                 g2.fillRect(tx, ty, ts, ts);
                 g2.setColor(new Color(255, 255, 150, 220));
@@ -1705,9 +1813,15 @@ public class GameRenderer {
             g2.drawRect(tx, ty, ts, ts);
         }
 
-        String actionName = panel.isTargetingFlare() ? "flare" : "noise";
-        String msg = validTile ? "Click to throw " + actionName + "  |  Esc to cancel"
-                : "Invalid tile  |  Esc to cancel";
+        String msg;
+        if (panel.isTargetingGrapplingHook()) {
+            msg = validTile ? "WASD aim wall  |  SPACE hook  |  Esc cancel"
+                    : "Need straight wall with clear path  |  Esc cancel";
+        } else {
+            String actionName = panel.isTargetingFlare() ? "flare" : "noise";
+            msg = validTile ? "Click to throw " + actionName + "  |  Esc to cancel"
+                    : "Invalid tile  |  Esc to cancel";
+        }
         g2.setFont(new Font("Arial", Font.BOLD, 16));
         FontMetrics fm = g2.getFontMetrics();
         int msgW = fm.stringWidth(msg);
@@ -1716,7 +1830,9 @@ public class GameRenderer {
         g2.setColor(new Color(20, 20, 20, 190));
         g2.fillRoundRect(bx, by, msgW + 24, 28, 10, 10);
 
-        Color validColor = panel.isTargetingFlare() ? new Color(255, 255, 120) : new Color(255, 220, 80);
+        Color validColor = panel.isTargetingGrapplingHook()
+                ? new Color(180, 230, 255)
+                : (panel.isTargetingFlare() ? new Color(255, 255, 120) : new Color(255, 220, 80));
         g2.setColor(validTile ? validColor : new Color(220, 100, 100));
         g2.drawString(msg, bx + 12, by + 20);
     }
@@ -1846,6 +1962,16 @@ public class GameRenderer {
                 // Draw some "scribbles"
                 for (int i = 0; i < 3; i++) {
                     g2.drawLine(nx + 4, ny + 4 + i * 4, nx + nw - 4, ny + 4 + i * 4);
+                }
+                break;
+            case PUDDLE:
+                if (AssetLoader.get().puddle != null) {
+                    g2.drawImage(AssetLoader.get().puddle, drawX, drawY, 
+                                 Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                } else {
+                    // Fallback to a translucent blue oval
+                    g2.setColor(new Color(60, 120, 200, 120));
+                    g2.fillOval(drawX + 4, drawY + 8, Constants.TILE_SIZE - 8, Constants.TILE_SIZE - 16);
                 }
                 break;
         }
