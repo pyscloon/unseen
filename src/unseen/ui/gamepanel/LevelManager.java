@@ -464,7 +464,7 @@ public class LevelManager implements SmokeSpawner {
                     break;
 
                 case "sentry":
-                    enemies.add(new SentryEnemy(ex, ey, pathfinder));
+                    enemies.add(new SentryEnemy(ex, ey, pathfinder, panel.isHorrorMode()));
                     break;
             }
         }

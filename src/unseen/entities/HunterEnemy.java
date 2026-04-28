@@ -43,7 +43,7 @@ public class HunterEnemy extends Enemy {
 
         switch (state) {
             case CHASE:
-                chase(map, allEnemies);
+                chase(map, player, allEnemies);
                 break;
             case SEARCH:
                 search();
@@ -53,8 +53,18 @@ public class HunterEnemy extends Enemy {
         }
     }
 
-    private void chase(Map map, List<Enemy> allEnemies) {
-        List<Node> path = pathfinder.findPath(map, x, y, lastKnownX, lastKnownY);
+    private void chase(Map map, Player player, List<Enemy> allEnemies) {
+        int tx = lastKnownX;
+        int ty = lastKnownY;
+
+        // If flanking, aim behind the player
+        if (isFlanker) {
+            java.awt.Point flank = getFlankingTarget(map, player);
+            tx = flank.x;
+            ty = flank.y;
+        }
+
+        List<Node> path = pathfinder.findPath(map, x, y, tx, ty);
         if (path != null && path.size() > 1) {
             Node next = path.get(1);
             if (isTileOccupied(next.x, next.y, allEnemies))

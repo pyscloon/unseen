@@ -64,7 +64,7 @@ public class PatrolEnemy extends Enemy {
         switch (state) {
 
             case CHASE:
-                chase(map, allEnemies);
+                chase(map, player, allEnemies);
                 break;
 
             case SEARCH:
@@ -98,11 +98,18 @@ public class PatrolEnemy extends Enemy {
         }
     }
 
-    private void chase(Map map, List<Enemy> allEnemies) {
+    private void chase(Map map, Player player, List<Enemy> allEnemies) {
+        int tx = lastKnownX;
+        int ty = lastKnownY;
 
-        List<Node> path =
-                pathfinder.findPath(map, x, y,
-                        lastKnownX, lastKnownY);
+        if (isFlanker) {
+            java.awt.Point flank = getFlankingTarget(map, player);
+            tx = flank.x;
+            ty = flank.y;
+        }
+
+        List<Node> path = pathfinder.findPath(map, x, y, tx, ty);
+        
 
         if (path != null && path.size() > 1) {
             Node next = path.get(1);

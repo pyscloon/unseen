@@ -33,6 +33,32 @@ public class TurnManager {
 
         boolean wasHit = false;
 
+        // 1. Identify all enemies in CHASE mode to assign flanking roles
+        List<Enemy> chasers = new ArrayList<>();
+        for (Enemy e : enemies) {
+            if (e.isAlive() && e.getState() == Enemy.State.CHASE) {
+                chasers.add(e);
+            }
+        }
+
+        // 2. Assign roles: closest stays direct, others flank
+        if (chasers.size() > 1) {
+            Enemy closest = null;
+            double minDist = Double.MAX_VALUE;
+            for (Enemy e : chasers) {
+                double d = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
+                if (d < minDist) {
+                    minDist = d;
+                    closest = e;
+                }
+            }
+            for (Enemy e : chasers) {
+                e.setFlanker(e != closest);
+            }
+        } else if (chasers.size() == 1) {
+            chasers.get(0).setFlanker(false);
+        }
+
         // Tick down invincibility from last turn
         player.decrementInvincible();
 
@@ -93,6 +119,8 @@ public class TurnManager {
         int killsBefore = enemies.size();
         enemies.removeIf(e -> !e.isAlive());
         int killsThisTurn = killsBefore - enemies.size();
+
+        player.updateLastPosition();
 
         if (map.getTile(player.getX(), player.getY())
                 == unseen.map.Tile.EXIT) {

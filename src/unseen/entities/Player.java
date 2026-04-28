@@ -17,6 +17,11 @@
         private Facing facing = Facing.RIGHT;
 
         private int health = MAX_HEALTH;
+        private int lastX, lastY;
+
+        public int getLastX() { return lastX; }
+        public int getLastY() { return lastY; }
+        public void updateLastPosition() { this.lastX = x; this.lastY = y; }
 
         /** Turns remaining where the player is stuck in a sticky trap. */
         private int trappedTurns = 0;
@@ -33,6 +38,8 @@
             super(x, y);
             heroImage = AssetLoader.get().hero;
             facing = Facing.RIGHT;
+            this.lastX = x;
+            this.lastY = y;
         }
 
         public Image getHeroImage() { return heroImage; }

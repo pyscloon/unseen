@@ -23,7 +23,10 @@ public abstract class Enemy extends Entity {
     protected State state = State.PATROL;
     public void setState(State newState) {
         if (this.state != State.CHASE && newState == State.CHASE) {
-            unseen.utils.SoundManager.get().play("alert", 0.6f);
+            // Only play alert sound for Sentries.
+            if (this.type == EnemyType.SENTRY) {
+                unseen.utils.SoundManager.get().play("alert", 0.6f);
+            }
         }
         this.state = newState;
     }
@@ -34,6 +37,46 @@ public abstract class Enemy extends Entity {
     protected int searchTurns = 0;
     protected int distractedTurns = 0;
     protected boolean alive = true;
+    protected boolean isFlanker = false;
+
+    public void setFlanker(boolean flanker) { this.isFlanker = flanker; }
+    public boolean isFlanker() { return isFlanker; }
+
+    /**
+     * Calculates a tile "behind" the player based on their movement trajectory.
+     * Used for coordinated flanking.
+     */
+    protected java.awt.Point getFlankingTarget(Map map, Player player) {
+        int px = player.getX();
+        int py = player.getY();
+        int lx = player.getLastX();
+        int ly = player.getLastY();
+
+        int dx = px - lx;
+        int dy = py - ly;
+
+        // If player stayed still, infer trajectory from facing
+        if (dx == 0 && dy == 0) {
+            dx = (player.getFacing() == Player.Facing.RIGHT) ? 1 : -1;
+            dy = 0;
+        }
+
+        // Target a spot behind the player (opposite of their movement)
+        // We go back 3 tiles, but if blocked, we try closer.
+        for (int offset = 3; offset >= 1; offset--) {
+            int tx = px - (dx * offset);
+            int ty = py - (dy * offset);
+
+            if (tx >= 0 && tx < unseen.utils.Constants.GRID_WIDTH &&
+                ty >= 0 && ty < unseen.utils.Constants.GRID_HEIGHT &&
+                map.isPassable(tx, ty)) {
+                return new java.awt.Point(tx, ty);
+            }
+        }
+
+        // Fallback: Just return player position if no flanking spot found
+        return new java.awt.Point(px, py);
+    }
 
     // ── Path cache ──────────────────────────────────────────────────────────
     private java.util.List<unseen.ai.Node> cachedPath;

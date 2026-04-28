@@ -9,13 +9,15 @@ import unseen.game.Smoke;
 
 public class SentryEnemy extends Enemy {
 
+    private boolean canMove = false;
     // Visual alert state (shows '!' for a small number of turns)
     private boolean alertVisual = false;
     private int alertDisplayTurns = 0;
 
-    public SentryEnemy(int x, int y, Pathfinder pathfinder) {
+    public SentryEnemy(int x, int y, Pathfinder pathfinder, boolean canMove) {
         super(x, y, Constants.SENTRY_DETECTION_RANGE, pathfinder);
         this.type = EnemyType.SENTRY;
+        this.canMove = canMove;
         AssetLoader assets = AssetLoader.get();
         enemyImage = assets.sentry;
     }
@@ -38,8 +40,16 @@ public class SentryEnemy extends Enemy {
         }
 
         // CHANCE to actually move towards player if in CHASE mode (25% chance)
-        if (state == State.CHASE && Math.random() < 0.25) {
-            List<unseen.ai.Node> path = pathfinder.findPath(map, x, y, lastKnownX, lastKnownY);
+        // ONLY if movement is enabled (e.g. in Horror Mode)
+        if (canMove && state == State.CHASE && Math.random() < 0.25) {
+            int tx = lastKnownX;
+            int ty = lastKnownY;
+            if (isFlanker) {
+                java.awt.Point flank = getFlankingTarget(map, player);
+                tx = flank.x;
+                ty = flank.y;
+            }
+            List<unseen.ai.Node> path = pathfinder.findPath(map, x, y, tx, ty);
             if (path != null && path.size() > 1) {
                 unseen.ai.Node next = path.get(1);
                 if (!isTileOccupied(next.x, next.y, allEnemies)) {
