@@ -4,6 +4,7 @@ import unseen.entities.Player;
 import unseen.game.GameState;
 import unseen.game.TurnManager;
 import unseen.items.Item;
+import unseen.items.GrapplingHook;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
@@ -112,7 +113,8 @@ public class InputHandler extends KeyAdapter {
 
         // Escape: cancel targeting -> pause
         if (key == KeyEvent.VK_ESCAPE) {
-            if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingShuriken()) {
+            if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare()
+                    || panel.isTargetingShuriken() || panel.isTargetingGrapplingHook()) {
                 panel.cancelTargeting();
             } else if (panel.getGameState() == GameState.PLAYING) {
                 panel.pauseGame();
@@ -146,7 +148,7 @@ public class InputHandler extends KeyAdapter {
         if (panel.getGameState() != GameState.PLAYING)
             return;
 
-        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare()) {
+        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingGrapplingHook()) {
             switch (key) {
                 case KeyEvent.VK_W:
                 case KeyEvent.VK_UP:
@@ -198,7 +200,7 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare()) {
+        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingGrapplingHook()) {
             panel.cancelTargeting();
             return;
         }
@@ -245,7 +247,14 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        if (key == KeyEvent.VK_5 && panel.isHorrorMode()) {
+        if (key == KeyEvent.VK_5) {
+            boolean hasHook = player.getInventory().stream().anyMatch(i -> i instanceof GrapplingHook);
+            if (hasHook)
+                panel.enterGrapplingHookTargeting();
+            return;
+        }
+
+        if (key == KeyEvent.VK_6 && panel.isHorrorMode()) {
             List<Item> inv = player.getInventory();
             int idx = -1;
             for (int i = 0; i < inv.size(); i++) {

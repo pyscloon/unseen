@@ -8,6 +8,7 @@ import unseen.game.ActiveFlare;
 import unseen.game.GameState;
 import unseen.game.Smoke;
 import unseen.items.Flare;
+import unseen.items.GrapplingHook;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
@@ -148,7 +149,7 @@ public class GameRenderer {
 
         // ----------------------------------------
 
-        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare())
+        if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingGrapplingHook())
             drawTargetingOverlay(world);
         if (panel.isTargetingShuriken())
             drawShurikenAimOverlay(world);
@@ -632,7 +633,7 @@ public class GameRenderer {
         g2.drawString(quit, (w - qw) / 2, optY + 100);
         // ── end menu options ─────────────────────────────────────────────────────
 
-        String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
+        String hint = "WASD - Move     E - Pick up     1/2/3/4/5 - Items";
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
         int hintW = g2.getFontMetrics().stringWidth(hint);
         g2.setColor(new Color(0, 0, 0, 180));
@@ -703,7 +704,8 @@ public class GameRenderer {
             new SlotDef("2", "Smoke Bomb", new Color(180, 200, 255), new Color(80, 85, 110)),
             new SlotDef("3", "Lantern", new Color(255, 230, 120), new Color(110, 100, 60)),
             new SlotDef("4", "Shuriken", new Color(140, 210, 255), new Color(65, 95, 120)),
-            new SlotDef("5", "Holy Cross", new Color(255, 255, 180), new Color(100, 100, 70)),
+            new SlotDef("5", "Grapple", new Color(150, 220, 255), new Color(70, 95, 110)),
+            new SlotDef("6", "Holy Cross", new Color(255, 255, 180), new Color(100, 100, 70)),
     };
 
     private void drawInventory(Graphics g) {
@@ -740,14 +742,16 @@ public class GameRenderer {
         int countSmoke = (int) player.getInventory().stream().filter(i -> i instanceof SmokeBomb).count();
         int countFlare = (int) player.getInventory().stream().filter(i -> i instanceof Flare).count();
         int countShuriken = (int) player.getInventory().stream().filter(i -> i instanceof Shuriken).count();
+        int countHook = (int) player.getInventory().stream().filter(i -> i instanceof GrapplingHook).count();
         int countCross = (int) player.getInventory().stream().filter(i -> i instanceof unseen.items.Cross).count();
-        int[] counts = { countNoise, countSmoke, countFlare, countShuriken, countCross };
+        int[] counts = { countNoise, countSmoke, countFlare, countShuriken, countHook, countCross };
 
         java.awt.Image[] icons = {
                 AssetLoader.get().noiseMaker,
                 AssetLoader.get().smokeBomb,
                 AssetLoader.get().lantern,
                 AssetLoader.get().shuriken,
+                AssetLoader.get().grapplingHook,
                 AssetLoader.get().cross,
         };
 
@@ -757,6 +761,7 @@ public class GameRenderer {
                 false, // smoke bomb has no targeting mode
                 panel.isTargetingFlare(),
                 panel.isTargetingShuriken(),
+                panel.isTargetingGrapplingHook(),
                 false, // cross is immediate
         };
 
@@ -1660,7 +1665,9 @@ public class GameRenderer {
 
         boolean validTile = mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT
-                && levelManager.getMap().isPassable(mouseGridX, mouseGridY);
+                && (panel.isTargetingGrapplingHook()
+                    ? levelManager.getMap().getTile(mouseGridX, mouseGridY) == Tile.WALL
+                    : levelManager.getMap().isPassable(mouseGridX, mouseGridY));
 
         int tx = mouseGridX * ts;
         int ty = mouseGridY * ts;
@@ -1669,7 +1676,16 @@ public class GameRenderer {
             drawShurikenAimOverlay(g);
 
         if (validTile) {
-            if (panel.isTargetingFlare()) {
+            if (panel.isTargetingGrapplingHook()) {
+                g2.setColor(new Color(120, 200, 255, 130));
+                g2.fillRect(tx, ty, ts, ts);
+                g2.setColor(new Color(180, 230, 255, 220));
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRect(tx, ty, ts, ts);
+                int cx = tx + ts / 2, cy = ty + ts / 2;
+                g2.drawOval(cx - ts / 4, cy - ts / 4, ts / 2, ts / 2);
+                g2.drawLine(cx, cy, cx, cy + ts / 3);
+            } else if (panel.isTargetingFlare()) {
                 g2.setColor(new Color(255, 240, 100, 130));
                 g2.fillRect(tx, ty, ts, ts);
                 g2.setColor(new Color(255, 255, 150, 220));
@@ -1701,9 +1717,15 @@ public class GameRenderer {
             g2.drawRect(tx, ty, ts, ts);
         }
 
-        String actionName = panel.isTargetingFlare() ? "flare" : "noise";
-        String msg = validTile ? "Click to throw " + actionName + "  |  Esc to cancel"
-                : "Invalid tile  |  Esc to cancel";
+        String msg;
+        if (panel.isTargetingGrapplingHook()) {
+            msg = validTile ? "WASD aim wall  |  SPACE hook  |  Esc cancel"
+                    : "Need wall tile  |  Esc cancel";
+        } else {
+            String actionName = panel.isTargetingFlare() ? "flare" : "noise";
+            msg = validTile ? "Click to throw " + actionName + "  |  Esc to cancel"
+                    : "Invalid tile  |  Esc to cancel";
+        }
         g2.setFont(new Font("Arial", Font.BOLD, 16));
         FontMetrics fm = g2.getFontMetrics();
         int msgW = fm.stringWidth(msg);
@@ -1712,7 +1734,9 @@ public class GameRenderer {
         g2.setColor(new Color(20, 20, 20, 190));
         g2.fillRoundRect(bx, by, msgW + 24, 28, 10, 10);
 
-        Color validColor = panel.isTargetingFlare() ? new Color(255, 255, 120) : new Color(255, 220, 80);
+        Color validColor = panel.isTargetingGrapplingHook()
+                ? new Color(180, 230, 255)
+                : (panel.isTargetingFlare() ? new Color(255, 255, 120) : new Color(255, 220, 80));
         g2.setColor(validTile ? validColor : new Color(220, 100, 100));
         g2.drawString(msg, bx + 12, by + 20);
     }

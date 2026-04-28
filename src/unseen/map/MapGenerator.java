@@ -1,6 +1,7 @@
 package unseen.map;
 
 import unseen.items.Item;
+import unseen.items.GrapplingHook;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
@@ -153,6 +154,8 @@ public class MapGenerator {
                 it = new SmokeBomb();
             } else if (roll < 0.75) {
                 it = new unseen.items.Flare();
+            } else if (roll < 0.88) {
+                it = new GrapplingHook();
             } else {
                 it = new Shuriken();
             }

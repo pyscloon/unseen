@@ -8,6 +8,7 @@ import unseen.game.ActiveFlare;
 import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
 import unseen.items.Flare;
+import unseen.items.GrapplingHook;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
@@ -500,6 +501,7 @@ public class LevelManager implements SmokeSpawner {
         player.addItem(new SmokeBomb());
         player.addItem(new Flare());
         player.addItem(new Shuriken());
+        player.addItem(new GrapplingHook());
         if (panel.isHorrorMode()) {
             player.addItem(new unseen.items.Cross());
         }

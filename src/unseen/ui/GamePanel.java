@@ -8,6 +8,7 @@ import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
 import unseen.game.TurnManager;
 import unseen.items.Item;
+import unseen.items.GrapplingHook;
 import unseen.items.Shuriken;
 import unseen.map.Map;
 import unseen.ui.gamepanel.GameRenderer;
@@ -31,6 +32,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     private boolean targetingNoiseMaker = false;
     private boolean targetingFlare = false;
+    private boolean targetingGrapplingHook = false;
     private int targetGridX = 0;
     private int targetGridY = 0;
     private int mouseX = 0;
@@ -100,7 +102,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 mouseY = e.getY();
                 targetGridX = e.getX() / Constants.TILE_SIZE;
                 targetGridY = e.getY() / Constants.TILE_SIZE;
-                if (targetingNoiseMaker || targetingFlare)
+                if (targetingNoiseMaker || targetingFlare || targetingGrapplingHook)
                     repaint();
             }
         });
@@ -126,6 +128,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                     confirmNoiseTarget(targetGridX, targetGridY);
                 else if (targetingFlare)
                     confirmFlareTarget(targetGridX, targetGridY);
+                else if (targetingGrapplingHook)
+                    confirmGrapplingHookTarget(targetGridX, targetGridY);
             }
         });
 
@@ -383,6 +387,13 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         repaint();
     }
 
+    public void enterGrapplingHookTargeting() {
+        targetingGrapplingHook = true;
+        targetGridX = levelManager.getPlayer().getX();
+        targetGridY = levelManager.getPlayer().getY();
+        repaint();
+    }
+
     public void moveTarget(int dx, int dy) {
         targetGridX += dx;
         targetGridY += dy;
@@ -397,6 +408,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             confirmNoiseTarget(targetGridX, targetGridY);
         } else if (targetingFlare) {
             confirmFlareTarget(targetGridX, targetGridY);
+        } else if (targetingGrapplingHook) {
+            confirmGrapplingHookTarget(targetGridX, targetGridY);
         }
     }
 
@@ -404,6 +417,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         targetingNoiseMaker = false;
         targetingFlare = false;
         targetingShuriken = false;
+        targetingGrapplingHook = false;
         repaint();
     }
 
@@ -413,6 +427,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     public boolean isTargetingFlare() {
         return targetingFlare;
+    }
+
+    public boolean isTargetingGrapplingHook() {
+        return targetingGrapplingHook;
     }
 
     private void confirmNoiseTarget(int gx, int gy) {
@@ -475,6 +493,42 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         flareItem.useAt(levelManager.getPlayer(), levelManager.getMap(), gx, gy);
         inv.remove(idx);
         targetingFlare = false;
+
+        processTurnAndApply();
+        requestFocusInWindow();
+        repaint();
+    }
+
+    private void confirmGrapplingHookTarget(int gx, int gy) {
+        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
+            return;
+
+        java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
+        int idx = -1;
+        GrapplingHook hook = null;
+        for (int i = 0; i < inv.size(); i++) {
+            if (inv.get(i) instanceof GrapplingHook) {
+                idx = i;
+                hook = (GrapplingHook) inv.get(i);
+                break;
+            }
+        }
+        if (hook == null) {
+            targetingGrapplingHook = false;
+            repaint();
+            return;
+        }
+
+        boolean used = hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
+        if (!used) {
+            showToast("Hook needs wall with open landing spot", new Color(220, 120, 90));
+            repaint();
+            return;
+        }
+
+        inv.remove(idx);
+        targetingGrapplingHook = false;
+        showToast("Grapple zip!", new Color(150, 220, 255));
 
         processTurnAndApply();
         requestFocusInWindow();
