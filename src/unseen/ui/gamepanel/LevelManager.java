@@ -494,8 +494,8 @@ public class LevelManager implements SmokeSpawner {
         this.tensionTimer = 20;
         this.floorPurified = false;
 
-        this.player = new Player(Constants.START_X, Constants.START_Y);
         buildFloor();
+        this.player = new Player(Constants.START_X, Constants.START_Y);
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
         player.addItem(new Flare());
