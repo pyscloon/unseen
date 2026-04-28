@@ -40,7 +40,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     private final LevelManager levelManager;
     private final GameRenderer renderer;
-    private final TutorialManager tutorial = new TutorialManager();
+    private final TutorialManager tutorial = new TutorialManager(this);
     private final ScreenShake screenShake = new ScreenShake();
     private final RunStats runStats = new RunStats();
 

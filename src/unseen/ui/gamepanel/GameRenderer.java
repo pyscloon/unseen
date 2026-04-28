@@ -516,139 +516,156 @@ public class GameRenderer {
         int h = panel.getHeight();
         long now = System.currentTimeMillis();
 
+        // 1. Background Map with Pan and Zoom
         Graphics2D bg = (Graphics2D) g2.create();
-        double panX = Math.sin(now / 5000.0) * 5.0;
-        double panY = Math.cos(now / 6500.0) * 3.5;
-        double zoom = 1.02 + 0.008 * Math.sin(now / 7200.0);
+        double panX = Math.sin(now / 5000.0) * 8.0;
+        double panY = Math.cos(now / 6500.0) * 5.5;
+        double zoom = 1.05 + 0.015 * Math.sin(now / 7200.0);
         bg.translate(panX - (w * (zoom - 1.0)) / 2.0, panY - (h * (zoom - 1.0)) / 2.0);
         bg.scale(zoom, zoom);
         drawMap(bg);
         drawMenuTorchFlicker(bg, now);
         bg.dispose();
 
-        g2.setColor(new Color(0, 0, 0, 155));
+        // 2. Mist Layer
+        drawMist(g2, now, w, h);
+
+        // 3. Overall Vignette and Dim
+        g2.setColor(new Color(0, 0, 0, 140));
         g2.fillRect(0, 0, w, h);
 
         java.awt.RadialGradientPaint vignette = new java.awt.RadialGradientPaint(
-                w / 2f, h / 2f, Math.max(w, h) * 0.72f,
-                new float[] { 0.0f, 1.0f },
-                new Color[] { new Color(0, 0, 0, 0), new Color(0, 0, 0, 160) });
+                w / 2f, h / 2f, Math.max(w, h) * 0.85f,
+                new float[] { 0.0f, 0.4f, 1.0f },
+                new Color[] { new Color(0, 0, 0, 0), new Color(0, 0, 0, 40), new Color(0, 0, 0, 220) });
         g2.setPaint(vignette);
         g2.fillRect(0, 0, w, h);
 
-        int cardW = w - 160;
-        int cardH = h - 230;
+        // 4. Main Menu Card
+        int cardW = w - 200;
+        int cardH = h - 260;
         int cardX = (w - cardW) / 2;
         int cardY = (h - cardH) / 2;
 
-        g2.setColor(new Color(14, 11, 9, 210));
-        g2.fillRect(cardX, cardY, cardW, cardH);
+        // Subtle shadow
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.fillRoundRect(cardX + 6, cardY + 6, cardW, cardH, 12, 12);
 
-        g2.setColor(new Color(90, 58, 18, 180));
-        g2.setStroke(new BasicStroke(2f));
-        g2.drawRect(cardX, cardY, cardW, cardH);
+        // Glassy background
+        g2.setColor(new Color(18, 14, 12, 220));
+        g2.fillRoundRect(cardX, cardY, cardW, cardH, 12, 12);
 
-        g2.setColor(new Color(50, 33, 10, 120));
+        // Ornate border
+        g2.setColor(new Color(110, 80, 30, 200));
+        g2.setStroke(new BasicStroke(2.5f));
+        g2.drawRoundRect(cardX, cardY, cardW, cardH, 12, 12);
+        g2.setColor(new Color(60, 45, 20, 140));
         g2.setStroke(new BasicStroke(1f));
-        g2.drawRect(cardX + 5, cardY + 5, cardW - 10, cardH - 10);
+        g2.drawRoundRect(cardX + 5, cardY + 5, cardW - 10, cardH - 10, 10, 10);
 
-        int cs = 7;
-        g2.setColor(new Color(110, 72, 22, 200));
-        g2.fillRect(cardX - 2, cardY - 2, cs, cs);
-        g2.fillRect(cardX + cardW - cs + 2, cardY - 2, cs, cs);
-        g2.fillRect(cardX - 2, cardY + cardH - cs + 2, cs, cs);
-        g2.fillRect(cardX + cardW - cs + 2, cardY + cardH - cs + 2, cs, cs);
-
-        float pulse = (float) (0.5 + 0.5 * Math.sin(now / 820.0));
+        // 5. Title
+        float pulse = (float) (0.5 + 0.5 * Math.sin(now / 1000.0));
         String title = "UNSEEN";
-        Font titleFont = new Font("Serif", Font.BOLD, 68);
+        Font titleFont = new Font("Serif", Font.BOLD, 74);
         g2.setFont(titleFont);
-        int tw = g2.getFontMetrics().stringWidth(title);
+        FontMetrics tfm = g2.getFontMetrics(titleFont);
+        int tw = tfm.stringWidth(title);
         int titleX = (w - tw) / 2;
-        int titleY = cardY + 115;
+        int titleY = cardY + 120;
 
-        g2.setColor(new Color(0, 0, 0, 200));
-        g2.drawString(title, titleX + 4, titleY + 4);
+        // Title drop shadow
+        g2.setColor(new Color(0, 0, 0, 220));
+        g2.drawString(title, titleX + 5, titleY + 5);
 
-        int glowAlpha = 55 + (int) (55 * pulse);
-        g2.setColor(new Color(200, 110, 20, glowAlpha));
-        for (int r = 5; r >= 1; r--) {
+        // Outer glow
+        int glowAlpha = 40 + (int) (60 * pulse);
+        for (int r = 8; r >= 1; r--) {
+            g2.setColor(new Color(255, 140, 40, glowAlpha / r));
             g2.drawString(title, titleX - r, titleY);
             g2.drawString(title, titleX + r, titleY);
             g2.drawString(title, titleX, titleY - r);
             g2.drawString(title, titleX, titleY + r);
         }
 
-        g2.setColor(new Color(220, 170, 60));
+        // Inner core
+        g2.setColor(new Color(255, 210, 100));
         g2.drawString(title, titleX, titleY);
 
-        int sepY = titleY + 18;
-        int sepInset = 60;
-        g2.setColor(new Color(90, 58, 18, 180));
-        g2.setStroke(new BasicStroke(1.5f));
-        g2.drawLine(cardX + sepInset, sepY, cardX + cardW - sepInset, sepY);
-        int dx = w / 2, dy = sepY;
-        int ds = 5;
+        // Separator
+        int sepY = titleY + 22;
+        g2.setColor(new Color(110, 80, 30, 180));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawLine(cardX + 80, sepY, cardX + cardW - 80, sepY);
+        
+        // Diamond ornament
+        int dx = w / 2, ds = 6;
         int[] dpx = { dx, dx + ds, dx, dx - ds };
-        int[] dpy = { dy - ds, dy, dy + ds, dy };
-        g2.setColor(new Color(140, 90, 25, 220));
+        int[] dpy = { sepY - ds, sepY, sepY + ds, sepY };
+        g2.setColor(new Color(255, 200, 50, 220));
         g2.fillPolygon(dpx, dpy, 4);
 
-        // -- Menu options -- all uniform plain text style --------------------------
-        int optY = sepY + 52;
+        // 6. Menu Options
+        int optY = sepY + 60;
+        drawMenuOption(g2, "SPACE  to  Start", w, optY, new Color(220, 190, 100), true);
+        drawMenuOption(g2, "H : How to Play", w, optY + 38, new Color(140, 120, 90), false);
+        
+        String horrorLabel = "X : Horror Mode [" + (panel.isHorrorMode() ? "ON" : "OFF") + "]";
+        Color horrorColor = panel.isHorrorMode() ? new Color(255, 60, 40) : new Color(140, 120, 90);
+        drawMenuOption(g2, horrorLabel, w, optY + 76, horrorColor, panel.isHorrorMode());
+        
+        drawMenuOption(g2, "Q : Quit", w, optY + 114, new Color(140, 120, 90), false);
 
-        String start = "SPACE  to  Start";
-        g2.setFont(new Font("Serif", Font.BOLD, 22));
-        int sw = g2.getFontMetrics().stringWidth(start);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(start, (w - sw) / 2 + 1, optY + 1);
-        g2.setColor(new Color(210, 175, 90));
-        g2.drawString(start, (w - sw) / 2, optY);
-
-        String howTo = "H : How to Play";
-        g2.setFont(new Font("Serif", Font.PLAIN, 18));
-        int hw2 = g2.getFontMetrics().stringWidth(howTo);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(howTo, (w - hw2) / 2 + 1, optY + 33);
-        g2.setColor(new Color(118, 100, 72));
-        g2.drawString(howTo, (w - hw2) / 2, optY + 32);
-
-        String horror = "X : Horror Mode [" + (panel.isHorrorMode() ? "ON" : "OFF") + "]";
-        g2.setFont(new Font("Serif", Font.BOLD, 19));
-        int hwx = g2.getFontMetrics().stringWidth(horror);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(horror, (w - hwx) / 2 + 1, optY + 68);
-        if (panel.isHorrorMode()) {
-            g2.setColor(new Color(220, 80, 20)); // Bright horror orange
-        } else {
-            g2.setColor(new Color(118, 100, 72));
-        }
-        g2.drawString(horror, (w - hwx) / 2, optY + 67);
-
-        String quit = "Q : Quit";
-        g2.setFont(new Font("Serif", Font.PLAIN, 18));
-        int qw = g2.getFontMetrics().stringWidth(quit);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(quit, (w - qw) / 2 + 1, optY + 101);
-        g2.setColor(new Color(118, 100, 72));
-        g2.drawString(quit, (w - qw) / 2, optY + 100);
-        // -- end menu options -----------------------------------------------------
-
+<<<<<<< Updated upstream
         String hint = "WASD - Move     E - Pick up     1/2/3/4 - Items";
+=======
+        // Bottom Hints
+        String hint = "WASD - Move     E - Pick up     1/2/3/4/5/6 - Items";
+>>>>>>> Stashed changes
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
         int hintW = g2.getFontMetrics().stringWidth(hint);
-        g2.setColor(new Color(0, 0, 0, 180));
-        g2.drawString(hint, (w - hintW) / 2 + 1, h - 36);
-        g2.setColor(new Color(210, 190, 140));
-        g2.drawString(hint, (w - hintW) / 2, h - 37);
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.drawString(hint, (w - hintW) / 2 + 1, h - 38);
+        g2.setColor(new Color(180, 160, 120));
+        g2.drawString(hint, (w - hintW) / 2, h - 40);
 
-        String version = "v0.1 Alpha";
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        String version = "v0.2 Enhanced";
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
         int vw = g2.getFontMetrics().stringWidth(version);
-        g2.setColor(new Color(150, 135, 100));
-        g2.drawString(version, w - vw - 12, h - 14);
+        g2.setColor(new Color(100, 90, 80));
+        g2.drawString(version, w - vw - 15, h - 15);
 
         g2.dispose();
+    }
+
+    private void drawMist(Graphics2D g2, long now, int w, int h) {
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Random r = new Random(42);
+        for (int i = 0; i < 6; i++) {
+            float speed = 0.015f + r.nextFloat() * 0.02f;
+            float sizeMult = 0.8f + r.nextFloat() * 0.5f;
+            int mw = (int) (w * sizeMult);
+            int mh = (int) (h * 0.4f * sizeMult);
+            int mx = (int) ((now * speed + i * (w / 3)) % (w + mw)) - mw;
+            int my = (int) (h * 0.5f + r.nextInt(h / 3) - h / 6);
+            
+            float alpha = 0.05f + 0.03f * (float)Math.sin(now * 0.001 + i);
+            g2.setColor(new Color(180, 200, 220, (int)(255 * alpha)));
+            g2.fillOval(mx, my, mw, mh);
+        }
+    }
+
+    private void drawMenuOption(Graphics2D g2, String text, int w, int y, Color color, boolean bold) {
+        g2.setFont(new Font("Serif", bold ? Font.BOLD : Font.PLAIN, bold ? 22 : 19));
+        int sw = g2.getFontMetrics().stringWidth(text);
+        int x = (w - sw) / 2;
+        
+        // Shadow
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.drawString(text, x + 1, y + 1);
+        
+        // Text
+        g2.setColor(color);
+        g2.drawString(text, x, y);
     }
 
     private void drawMenuTorchFlicker(Graphics2D g2, long now) {

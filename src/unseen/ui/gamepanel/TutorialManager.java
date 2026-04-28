@@ -3,8 +3,12 @@ package unseen.ui.gamepanel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import unseen.utils.AssetLoader;
+import unseen.ui.GamePanel;
 
 public class TutorialManager {
+
+    private final GamePanel panel;
 
     public enum PageType {
         INTRO, ITEMS, ENEMIES, HORROR, CONTROLS
@@ -39,19 +43,29 @@ public class TutorialManager {
         public final String key;
         public final Color accent;
         public final String[] lines;
+        public final Image icon;
 
-        public EntryRow(String name, String key, Color accent, String... lines) {
+        public EntryRow(String name, String key, Color accent, Image icon, String... lines) {
             this.name = name;
             this.key = key;
             this.accent = accent;
+            this.icon = icon;
             this.lines = lines;
         }
     }
 
-    private static final List<TutorialPage> PAGES = buildPages();
+    private final List<TutorialPage> PAGES;
+    private boolean active = false;
+    private int pageIdx = 0;
 
-    private static List<TutorialPage> buildPages() {
+    public TutorialManager(GamePanel panel) {
+        this.panel = panel;
+        this.PAGES = buildPages();
+    }
+
+    private List<TutorialPage> buildPages() {
         List<TutorialPage> pages = new ArrayList<>();
+        AssetLoader assets = AssetLoader.get();
 
         pages.add(new TutorialPage(
                 PageType.INTRO,
@@ -64,7 +78,14 @@ public class TutorialManager {
                 "without being caught. There are no second chances -- if an",
                 "enemy steps onto your tile, the run is over.",
                 " ",
+<<<<<<< Updated upstream
                 "Use items, shadows, and cunning to slip past every threat."));
+=======
+                "Use items, shadows, and cunning to slip past every threat.",
+                " ",
+                "WATCH YOUR STEP: Environmental hazards like PUDDLES",
+                "can alert nearby enemies if you step on them!"));
+>>>>>>> Stashed changes
 
         pages.add(new TutorialPage(
                 PageType.CONTROLS,
@@ -72,6 +93,7 @@ public class TutorialManager {
                 "Every action costs one turn. Enemies move after you.",
                 "W / A / S / D   --   Move up / left / down / right",
                 "E               --   Pick up item on current tile",
+<<<<<<< Updated upstream
                 "1               --   Use Noise Maker  (click tile to target)",
                 "2               --   Use Smoke Bomb   (instant, centred on you)",
                 "3               --   Use Flare / Lantern  (click tile to target)",
@@ -79,32 +101,37 @@ public class TutorialManager {
                 "5               --   Use Holy Cross (Purify Floor - Horror Mode Only)",
                 "ESC             --   Cancel targeting / Pause / Return to Menu",
                 "P               --   Pause / Resume (Any key also resumes)",
+=======
+                "1-6             --   Use item in corresponding slot",
+                "ESC             --   Cancel targeting / Pause",
+                "P               --   Pause / Resume",
+>>>>>>> Stashed changes
                 "M               --   Toggle Music",
                 "N               --   Toggle Sound Effects",
                 "R               --   Restart  (on death screen)"));
 
-        List<EntryRow> itemRows = new ArrayList<>();
-        // -- ADD NEW ITEMS BELOW THIS LINE --
-        itemRows.add(new EntryRow(
+        List<EntryRow> itemRows1 = new ArrayList<>();
+        itemRows1.add(new EntryRow(
                 "Noise Maker", "[1]",
-                new Color(255, 210, 60),
+                new Color(255, 210, 60), assets.noiseMaker,
                 "Throw it to any visible floor tile.",
                 "Enemies within range will investigate the sound,",
                 "drawing them away from their patrol route."));
-        itemRows.add(new EntryRow(
+        itemRows1.add(new EntryRow(
                 "Smoke Bomb", "[2]",
-                new Color(160, 190, 220),
-                "Instantly detonates on your tile.",
-                "Creates a smoke cloud that blocks enemy line-of-sight",
-                "for several turns. Great for emergency cover."));
-        itemRows.add(new EntryRow(
-                "Flare / Lantern", "[3]",
-                new Color(255, 240, 100),
-                "Throw it to any visible floor tile.",
-                "Illuminates a wide radius for many turns --",
-                "useful for scouting ahead or confusing sentries."));
-        itemRows.add(new EntryRow(
+                new Color(160, 190, 220), assets.smokeBomb,
+                "Instantly obscures your current position.",
+                "Enemies cannot see you while you are inside smoke.",
+                "Lasts for several turns. Useful for quick escapes."));
+        itemRows1.add(new EntryRow(
+                "Lantern / Flare", "[3]",
+                new Color(255, 240, 150), assets.lantern,
+                "Illuminates a large area around the target tile.",
+                "Stay out of the light! Enemies see much further in",
+                "lit areas than they do in the dark."));
+        itemRows1.add(new EntryRow(
                 "Shuriken", "[4]",
+<<<<<<< Updated upstream
                 new Color(180, 220, 255),
                 "Press 4 to enter aim mode. Use WASD to set direction.",
                 "Press Space or Enter to throw. Travels up to 5 tiles",
@@ -124,361 +151,305 @@ public class TutorialManager {
                 "ITEMS",
                 "Each item is consumed on use. Pick up more on each floor.",
                 itemRows));
+=======
+                new Color(180, 180, 190), assets.shuriken,
+                "A silent throwing weapon. Aim with WASD.",
+                "Hits the first enemy in its path, removing them",
+                "instantly. Limited supply -- use wisely."));
+        pages.add(new TutorialPage(PageType.ITEMS, "ITEMS (1/2)", "Tools for distraction and survival.", itemRows1));
+
+        List<EntryRow> itemRows2 = new ArrayList<>();
+        itemRows2.add(new EntryRow(
+                "Grappling Hook", "[5]",
+                new Color(100, 200, 255), assets.grapplingHook,
+                "Target a wall within 6 tiles to pull yourself to it.",
+                "Allows rapid movement across rooms and",
+                "over hazards. Essential for mobility."));
+        itemRows2.add(new EntryRow(
+                "Holy Cross", "[6]",
+                new Color(255, 255, 200), assets.cross,
+                "HORROR MODE ONLY. Purifies the current floor.",
+                "Banishes darkness and reveals the exit.",
+                "Extremely rare and powerful."));
+        pages.add(new TutorialPage(PageType.ITEMS, "ITEMS (2/2)", "Advanced equipment.", itemRows2));
+
+        List<EntryRow> envRows = new ArrayList<>();
+        envRows.add(new EntryRow(
+                "Campfire", "Rest",
+                new Color(255, 120, 40), assets.campfire,
+                "Stand on a campfire for 5 turns to REST.",
+                "Restoring +1 HP. Can only be used ONCE",
+                "every 2 floors. High risk, high reward."));
+        envRows.add(new EntryRow(
+                "Puddle", "Hazard",
+                new Color(100, 150, 255), assets.puddle,
+                "Stepping here creates a loud SPLASH.",
+                "Enemies nearby will hear you and investigate.",
+                "Watch your step in Normal Mode."));
+        pages.add(new TutorialPage(PageType.ENVIRONMENT, "ENVIRONMENT", "Interactable objects and hazards.", envRows));
+>>>>>>> Stashed changes
 
         List<EntryRow> enemyRows = new ArrayList<>();
-        // -- ADD NEW ENEMIES BELOW THIS LINE --
         enemyRows.add(new EntryRow(
-                "Patrol Guard", "",
-                new Color(220, 100, 80),
-                "Walks a fixed route back and forth.",
-                "If it spots you it will chase aggressively.",
-                "Loses sight and searches briefly before resuming patrol."));
+                "Sentry Guard", "Static",
+                new Color(220, 60, 60), assets.sentry,
+                "Stays in one spot, scanning its surroundings.",
+                "High vision range. If it spots you, it alerts",
+                "all nearby guards to your position."));
         enemyRows.add(new EntryRow(
-                "Hunter", "",
-                new Color(200, 60, 60),
-                "Actively hunts -- smarter pathfinding than the Patrol Guard.",
-                "On higher floors it may place Sticky Traps in your path.",
-                "Once alerted it is very persistent."));
-        enemyRows.add(new EntryRow(
-                "Sentry", "",
-                new Color(240, 140, 40),
-                "Stationary guard with a wide detection arc.",
-                "When it spots you, it alerts all nearby enemies.",
-                "BEWARE: It has a chance to leave its post and CHASE you!"));
-        // -- END ENEMIES --
-
-        pages.add(new TutorialPage(
-                PageType.ENEMIES,
-                "ENEMIES",
-                "Standard threats found on every floor.",
-                enemyRows));
-
-        pages.add(new TutorialPage(
-                PageType.HORROR,
-                "HORROR MODE",
-                "A more intense, psychological experience.",
-                "Horror Mode is toggled with 'X' in the Main Menu.",
-                "It introduces new mechanics to challenge your sanity:",
-                " ",
-                "* TOTAL DARKNESS: Lights may fail, forcing you to move blind.",
-                "* UNRELIABLE TOOLS: Your lantern may flicker or fail in the dark.",
-                "* TENSION CYCLE: High-tension pulses bring audio hallucinations.",
-                "* THE LIMIT: You cannot linger. Something hunts you after Turn 40.",
-                "* PURIFICATION: Use the Holy Cross [5] to return to Normal Mode."));
+                "Patrol Guard", "Moving",
+                new Color(200, 100, 40), assets.patrol,
+                "Follows a fixed route through the floor.",
+                "Move when they are looking away. They move",
+                "one tile every time you take a turn."));
+        pages.add(new TutorialPage(PageType.ENEMIES, "ENEMIES", "The threats that dwell in the dark.", enemyRows));
 
         List<EntryRow> horrorRows = new ArrayList<>();
         horrorRows.add(new EntryRow(
-                "Shadow Figure", "",
-                new Color(40, 40, 45),
-                "Manifests only in total darkness.",
-                "It watches from the edge of your vision.",
-                "If it catches your gaze... it will vanish with a scream."));
-        horrorRows.add(new EntryRow(
-                "The Stalker", "",
-                new Color(120, 20, 20),
-                "A persistent, invincible predator.",
-                "Spawns if you linger too long on a floor (Turn 40+).",
-                "It knows where you are. It cannot be killed. ESCAPE."));
-        horrorRows.add(new EntryRow(
-                "Mirror Phantom", "",
-                new Color(150, 150, 160),
-                "A psychological manifestation of your guilt.",
-                "Appears briefly in the distance, facing away.",
-                "If you approach your own reflection... it will evade you."));
-
-        pages.add(new TutorialPage(
-                PageType.HORROR,
-                "HORROR THREATS",
-                "Strictly limited to HORROR MODE (Press 'X' in Menu).",
-                horrorRows));
+                "Shadow Figure", "Horror",
+                new Color(180, 0, 0), assets.horrorFloor,
+                "In Horror Mode, the environment is hostile.",
+                "Visions of dread and bloodied floors",
+                "will test your sanity."));
+        pages.add(new TutorialPage(PageType.HORROR, "HORROR MODE", "A deeper, darker challenge.", horrorRows));
 
         return pages;
     }
 
-    // -------------------------------------------------------------------------
-    // Runtime state
-    // -------------------------------------------------------------------------
-
-    private boolean active = false; // NOT shown at startup -- opened via button
-    private int pageIdx = 0;
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public int currentPage() {
-        return pageIdx;
-    }
-
-    public int totalPages() {
-        return PAGES.size();
-    }
-
-    public TutorialPage currentPageData() {
-        return PAGES.get(pageIdx);
-    }
-
-    public void nextPage() {
-        if (pageIdx < PAGES.size() - 1)
-            pageIdx++;
-        else
-            dismiss();
-    }
-
-    public void prevPage() {
-        if (pageIdx > 0)
-            pageIdx--;
-    }
-
-    public void dismiss() {
-        active = false;
-        pageIdx = 0;
-    }
-
-    /** Open the tutorial from page 1 (called when "How to Play" is clicked). */
-    public void reset() {
-        pageIdx = 0;
-        active = true;
-    }
-
-    // -------------------------------------------------------------------------
-    // Rendering
-    // -------------------------------------------------------------------------
+    public boolean isActive() { return active; }
+    public void reset() { pageIdx = 0; active = true; }
+    public void dismiss() { active = false; pageIdx = 0; }
+    public void nextPage() { if (pageIdx < PAGES.size() - 1) pageIdx++; else dismiss(); }
+    public void prevPage() { if (pageIdx > 0) pageIdx--; }
+    public TutorialPage currentPageData() { return PAGES.get(pageIdx); }
 
     public void draw(Graphics g, int panelW, int panelH) {
-        if (!active)
-            return;
-
+        if (!active) return;
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        long now = System.currentTimeMillis();
 
-        g2.setColor(new Color(0, 0, 0, 210));
+        // Darken background
+        g2.setColor(new Color(0, 0, 0, 180));
         g2.fillRect(0, 0, panelW, panelH);
 
-        int cardW = Math.min(680, panelW - 80);
-        int cardH = Math.min(500, panelH - 80);
+        // Main card
+        int cardW = panelW - 120;
+        int cardH = panelH - 140;
         int cardX = (panelW - cardW) / 2;
         int cardY = (panelH - cardH) / 2;
 
-        g2.setColor(new Color(16, 13, 10, 245));
-        g2.fillRoundRect(cardX, cardY, cardW, cardH, 16, 16);
-        g2.setColor(new Color(90, 58, 18, 200));
-        g2.setStroke(new BasicStroke(2f));
-        g2.drawRoundRect(cardX, cardY, cardW, cardH, 16, 16);
-        g2.setColor(new Color(50, 33, 10, 120));
+        // Shadow
+        g2.setColor(new Color(0, 0, 0, 100));
+        g2.fillRoundRect(cardX + 8, cardY + 8, cardW, cardH, 20, 20);
+
+        // Glassy body
+        g2.setColor(new Color(20, 16, 12, 235));
+        g2.fillRoundRect(cardX, cardY, cardW, cardH, 20, 20);
+
+        // Border
+        g2.setColor(new Color(110, 80, 30, 220));
+        g2.setStroke(new BasicStroke(2.5f));
+        g2.drawRoundRect(cardX, cardY, cardW, cardH, 20, 20);
+        g2.setColor(new Color(60, 45, 20, 120));
         g2.setStroke(new BasicStroke(1f));
-        g2.drawRoundRect(cardX + 5, cardY + 5, cardW - 10, cardH - 10, 12, 12);
+        g2.drawRoundRect(cardX + 6, cardY + 6, cardW - 12, cardH - 12, 16, 16);
 
         TutorialPage page = currentPageData();
 
-        int dotY = cardY + 18;
+        // Pulsing dots
+        int dotY = cardY + 22;
         int dotR = 5;
-        int dotGap = 16;
+        int dotGap = 20;
         int dotsW = PAGES.size() * dotGap - (dotGap - dotR * 2);
-        int dotX = cardX + (cardW - dotsW) / 2;
+        int dotStartX = cardX + (cardW - dotsW) / 2;
+        float dotPulse = (float)(0.4 + 0.3 * Math.sin(now / 400.0));
+        
         for (int i = 0; i < PAGES.size(); i++) {
-            g2.setColor(i == pageIdx ? new Color(255, 230, 120) : new Color(80, 60, 30));
-            g2.fillOval(dotX, dotY, dotR * 2, dotR * 2);
-            dotX += dotGap;
+            if (i == pageIdx) {
+                int glow = (int)(15 * dotPulse);
+                g2.setColor(new Color(255, 210, 80, 100));
+                g2.fillOval(dotStartX - glow/2, dotY - glow/2, dotR*2 + glow, dotR*2 + glow);
+                g2.setColor(new Color(255, 230, 120));
+            } else {
+                g2.setColor(new Color(80, 60, 30, 180));
+            }
+            g2.fillOval(dotStartX, dotY, dotR * 2, dotR * 2);
+            dotStartX += dotGap;
         }
 
-        int titleY = cardY + 52;
-        g2.setFont(new Font("Serif", Font.BOLD, 28));
+        // Title
+        int titleY = cardY + 65;
+        g2.setFont(new Font("Serif", Font.BOLD, 34));
         FontMetrics tfm = g2.getFontMetrics();
         int tw = tfm.stringWidth(page.title);
-        g2.setColor(new Color(255, 230, 120));
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.drawString(page.title, cardX + (cardW - tw) / 2 + 2, titleY + 2);
+        g2.setColor(new Color(255, 220, 100));
         g2.drawString(page.title, cardX + (cardW - tw) / 2, titleY);
 
-        int subtitleY = titleY + 22;
-        g2.setFont(new Font("SansSerif", Font.ITALIC, 13));
+        // Subtitle
+        int subtitleY = titleY + 25;
+        g2.setFont(new Font("SansSerif", Font.ITALIC, 15));
         FontMetrics sfm = g2.getFontMetrics();
         int sw = sfm.stringWidth(page.subtitle);
-        g2.setColor(new Color(160, 140, 100));
+        g2.setColor(new Color(180, 160, 120));
         g2.drawString(page.subtitle, cardX + (cardW - sw) / 2, subtitleY);
 
-        int divY = subtitleY + 10;
-        g2.setColor(new Color(90, 58, 18, 160));
+        // Separator
+        int divY = subtitleY + 15;
+        g2.setColor(new Color(110, 80, 30, 140));
         g2.setStroke(new BasicStroke(1.5f));
-        g2.drawLine(cardX + 40, divY, cardX + cardW - 40, divY);
+        g2.drawLine(cardX + 60, divY, cardX + cardW - 60, divY);
 
-        int contentY = divY + 20;
-        int contentMaxH = cardY + cardH - 70 - contentY;
-        int contentX = cardX + 36;
-        int contentW = cardW - 72;
+        int contentY = divY + 30;
+        int contentMaxH = cardY + cardH - 80 - contentY;
+        int contentX = cardX + 50;
+        int contentW = cardW - 100;
 
         switch (page.type) {
             case INTRO:
             case CONTROLS:
                 drawTextPage(g2, page, contentX, contentY, contentW, contentMaxH);
                 break;
-            case ITEMS:
-            case ENEMIES:
+            default:
                 drawEntryPage(g2, page, contentX, contentY, contentW, contentMaxH);
                 break;
-            case HORROR:
-                if (page.entries != null && !page.entries.isEmpty()) {
-                    drawEntryPage(g2, page, contentX, contentY, contentW, contentMaxH);
-                } else {
-                    drawTextPage(g2, page, contentX, contentY, contentW, contentMaxH);
-                }
-                break;
         }
 
-        int btnY = cardY + cardH - 48;
-        int btnH = 32;
-        int btnW = 110;
+        // Navigation Buttons
+        int btnY = cardY + cardH - 60;
+        int btnH = 36;
+        int btnW = 130;
 
         if (pageIdx > 0) {
-            drawNavButton(g2, cardX + 20, btnY, btnW, btnH, "< Back",
-                    new Color(80, 60, 30, 200), new Color(160, 130, 60));
+            drawPremiumButton(g2, cardX + 30, btnY, btnW, btnH, "< Previous",
+                    new Color(40, 30, 20, 220), new Color(180, 160, 100));
         }
 
-        String nextLabel = (pageIdx == PAGES.size() - 1) ? "Start Game >" : "Next >";
+        String nextLabel = (pageIdx == PAGES.size() - 1) ? "Enter Dark >" : "Continue >";
         Color nextFill = (pageIdx == PAGES.size() - 1)
-                ? new Color(60, 100, 50, 220)
-                : new Color(60, 45, 15, 220);
+                ? new Color(80, 40, 20, 220)
+                : new Color(50, 40, 30, 220);
         Color nextText = (pageIdx == PAGES.size() - 1)
-                ? new Color(140, 220, 100)
-                : new Color(220, 185, 80);
-        drawNavButton(g2, cardX + cardW - btnW - 20, btnY, btnW, btnH, nextLabel, nextFill, nextText);
-
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        String hint = pageIdx > 0 ? "< / > arrow keys  or  click buttons" : "> arrow key  or  click Next";
-        FontMetrics hfm = g2.getFontMetrics();
-        g2.setColor(new Color(100, 90, 70));
-        g2.drawString(hint, cardX + (cardW - hfm.stringWidth(hint)) / 2, btnY + btnH + 14);
+                ? new Color(255, 140, 40)
+                : new Color(220, 190, 100);
+        drawPremiumButton(g2, cardX + cardW - btnW - 30, btnY, btnW, btnH, nextLabel, nextFill, nextText);
 
         g2.dispose();
     }
 
-    private void drawTextPage(Graphics2D g2, TutorialPage page,
-            int x, int y, int w, int maxH) {
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    private void drawTextPage(Graphics2D g2, TutorialPage page, int x, int y, int w, int maxH) {
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
         FontMetrics fm = g2.getFontMetrics();
-        int lineH = fm.getHeight() + 3;
+        int lineH = fm.getHeight() + 4;
         int cy = y;
         for (String line : page.body) {
-            if (cy + lineH > y + maxH)
-                break;
-            if (line.isBlank()) {
-                cy += lineH / 2;
-                continue;
-            }
+            if (cy + lineH > y + maxH) break;
+            if (line.isBlank()) { cy += lineH / 2; continue; }
             g2.setColor(new Color(210, 195, 160));
             g2.drawString(line, x, cy + fm.getAscent());
             cy += lineH;
         }
     }
 
-    private void drawEntryPage(Graphics2D g2, TutorialPage page,
-            int x, int y, int w, int maxH) {
+    private void drawEntryPage(Graphics2D g2, TutorialPage page, int x, int y, int w, int maxH) {
         int cy = y;
-        int swatchW = 6;
-        int rowGap = 14;
-        int descIndent = x + swatchW + 14;
+        int rowGap = 20;
+        int iconSz = 40;
+        int descIndent = x + iconSz + 18;
 
         for (EntryRow row : page.entries) {
-            if (cy > y + maxH - 20)
-                break;
+            if (cy > y + maxH - 25) break;
 
-            g2.setColor(row.accent);
-            g2.fillRect(x, cy, swatchW, 14 + row.lines.length * 17);
+            if (row.icon != null) {
+                g2.setColor(new Color(row.accent.getRed(), row.accent.getGreen(), row.accent.getBlue(), 40));
+                g2.fillRoundRect(x, cy, iconSz, iconSz, 8, 8);
+                g2.drawImage(row.icon, x + 3, cy + 3, iconSz - 6, iconSz - 6, null);
+                g2.setColor(new Color(row.accent.getRed(), row.accent.getGreen(), row.accent.getBlue(), 120));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(x, cy, iconSz, iconSz, 8, 8);
+            } else {
+                g2.setColor(row.accent);
+                g2.fillRect(x, cy, 6, iconSz);
+            }
 
-            g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
             FontMetrics bfm = g2.getFontMetrics();
-            g2.setColor(new Color(230, 210, 160));
-            g2.drawString(row.name, descIndent, cy + bfm.getAscent());
+            g2.setColor(new Color(240, 230, 200));
+            g2.drawString(row.name, descIndent, cy + bfm.getAscent() - 2);
 
             if (!row.key.isEmpty()) {
                 int nameW = bfm.stringWidth(row.name);
-                g2.setFont(new Font("Monospaced", Font.BOLD, 12));
+                g2.setFont(new Font("Monospaced", Font.BOLD, 11));
                 FontMetrics kfm = g2.getFontMetrics();
-                int keyW = kfm.stringWidth(row.key) + 8;
-                int keyX = descIndent + nameW + 10;
-                int keyY = cy;
-                int keyH = 16;
-                g2.setColor(new Color(70, 55, 20, 200));
+                int keyW = kfm.stringWidth(row.key) + 12;
+                int keyX = descIndent + nameW + 15;
+                int keyY = cy - 2;
+                int keyH = 18;
+                g2.setColor(new Color(60, 45, 20, 220));
                 g2.fillRoundRect(keyX, keyY, keyW, keyH, 6, 6);
-                g2.setColor(new Color(90, 65, 18));
+                g2.setColor(new Color(110, 80, 30));
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(keyX, keyY, keyW, keyH, 6, 6);
-                g2.setColor(new Color(220, 185, 80));
-                g2.drawString(row.key, keyX + 4, keyY + kfm.getAscent() + 1);
+                g2.setColor(new Color(255, 210, 80));
+                g2.drawString(row.key, keyX + 6, keyY + kfm.getAscent() + 1);
             }
 
-            cy += bfm.getHeight() + 2;
-
-            g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
             FontMetrics dfm = g2.getFontMetrics();
+            int lcy = cy + bfm.getHeight() - 2;
             for (String line : row.lines) {
-                if (cy > y + maxH - 10)
-                    break;
-                g2.setColor(new Color(170, 158, 130));
-                g2.drawString(line, descIndent, cy + dfm.getAscent());
-                cy += dfm.getHeight() + 1;
+                if (lcy > y + maxH - 10) break;
+                g2.setColor(new Color(165, 155, 140));
+                g2.drawString(line, descIndent, lcy + dfm.getAscent());
+                lcy += dfm.getHeight() + 2;
             }
-
-            cy += rowGap;
+            cy = Math.max(cy + iconSz, lcy) + rowGap;
         }
     }
 
-    private void drawNavButton(Graphics2D g2, int x, int y, int w, int h,
-            String label, Color fill, Color textColor) {
+    private void drawPremiumButton(Graphics2D g2, int x, int y, int w, int h, String label, Color fill, Color text) {
         g2.setColor(fill);
-        g2.fillRoundRect(x, y, w, h, 10, 10);
-        g2.setColor(textColor.darker());
+        g2.fillRoundRect(x, y, w, h, 12, 12);
+        g2.setColor(new Color(110, 80, 30, 180));
         g2.setStroke(new BasicStroke(1.5f));
-        g2.drawRoundRect(x, y, w, h, 10, 10);
-        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+        g2.drawRoundRect(x, y, w, h, 12, 12);
+        g2.setFont(new Font("Serif", Font.BOLD, 17));
         FontMetrics fm = g2.getFontMetrics();
-        int lw = fm.stringWidth(label);
-        g2.setColor(textColor);
-        g2.drawString(label, x + (w - lw) / 2, y + (h - fm.getHeight()) / 2 + fm.getAscent());
+        int lx = x + (w - fm.stringWidth(label)) / 2;
+        int ly = y + (h - fm.getHeight()) / 2 + fm.getAscent();
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.drawString(label, lx + 1, ly + 1);
+        g2.setColor(text);
+        g2.drawString(label, lx, ly);
     }
 
-    // -------------------------------------------------------------------------
-    // Mouse click handling
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns true if tutorial consumed the click, false if "Start Game" was
-     * pressed.
-     */
     public boolean handleClick(int mouseX, int mouseY, int panelW, int panelH) {
-        if (!active)
-            return false;
-
-        int cardW = Math.min(680, panelW - 80);
-        int cardH = Math.min(500, panelH - 80);
+        if (!active) return false;
+        int cardW = panelW - 120;
+        int cardH = panelH - 140;
         int cardX = (panelW - cardW) / 2;
         int cardY = (panelH - cardH) / 2;
-        int btnY = cardY + cardH - 48;
-        int btnH = 32;
-        int btnW = 110;
+        int btnY = cardY + cardH - 60;
+        int btnH = 36;
+        int btnW = 130;
 
-        // Next / Start button
-        int nextX = cardX + cardW - btnW - 20;
-        if (mouseX >= nextX && mouseX <= nextX + btnW
-                && mouseY >= btnY && mouseY <= btnY + btnH) {
-            if (pageIdx == PAGES.size() - 1) {
-                dismiss();
-                return false; // signal: start the game
-            }
+        int nextX = cardX + cardW - btnW - 30;
+        if (mouseX >= nextX && mouseX <= nextX + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+            if (pageIdx == PAGES.size() - 1) { dismiss(); return false; }
             nextPage();
             return true;
         }
 
-        // Prev button
         if (pageIdx > 0) {
-            int prevX = cardX + 20;
-            if (mouseX >= prevX && mouseX <= prevX + btnW
-                    && mouseY >= btnY && mouseY <= btnY + btnH) {
+            int prevX = cardX + 30;
+            if (mouseX >= prevX && mouseX <= prevX + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
                 prevPage();
                 return true;
             }
         }
-
-        return true; // consume all other clicks
+        return true;
     }
 }
