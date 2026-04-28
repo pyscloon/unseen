@@ -517,11 +517,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1;
-        GrapplingHook hook = null;
+        unseen.items.GrapplingHook hook = null;
         for (int i = 0; i < inv.size(); i++) {
-            if (inv.get(i) instanceof GrapplingHook) {
+            if (inv.get(i) instanceof unseen.items.GrapplingHook) {
                 idx = i;
-                hook = (GrapplingHook) inv.get(i);
+                hook = (unseen.items.GrapplingHook) inv.get(i);
                 break;
             }
         }
@@ -531,19 +531,20 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             return;
         }
 
-        boolean used = hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
-        if (!used) {
-            showToast("Hook needs wall with open landing spot", new Color(220, 120, 90));
-            repaint();
+        if (!hook.isWallTarget(levelManager.getMap(), gx, gy)) {
+            showToast("Must target a wall!", new Color(200, 150, 50));
             return;
         }
 
-        inv.remove(idx);
-        targetingGrapplingHook = false;
-        showToast("Grapple zip!", new Color(150, 220, 255));
-
-        processTurnAndApply();
-        requestFocusInWindow();
+        if (hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy)) {
+            unseen.utils.SoundManager.get().play("shuriken", 0.7f); // Use shuriken sound for now
+            inv.remove(idx);
+            targetingGrapplingHook = false;
+            processTurnAndApply();
+            requestFocusInWindow();
+        } else {
+            showToast("No landing spot available!", new Color(200, 100, 50));
+        }
         repaint();
     }
 
