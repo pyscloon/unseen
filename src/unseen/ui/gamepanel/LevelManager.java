@@ -300,7 +300,8 @@ public class LevelManager implements SmokeSpawner {
                     // Randomize what they hear for variety
                     unseen.utils.SoundManager.get().playRandom(0.2f, "laugh", "jumpscare");
                     unseen.utils.SoundManager.get().playRandom(0.3f, "jumpscare", "scream");
-                    unseen.utils.SoundManager.get().playRandom(0.5f, "iseeyou", "scream");
+                    unseen.utils.SoundManager.get().playRandom(0.5f, "iseeyou", "jumpscare");
+                    unseen.utils.SoundManager.get().playRandom(0.5f, "no_more", "jumpscare");
                     panel.triggerShake(5, 1.5f); // Tiny shake
                 }
                 return sf.isSeen();
@@ -320,9 +321,9 @@ public class LevelManager implements SmokeSpawner {
                     enemies.add(new unseen.entities.StalkerEnemy(Constants.START_X, Constants.START_Y,
                             new unseen.ai.AStar()));
                     unseen.utils.SoundManager.get().playRandom(1.0f, "scream", "ghostwhisper", "iseeyou"); // Different
-                                                                                                          // sound for
-                                                                                                          // 2nd
-                                                                                                          // appearance
+                                                                                                           // sound for
+                                                                                                           // 2nd
+                                                                                                           // appearance
                     panel.triggerShake(30, 4f);
                 }
             }
