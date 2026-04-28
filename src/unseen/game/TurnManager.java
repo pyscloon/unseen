@@ -134,6 +134,42 @@ public class TurnManager {
             }
         }
 
+        // 0.5 Check for Campfire (Healing Sanctuary)
+        if (map.getTile(player.getX(), player.getY()) == unseen.map.Tile.CAMPFIRE) {
+            int currentFloor = (panel != null) ? panel.getLevelManager().getFloorNumber() : 0;
+            int lastRested = player.getLastRestedFloor();
+
+            // Only every other floor (e.g. if rested on floor 1, can't rest on floor 2, must wait for floor 3+)
+            boolean canRestOnThisFloor = (lastRested == -1 || (currentFloor - lastRested) >= 2);
+
+            if (canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
+                player.setCampfireTurns(player.getCampfireTurns() + 1);
+
+                if (player.getCampfireTurns() >= 5) {
+                    player.heal(1);
+                    player.setCampfireTurns(0);
+                    player.setLastRestedFloor(currentFloor);
+                    if (panel != null) {
+                        panel.showToast("Rested and Recovered! +1 HP", new java.awt.Color(255, 140, 40));
+                    }
+                } else {
+                    if (panel != null) {
+                        panel.showToast("Resting... (" + player.getCampfireTurns() + "/5)", new java.awt.Color(255, 180, 100));
+                    }
+                }
+            } else if (!canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
+                 if (panel != null && player.getCampfireTurns() == 0) {
+                     panel.showToast("The fire is warm, but you've rested recently.", java.awt.Color.GRAY);
+                     player.setCampfireTurns(-1); // Mark as warned for this tile stay
+                 }
+            }
+        } else {
+            // Reset turns if we leave the campfire
+            if (player.getCampfireTurns() != 0) {
+                player.setCampfireTurns(0);
+            }
+        }
+
         panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
 
         if (map.getTile(player.getX(), player.getY())

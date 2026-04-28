@@ -498,9 +498,11 @@ public class LevelManager implements SmokeSpawner {
 
             String type;
             double roll = rand.nextDouble();
+            long sentryCount = enemies.stream().filter(e -> e instanceof SentryEnemy).count();
+
             if (roll < 0.5)
                 type = "patrol";
-            else if (roll < 0.8)
+            else if (roll < 0.8 && sentryCount < 1)
                 type = "sentry";
             else
                 type = "hunter";

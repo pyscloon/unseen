@@ -636,7 +636,7 @@ public class GameRenderer {
         g2.drawString(quit, (w - qw) / 2, optY + 100);
         // -- end menu options -----------------------------------------------------
 
-        String hint = "WASD - Move     E - Pick up     1/2/3/4/5 - Items";
+        String hint = "WASD - Move     E - Pick up     1/2/3/4/5/6 - Items";
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
         int hintW = g2.getFontMetrics().stringWidth(hint);
         g2.setColor(new Color(0, 0, 0, 180));

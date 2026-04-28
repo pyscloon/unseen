@@ -560,7 +560,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
         if (landing == null) {
-            showToast("Hook need straight wall. No wall block way. Need open land spot.", new Color(220, 120, 90));
+            showToast("Wall out of reach (max 6 tiles) or path blocked.", new Color(220, 120, 90));
             repaint();
             return;
         }

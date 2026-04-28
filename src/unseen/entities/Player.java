@@ -30,6 +30,14 @@ public class Player extends Entity {
         /** Brief invulnerability after taking a hit (in turns). */
         private int invincibleTurns = 0;
 
+        private int campfireTurns = 0;
+        private int lastRestedFloor = -1;
+
+        public int getCampfireTurns() { return campfireTurns; }
+        public void setCampfireTurns(int t) { this.campfireTurns = t; }
+        public int getLastRestedFloor() { return lastRestedFloor; }
+        public void setLastRestedFloor(int f) { this.lastRestedFloor = f; }
+
         private SmokeSpawner smokeSpawner;
 
         private List<Item> inventory = new ArrayList<>();

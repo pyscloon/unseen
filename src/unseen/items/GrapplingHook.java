@@ -73,8 +73,12 @@ public class GrapplingHook extends Item {
             return false;
         }
 
-        boolean cardinal = player.getX() == x || player.getY() == y;
-        if (!cardinal || (player.getX() == x && player.getY() == y)) {
+        int dx = Math.abs(x - player.getX());
+        int dy = Math.abs(y - player.getY());
+        if (dx == 0 && dy == 0) return false;
+
+        // Range check: 6 tiles (square radius)
+        if (dx > 6 || dy > 6) {
             return false;
         }
 
@@ -82,7 +86,7 @@ public class GrapplingHook extends Item {
                 map,
                 player.getX(), player.getY(),
                 x, y,
-                unseen.utils.Constants.GRID_WIDTH + unseen.utils.Constants.GRID_HEIGHT);
+                12); // Max Manhattan range to cover 6-tile square radius
     }
 
     private int[] findLandingSpotInternal(Player player, Map map, List<Enemy> enemies, int wallX, int wallY) {

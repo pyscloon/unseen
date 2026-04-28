@@ -7,7 +7,7 @@ import java.util.List;
 public class TutorialManager {
 
     public enum PageType {
-        INTRO, ITEMS, ENEMIES, HORROR, CONTROLS
+        INTRO, ITEMS, ENVIRONMENT, ENEMIES, HORROR, CONTROLS
     }
 
     public static class TutorialPage {
@@ -64,7 +64,10 @@ public class TutorialManager {
                 "without being caught. There are no second chances -- if an",
                 "enemy steps onto your tile, the run is over.",
                 " ",
-                "Use items, shadows, and cunning to slip past every threat."));
+                "Use items, shadows, and cunning to slip past every threat.",
+                " ",
+                "WATCH YOUR STEP: Environmental hazards like PUDDLES",
+                "can alert nearby enemies if you step on them! (Normal Mode)"));
 
         pages.add(new TutorialPage(
                 PageType.CONTROLS,
@@ -76,7 +79,8 @@ public class TutorialManager {
                 "2               --   Use Smoke Bomb   (instant, centred on you)",
                 "3               --   Use Flare / Lantern  (click tile to target)",
                 "4               --   Use Shuriken  (WASD to aim, Space to throw)",
-                "5               --   Use Holy Cross (Purify Floor - Horror Mode Only)",
+                "5               --   Use Grappling Hook  (click wall within 6 tiles)",
+                "6               --   Use Holy Cross (Purify Floor - Horror Mode Only)",
                 "ESC             --   Cancel targeting / Pause / Return to Menu",
                 "P               --   Pause / Resume (Any key also resumes)",
                 "M               --   Toggle Music",
@@ -111,7 +115,13 @@ public class TutorialManager {
                 "in a straight line and silently eliminates the first enemy hit.",
                 "Wall stops the shuriken. Only one throw per shuriken."));
         itemRows.add(new EntryRow(
-                "Holy Cross", "[5]",
+                "Grappling Hook", "[5]",
+                new Color(120, 200, 255),
+                "Fire a hook at any wall tile within 6 tiles (non-straight paths OK).",
+                "You'll zip to the nearest floor tile next to the wall.",
+                "Can bypass enemies, but zipping through them deals damage!"));
+        itemRows.add(new EntryRow(
+                "Holy Cross", "[6]",
                 new Color(255, 255, 180),
                 "A sacred artifact that only functions in HORROR MODE.",
                 "Instantly purifies the floor: banishes the Stalker,",
@@ -119,11 +129,40 @@ public class TutorialManager {
                 "Extremely rare. Use it when the darkness becomes too much."));
         // -- END ITEMS --
 
+        List<EntryRow> itemRows1 = new ArrayList<>(itemRows.subList(0, 4));
+        List<EntryRow> itemRows2 = new ArrayList<>(itemRows.subList(4, itemRows.size()));
+
         pages.add(new TutorialPage(
                 PageType.ITEMS,
-                "ITEMS",
+                "ITEMS (1/2)",
                 "Each item is consumed on use. Pick up more on each floor.",
-                itemRows));
+                itemRows1));
+
+        pages.add(new TutorialPage(
+                PageType.ITEMS,
+                "ITEMS (2/2)",
+                "More tools at your disposal.",
+                itemRows2));
+
+        List<EntryRow> envRows = new ArrayList<>();
+        envRows.add(new EntryRow(
+                "Puddles", "Hazard",
+                new Color(100, 180, 255),
+                "Floor decals found in Normal Mode.",
+                "Stepping here creates a loud SPLASH!",
+                "Nearby enemies will investigate the noise immediately."));
+        envRows.add(new EntryRow(
+                "Campfire", "Sanctuary",
+                new Color(255, 140, 40),
+                "A rare, warm light source.",
+                "Resting (staying still) for 5 turns restores 1 HP.",
+                "Restriction: Can only rest once every two floors."));
+
+        pages.add(new TutorialPage(
+                PageType.ENVIRONMENT,
+                "ENVIRONMENT",
+                "Learn to use your surroundings to survive.",
+                envRows));
 
         List<EntryRow> enemyRows = new ArrayList<>();
         // -- ADD NEW ENEMIES BELOW THIS LINE --
