@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TurnManager {
-    private static final double PUDDLE_HEARING_RADIUS = 6.0;
 
     /**
      * Result of a turn -- extends the simple state with damage metadata
@@ -85,6 +84,11 @@ public class TurnManager {
 
                 if (player.takeDamage()) {
                     wasHit = true;
+                    if (panel != null && panel.isHorrorMode()) {
+                        unseen.utils.SoundManager.get().play("blood_splatter", 0.8f);
+                    } else {
+                        unseen.utils.SoundManager.get().play("player_hit");
+                    }
                     int ex = enemy.getX();
                     int ey = enemy.getY();
                     int ax = ex;
@@ -116,65 +120,7 @@ public class TurnManager {
         enemies.removeIf(e -> !e.isAlive());
         int killsThisTurn = killsBefore - enemies.size();
 
-        boolean steppedOntoTile = player.getLastX() != player.getX()
-                || player.getLastY() != player.getY();
-
-        // 0. Check for floor hazards (Puddles)
-        if (steppedOntoTile && map.getDecal(player.getX(), player.getY()) == unseen.map.DecalType.PUDDLE) {
-            unseen.utils.SoundManager.get().play("splash", 1.0f); 
-            for (Enemy e : enemies) {
-                double distanceToPuddle = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
-                if (distanceToPuddle <= PUDDLE_HEARING_RADIUS) {
-                    e.redirectToNoise(player.getX(), player.getY());
-                }
-            }
-            if (panel != null) {
-                panel.showToast("SPLASH! Nearby enemies alerted!", new java.awt.Color(100, 180, 255));
-                panel.addNoiseFlash(player.getX(), player.getY());
-            }
-        }
-
-        // 0.5 Check for Campfire (Healing Sanctuary)
-        if (map.getTile(player.getX(), player.getY()) == unseen.map.Tile.CAMPFIRE) {
-            int currentFloor = (panel != null) ? panel.getLevelManager().getFloorNumber() : 0;
-            int lastRested = player.getLastRestedFloor();
-
-            // Only every other floor (e.g. if rested on floor 1, can't rest on floor 2, must wait for floor 3+)
-            boolean canRestOnThisFloor = (lastRested == -1 || (currentFloor - lastRested) >= 2);
-
-            if (!steppedOntoTile && canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
-                int campfireTurns = Math.max(0, player.getCampfireTurns()) + 1;
-                player.setCampfireTurns(campfireTurns);
-
-                if (campfireTurns >= 5) {
-                    player.heal(1);
-                    player.setCampfireTurns(0);
-                    player.setLastRestedFloor(currentFloor);
-                    if (panel != null) {
-                        panel.showToast("Rested and Recovered! +1 HP", new java.awt.Color(255, 140, 40));
-                    }
-                } else {
-                    if (panel != null) {
-                        panel.showToast("Resting... (" + player.getCampfireTurns() + "/5)", new java.awt.Color(255, 180, 100));
-                    }
-                }
-            } else if (!steppedOntoTile && !canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
-                 if (panel != null && player.getCampfireTurns() == 0) {
-                     panel.showToast("The fire is warm, but you've rested recently.", java.awt.Color.GRAY);
-                     player.setCampfireTurns(-1); // Mark as warned for this tile stay
-                 }
-            } else if (steppedOntoTile && player.getCampfireTurns() != 0) {
-                player.setCampfireTurns(0);
-            }
-        } else {
-            // Reset turns if we leave the campfire
-            if (player.getCampfireTurns() != 0) {
-                player.setCampfireTurns(0);
-            }
-        }
-
         player.updateLastPosition();
-
         panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
 
         if (map.getTile(player.getX(), player.getY())

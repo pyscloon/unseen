@@ -8,7 +8,6 @@ import unseen.game.ActiveFlare;
 import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
 import unseen.items.Flare;
-import unseen.items.GrapplingHook;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
@@ -498,11 +497,9 @@ public class LevelManager implements SmokeSpawner {
 
             String type;
             double roll = rand.nextDouble();
-            long sentryCount = enemies.stream().filter(e -> e instanceof SentryEnemy).count();
-
             if (roll < 0.5)
                 type = "patrol";
-            else if (roll < 0.8 && sentryCount < 1)
+            else if (roll < 0.8)
                 type = "sentry";
             else
                 type = "hunter";
@@ -572,13 +569,12 @@ public class LevelManager implements SmokeSpawner {
         Collections.shuffle(this.availableLore);
         this.currentFloorLore.clear();
 
-        buildFloor();
         this.player = new Player(Constants.START_X, Constants.START_Y);
+        buildFloor();
         player.addItem(new NoiseMaker());
         player.addItem(new SmokeBomb());
         player.addItem(new Flare());
         player.addItem(new Shuriken());
-        player.addItem(new GrapplingHook());
         if (panel.isHorrorMode()) {
             player.addItem(new unseen.items.Cross());
         }

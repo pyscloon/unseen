@@ -8,7 +8,6 @@ import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
 import unseen.game.TurnManager;
 import unseen.items.Item;
-import unseen.items.GrapplingHook;
 import unseen.items.Shuriken;
 import unseen.map.Map;
 import unseen.ui.gamepanel.GameRenderer;
@@ -32,23 +31,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     private boolean targetingNoiseMaker = false;
     private boolean targetingFlare = false;
-    private boolean targetingGrapplingHook = false;
     private int targetGridX = 0;
     private int targetGridY = 0;
     private int mouseX = 0;
     private int mouseY = 0;
     private boolean targetingShuriken = false;
     private int shurikenDx = 1, shurikenDy = 0;
-
-    // -- Grapple Animation --
-    private boolean grappling = false;
-    private float grappleProgress = 0f;
-    private int grappleStartX, grappleStartY;
-    private int grappleEndX, grappleEndY;
-    private int grappleWallX, grappleWallY;
-    private int grapplePathHits = 0;
-    private boolean grappleHitWall = false;
-    private unseen.items.Item grappleUsedItem = null;
 
     private final LevelManager levelManager;
     private final GameRenderer renderer;
@@ -61,7 +49,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     /** Millisecond timestamp of the last hit -- used for red vignette flash. */
     private long lastHitTime = 0;
-    private volatile long freezeUntil = 0;
 
     private boolean horrorMode = false;
     private String currentNoteLore = null;
@@ -116,7 +103,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 mouseY = e.getY();
                 targetGridX = e.getX() / Constants.TILE_SIZE;
                 targetGridY = e.getY() / Constants.TILE_SIZE;
-                if (targetingNoiseMaker || targetingFlare || targetingGrapplingHook)
+                if (targetingNoiseMaker || targetingFlare)
                     repaint();
             }
         });
@@ -142,8 +129,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                     confirmNoiseTarget(targetGridX, targetGridY);
                 else if (targetingFlare)
                     confirmFlareTarget(targetGridX, targetGridY);
-                else if (targetingGrapplingHook)
-                    confirmGrapplingHookTarget(targetGridX, targetGridY);
             }
         });
 
@@ -341,14 +326,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         final long TARGET_MS = 33L;
         while (gameThread != null) {
             long start = System.currentTimeMillis();
-
-            boolean frozen = System.currentTimeMillis() < freezeUntil;
-            if (!frozen && state == GameState.PLAYING && horrorMode) {
+            
+            if (state == GameState.PLAYING && horrorMode) {
                 levelManager.updateVisibility();
-            }
-
-            if (!frozen && grappling) {
-                updateGrappling();
             }
             
             repaint();
@@ -385,7 +365,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         runStats.setFloorsCleared(levelManager.getFloorNumber() - 1);
 
         if (result.playerHit) {
-            handlePlayerDamaged();
+            lastHitTime = System.currentTimeMillis();
+            int hp = levelManager.getPlayer().getHealth();
+            if (hp > 0) {
+                screenShake.trigger(12, 6f);
+                showToast("HIT! " + hp + " HP remaining", new Color(255, 80, 60));
+            }
         }
 
         setGameState(result.state);
@@ -410,13 +395,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         repaint();
     }
 
-    public void enterGrapplingHookTargeting() {
-        targetingGrapplingHook = true;
-        targetGridX = levelManager.getPlayer().getX();
-        targetGridY = levelManager.getPlayer().getY();
-        repaint();
-    }
-
     public void moveTarget(int dx, int dy) {
         targetGridX += dx;
         targetGridY += dy;
@@ -431,8 +409,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             confirmNoiseTarget(targetGridX, targetGridY);
         } else if (targetingFlare) {
             confirmFlareTarget(targetGridX, targetGridY);
-        } else if (targetingGrapplingHook) {
-            confirmGrapplingHookTarget(targetGridX, targetGridY);
         }
     }
 
@@ -440,7 +416,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         targetingNoiseMaker = false;
         targetingFlare = false;
         targetingShuriken = false;
-        targetingGrapplingHook = false;
         repaint();
     }
 
@@ -450,23 +425,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     public boolean isTargetingFlare() {
         return targetingFlare;
-    }
-
-    public boolean isTargetingGrapplingHook() {
-        return targetingGrapplingHook;
-    }
-
-    public boolean isValidGrapplingHookTarget(int gx, int gy) {
-        java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
-        for (unseen.items.Item item : inv) {
-            if (item instanceof unseen.items.GrapplingHook) {
-                unseen.items.GrapplingHook hook = (unseen.items.GrapplingHook) item;
-                return hook.isValidWallTarget(levelManager.getPlayer(), levelManager.getMap(), gx, gy)
-                        && hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(),
-                        levelManager.getEnemies(), gx, gy) != null;
-            }
-        }
-        return false;
     }
 
     private void confirmNoiseTarget(int gx, int gy) {
@@ -535,119 +493,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         repaint();
     }
 
-    private void confirmGrapplingHookTarget(int gx, int gy) {
-        if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
-            return;
-
-        java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
-        int idx = -1;
-        GrapplingHook hook = null;
-        for (int i = 0; i < inv.size(); i++) {
-            if (inv.get(i) instanceof GrapplingHook) {
-                idx = i;
-                hook = (GrapplingHook) inv.get(i);
-                break;
-            }
-        }
-        if (hook == null) {
-            targetingGrapplingHook = false;
-            repaint();
-            return;
-        }
-
-        int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
-        if (landing == null) {
-            showToast("Wall out of reach (max 6 tiles) or path blocked.", new Color(220, 120, 90));
-            repaint();
-            return;
-        }
-
-        unseen.utils.SoundManager.get().play("grapple", 0.8f);
-
-        grappling = true;
-        grappleProgress = 0f;
-        grappleStartX = levelManager.getPlayer().getX();
-        grappleStartY = levelManager.getPlayer().getY();
-        grappleEndX = landing[0];
-        grappleEndY = landing[1];
-        grappleWallX = gx;
-        grappleWallY = gy;
-        grapplePathHits = hook.countEnemiesInPath(levelManager.getPlayer(), levelManager.getMap(),
-                levelManager.getEnemies(), gx, gy);
-            grappleHitWall = false;
-        grappleUsedItem = inv.remove(idx);
-        targetingGrapplingHook = false;
-        repaint();
-    }
-
-    private void updateGrappling() {
-        float oldProgress = grappleProgress;
-        grappleProgress += 0.15f; // Animation speed
-
-        if (oldProgress < 0.4f && grappleProgress >= 0.4f && !grappleHitWall) {
-            grappleHitWall = true;
-            triggerShake(10, 3f);
-            triggerFreeze(50);
-        }
-
-        if (grappleProgress >= 1.0f) {
-            grappleProgress = 1.0f;
-            grappling = false;
-            
-            // Apply the actual movement now
-            levelManager.getPlayer().setPosition(grappleEndX, grappleEndY);
-            // Update facing
-            if (grappleEndX < grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.LEFT);
-            else if (grappleEndX > grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.RIGHT);
-
-            if (grapplePathHits > 0) {
-                applyDirectPlayerDamage();
-            }
-
-            showToast("Grapple zip!", new Color(150, 220, 255));
-            grapplePathHits = 0;
-            if (state != GameState.LOSE) {
-                processTurnAndApply();
-            }
-            requestFocusInWindow();
-        }
-        repaint();
-    }
-
-    private void applyDirectPlayerDamage() {
-        if (!levelManager.getPlayer().takeDamage()) {
-            return;
-        }
-
-        handlePlayerDamaged();
-    }
-
-    private void handlePlayerDamaged() {
-        lastHitTime = System.currentTimeMillis();
-        if (horrorMode) {
-            unseen.utils.SoundManager.get().play("blood_splatter", 0.8f);
-        } else {
-            unseen.utils.SoundManager.get().play("player_hit");
-        }
-
-        int hp = levelManager.getPlayer().getHealth();
-        if (hp > 0) {
-            screenShake.trigger(12, 6f);
-            showToast("HIT! " + hp + " HP remaining", new Color(255, 80, 60));
-        } else {
-            setGameState(GameState.LOSE);
-        }
-    }
-
-    public boolean isGrappling() { return grappling; }
-    public float getGrappleProgress() { return grappleProgress; }
-    public int getGrappleStartX() { return grappleStartX; }
-    public int getGrappleStartY() { return grappleStartY; }
-    public int getGrappleWallX() { return grappleWallX; }
-    public int getGrappleWallY() { return grappleWallY; }
-    public int getGrappleEndX() { return grappleEndX; }
-    public int getGrappleEndY() { return grappleEndY; }
-
     public void confirmShurikenThrow() {
         List<Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1;
@@ -675,7 +520,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         // Determine how far the shuriken actually flew and spawn the visual
         int[] killPos = shuriken.getLastKillPos();
         int travelTiles;
-        boolean hitWall = false;
         if (killPos != null) {
             travelTiles = Math.abs(killPos[0] - px) + Math.abs(killPos[1] - py);
         } else {
@@ -687,19 +531,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 if (tx < 0 || tx >= unseen.utils.Constants.GRID_WIDTH
                         || ty < 0 || ty >= unseen.utils.Constants.GRID_HEIGHT)
                     break;
-                if (levelManager.getMap().getTile(tx, ty) == unseen.map.Tile.WALL) {
-                    hitWall = true;
+                if (levelManager.getMap().getTile(tx, ty) == unseen.map.Tile.WALL)
                     break;
-                }
                 travelTiles = i;
             }
         }
-        
-        if (killPos != null || hitWall) {
-            triggerShake(10, 3f);
-            triggerFreeze(50);
-        }
-        
         if (travelTiles > 0) {
             levelManager.spawnShurikenFlight(px, py, shurikenDx, shurikenDy, travelTiles);
         }
@@ -771,11 +607,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             unseen.utils.SoundManager.get().play("item_pickup"); // Or a specific heal sound if available
             showToast("Restored 1 Health!", new Color(255, 100, 100));
         } else {
-            boolean pickedUp = levelManager.getPlayer().addItem(it);
-            if (!pickedUp) {
-                showToast("Too many " + it.getClass().getSimpleName() + "! Max 5.", new Color(255, 110, 110));
-                return false;
-            }
+            levelManager.getPlayer().addItem(it);
             levelManager.getMap().removeItem(px, py);
             unseen.utils.SoundManager.get().play("item_pickup");
             showToast("Picked up " + it.getClass().getSimpleName(), new Color(120, 255, 160));
@@ -829,10 +661,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     /** Manually trigger a screen shake (frames, magnitude in pixels). */
     public void triggerShake(int frames, float magnitude) {
         screenShake.trigger(frames, magnitude);
-    }
-
-    public void triggerFreeze(long ms) {
-        freezeUntil = Math.max(freezeUntil, System.currentTimeMillis() + ms);
     }
 
     public ScreenShake getScreenShake() {
