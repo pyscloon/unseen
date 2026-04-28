@@ -203,7 +203,7 @@ public class TutorialManager {
                 "* UNRELIABLE TOOLS: Your lantern may flicker or fail in the dark.",
                 "* TENSION CYCLE: High-tension pulses bring audio hallucinations.",
                 "* THE LIMIT: You cannot linger. Something hunts you after Turn 40.",
-                "* PURIFICATION: Use the Holy Cross [5] to return to Normal Mode."));
+                "* PURIFICATION: Use the Holy Cross [6] to return to Normal Mode."));
 
         List<EntryRow> horrorRows = new ArrayList<>();
         horrorRows.add(new EntryRow(
@@ -352,6 +352,7 @@ public class TutorialManager {
                 drawTextPage(g2, page, contentX, contentY, contentW, contentMaxH);
                 break;
             case ITEMS:
+            case ENVIRONMENT:
             case ENEMIES:
                 drawEntryPage(g2, page, contentX, contentY, contentW, contentMaxH);
                 break;

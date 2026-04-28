@@ -17,6 +17,10 @@ public class GrapplingHook extends Item {
         // Grappling Hook needs an aimed wall target via GamePanel.
     }
 
+    /**
+     * Validates the chosen wall target and updates facing for the upcoming
+     * grapple animation. Movement is applied later by GamePanel.updateGrappling().
+     */
     public boolean useAt(Player player, Map map, List<Enemy> enemies, int wallX, int wallY) {
         if (!isValidWallTarget(player, map, wallX, wallY)) {
             return false;
@@ -33,7 +37,6 @@ public class GrapplingHook extends Item {
             player.setFacing(Player.Facing.RIGHT);
         }
 
-        player.setPosition(landing[0], landing[1]);
         return true;
     }
 

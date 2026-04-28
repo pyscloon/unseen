@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TurnManager {
+    private static final double PUDDLE_HEARING_RADIUS = 6.0;
 
     /**
      * Result of a turn -- extends the simple state with damage metadata
@@ -84,11 +85,6 @@ public class TurnManager {
 
                 if (player.takeDamage()) {
                     wasHit = true;
-                    if (panel != null && panel.isHorrorMode()) {
-                        unseen.utils.SoundManager.get().play("blood_splatter", 0.8f);
-                    } else {
-                        unseen.utils.SoundManager.get().play("player_hit");
-                    }
                     int ex = enemy.getX();
                     int ey = enemy.getY();
                     int ax = ex;
@@ -120,13 +116,17 @@ public class TurnManager {
         enemies.removeIf(e -> !e.isAlive());
         int killsThisTurn = killsBefore - enemies.size();
 
-        player.updateLastPosition();
-        
+        boolean steppedOntoTile = player.getLastX() != player.getX()
+                || player.getLastY() != player.getY();
+
         // 0. Check for floor hazards (Puddles)
-        if (map.getDecal(player.getX(), player.getY()) == unseen.map.DecalType.PUDDLE) {
+        if (steppedOntoTile && map.getDecal(player.getX(), player.getY()) == unseen.map.DecalType.PUDDLE) {
             unseen.utils.SoundManager.get().play("splash", 1.0f); 
             for (Enemy e : enemies) {
-                e.redirectToNoise(player.getX(), player.getY());
+                double distanceToPuddle = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
+                if (distanceToPuddle <= PUDDLE_HEARING_RADIUS) {
+                    e.redirectToNoise(player.getX(), player.getY());
+                }
             }
             if (panel != null) {
                 panel.showToast("SPLASH! Nearby enemies alerted!", new java.awt.Color(100, 180, 255));
@@ -142,10 +142,11 @@ public class TurnManager {
             // Only every other floor (e.g. if rested on floor 1, can't rest on floor 2, must wait for floor 3+)
             boolean canRestOnThisFloor = (lastRested == -1 || (currentFloor - lastRested) >= 2);
 
-            if (canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
-                player.setCampfireTurns(player.getCampfireTurns() + 1);
+            if (!steppedOntoTile && canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
+                int campfireTurns = Math.max(0, player.getCampfireTurns()) + 1;
+                player.setCampfireTurns(campfireTurns);
 
-                if (player.getCampfireTurns() >= 5) {
+                if (campfireTurns >= 5) {
                     player.heal(1);
                     player.setCampfireTurns(0);
                     player.setLastRestedFloor(currentFloor);
@@ -157,11 +158,13 @@ public class TurnManager {
                         panel.showToast("Resting... (" + player.getCampfireTurns() + "/5)", new java.awt.Color(255, 180, 100));
                     }
                 }
-            } else if (!canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
+            } else if (!steppedOntoTile && !canRestOnThisFloor && player.getHealth() < unseen.entities.Player.MAX_HEALTH) {
                  if (panel != null && player.getCampfireTurns() == 0) {
                      panel.showToast("The fire is warm, but you've rested recently.", java.awt.Color.GRAY);
                      player.setCampfireTurns(-1); // Mark as warned for this tile stay
                  }
+            } else if (steppedOntoTile && player.getCampfireTurns() != 0) {
+                player.setCampfireTurns(0);
             }
         } else {
             // Reset turns if we leave the campfire
@@ -169,6 +172,8 @@ public class TurnManager {
                 player.setCampfireTurns(0);
             }
         }
+
+        player.updateLastPosition();
 
         panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
 

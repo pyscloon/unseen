@@ -61,6 +61,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     /** Millisecond timestamp of the last hit -- used for red vignette flash. */
     private long lastHitTime = 0;
+    private volatile long freezeUntil = 0;
 
     private boolean horrorMode = false;
     private String currentNoteLore = null;
@@ -340,12 +341,13 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         final long TARGET_MS = 33L;
         while (gameThread != null) {
             long start = System.currentTimeMillis();
-            
-            if (state == GameState.PLAYING && horrorMode) {
+
+            boolean frozen = System.currentTimeMillis() < freezeUntil;
+            if (!frozen && state == GameState.PLAYING && horrorMode) {
                 levelManager.updateVisibility();
             }
 
-            if (grappling) {
+            if (!frozen && grappling) {
                 updateGrappling();
             }
             
@@ -383,12 +385,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         runStats.setFloorsCleared(levelManager.getFloorNumber() - 1);
 
         if (result.playerHit) {
-            lastHitTime = System.currentTimeMillis();
-            int hp = levelManager.getPlayer().getHealth();
-            if (hp > 0) {
-                screenShake.trigger(12, 6f);
-                showToast("HIT! " + hp + " HP remaining", new Color(255, 80, 60));
-            }
+            handlePlayerDamaged();
         }
 
         setGameState(result.state);
@@ -622,6 +619,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             return;
         }
 
+        handlePlayerDamaged();
+    }
+
+    private void handlePlayerDamaged() {
         lastHitTime = System.currentTimeMillis();
         if (horrorMode) {
             unseen.utils.SoundManager.get().play("blood_splatter", 0.8f);
@@ -831,9 +832,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     public void triggerFreeze(long ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException ignored) {}
+        freezeUntil = Math.max(freezeUntil, System.currentTimeMillis() + ms);
     }
 
     public ScreenShake getScreenShake() {

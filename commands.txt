@@ -2,12 +2,11 @@
 
 ## 1. Compile Java Files
 ```
-javac -d out (Get-ChildItem -Recurse -Filter *.java src/unseen | ForEach-Object { $_.FullName })
-or
-javac -d out $(find src -name "*.java")
-or
 javac -encoding UTF-8 -d out $(find src -name "*.java")
+or
+javac -d out (Get-ChildItem -Recurse -Filter *.java src/unseen | ForEach-Object { $_.FullName })
 ```
+`$(...)` requires a Unix-like shell such as `bash`, `sh`, `zsh`, or Git Bash. PowerShell and Windows CMD users should use the provided Windows-friendly alternative instead.
 
 ## 2. Copy Assets
 ```
