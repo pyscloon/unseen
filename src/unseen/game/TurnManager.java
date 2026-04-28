@@ -121,6 +121,19 @@ public class TurnManager {
         int killsThisTurn = killsBefore - enemies.size();
 
         player.updateLastPosition();
+        
+        // 0. Check for floor hazards (Puddles)
+        if (map.getDecal(player.getX(), player.getY()) == unseen.map.DecalType.PUDDLE) {
+            unseen.utils.SoundManager.get().play("splash", 1.0f); 
+            for (Enemy e : enemies) {
+                e.redirectToNoise(player.getX(), player.getY());
+            }
+            if (panel != null) {
+                panel.showToast("SPLASH! Nearby enemies alerted!", new java.awt.Color(100, 180, 255));
+                panel.addNoiseFlash(player.getX(), player.getY());
+            }
+        }
+
         panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
 
         if (map.getTile(player.getX(), player.getY())

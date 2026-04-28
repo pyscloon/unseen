@@ -185,6 +185,24 @@ public class MapGenerator {
             }
         }
 
+        // Place Puddles (Normal Mode only)
+        if (!horrorMode) {
+            int puddleCount = 3 + rand.nextInt(2); // 3-4 puddles
+            for (int i = 0; i < puddleCount; i++) {
+                int px, py;
+                int attempts = 0;
+                do {
+                    px = rand.nextInt(Constants.GRID_WIDTH);
+                    py = rand.nextInt(Constants.GRID_HEIGHT);
+                    attempts++;
+                } while (attempts < 100 && (map.getTile(px, py) != Tile.FLOOR || map.getDecal(px, py) != null));
+
+                if (attempts < 100) {
+                    map.setDecal(px, py, DecalType.PUDDLE);
+                }
+            }
+        }
+
         // Place start tile
         map.setTile(Constants.START_X, Constants.START_Y, Tile.START);
 

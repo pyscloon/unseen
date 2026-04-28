@@ -28,6 +28,7 @@ public class AssetLoader {
     public final Image horrorFloor;
     public final Image dieTile;
     public final Image cross;
+    public final Image puddle;
 
     public final Image hero;
 
@@ -59,6 +60,7 @@ public class AssetLoader {
         horrorFloor = load("unseen/assets/horror assets/blood time.png");
         dieTile     = load("unseen/assets/horror assets/die-tile.png");
         cross       = load("unseen/assets/cross.png");
+        puddle      = load("unseen/assets/puddle.png");
 
         hero = load("unseen/assets/hero.png");
 

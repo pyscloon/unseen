@@ -46,6 +46,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private int grappleStartX, grappleStartY;
     private int grappleEndX, grappleEndY;
     private int grappleWallX, grappleWallY;
+    private boolean grappleHitWall = false;
     private unseen.items.Item grappleUsedItem = null;
 
     private final LevelManager levelManager;
@@ -562,6 +563,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             grappleEndY = landing[1];
             grappleWallX = gx;
             grappleWallY = gy;
+            grappleHitWall = false;
             grappleUsedItem = inv.remove(idx);
             
             targetingGrapplingHook = false;
@@ -572,7 +574,15 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     private void updateGrappling() {
+        float oldProgress = grappleProgress;
         grappleProgress += 0.15f; // Animation speed
+
+        if (oldProgress < 0.4f && grappleProgress >= 0.4f && !grappleHitWall) {
+            grappleHitWall = true;
+            triggerShake(10, 3f);
+            triggerFreeze(50);
+        }
+
         if (grappleProgress >= 1.0f) {
             grappleProgress = 1.0f;
             grappling = false;
@@ -626,6 +636,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         // Determine how far the shuriken actually flew and spawn the visual
         int[] killPos = shuriken.getLastKillPos();
         int travelTiles;
+        boolean hitWall = false;
         if (killPos != null) {
             travelTiles = Math.abs(killPos[0] - px) + Math.abs(killPos[1] - py);
         } else {
@@ -637,11 +648,19 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 if (tx < 0 || tx >= unseen.utils.Constants.GRID_WIDTH
                         || ty < 0 || ty >= unseen.utils.Constants.GRID_HEIGHT)
                     break;
-                if (levelManager.getMap().getTile(tx, ty) == unseen.map.Tile.WALL)
+                if (levelManager.getMap().getTile(tx, ty) == unseen.map.Tile.WALL) {
+                    hitWall = true;
                     break;
+                }
                 travelTiles = i;
             }
         }
+        
+        if (killPos != null || hitWall) {
+            triggerShake(10, 3f);
+            triggerFreeze(50);
+        }
+        
         if (travelTiles > 0) {
             levelManager.spawnShurikenFlight(px, py, shurikenDx, shurikenDy, travelTiles);
         }
@@ -771,6 +790,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     /** Manually trigger a screen shake (frames, magnitude in pixels). */
     public void triggerShake(int frames, float magnitude) {
         screenShake.trigger(frames, magnitude);
+    }
+
+    public void triggerFreeze(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ignored) {}
     }
 
     public ScreenShake getScreenShake() {

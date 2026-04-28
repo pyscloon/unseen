@@ -1964,6 +1964,16 @@ public class GameRenderer {
                     g2.drawLine(nx + 4, ny + 4 + i * 4, nx + nw - 4, ny + 4 + i * 4);
                 }
                 break;
+            case PUDDLE:
+                if (AssetLoader.get().puddle != null) {
+                    g2.drawImage(AssetLoader.get().puddle, drawX, drawY, 
+                                 Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                } else {
+                    // Fallback to a translucent blue oval
+                    g2.setColor(new Color(60, 120, 200, 120));
+                    g2.fillOval(drawX + 4, drawY + 8, Constants.TILE_SIZE - 8, Constants.TILE_SIZE - 16);
+                }
+                break;
         }
     }
 
