@@ -445,6 +445,19 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         return targetingGrapplingHook;
     }
 
+    public boolean isValidGrapplingHookTarget(int gx, int gy) {
+        java.util.List<unseen.items.Item> inv = levelManager.getPlayer().getInventory();
+        for (unseen.items.Item item : inv) {
+            if (item instanceof unseen.items.GrapplingHook) {
+                unseen.items.GrapplingHook hook = (unseen.items.GrapplingHook) item;
+                return hook.isValidWallTarget(levelManager.getPlayer(), levelManager.getMap(), gx, gy)
+                        && hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(),
+                        levelManager.getEnemies(), gx, gy) != null;
+            }
+        }
+        return false;
+    }
+
     private void confirmNoiseTarget(int gx, int gy) {
         if (gx < 0 || gy < 0 || gx >= Constants.GRID_WIDTH || gy >= Constants.GRID_HEIGHT)
             return;
@@ -533,7 +546,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         boolean used = hook.useAt(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
         if (!used) {
-            showToast("Hook needs wall with open landing spot", new Color(220, 120, 90));
+            showToast("Hook need straight wall. No wall block way. Need open land spot.", new Color(220, 120, 90));
             repaint();
             return;
         }
