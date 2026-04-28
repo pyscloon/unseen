@@ -4,7 +4,9 @@
 ```
 javac -d out (Get-ChildItem -Recurse -Filter *.java src/unseen | ForEach-Object { $_.FullName })
 or
-javac -d out src/unseen/**/*.java
+javac -d out $(find src -name "*.java")
+or
+javac -encoding UTF-8 -d out $(find src -name "*.java")
 ```
 
 ## 2. Copy Assets
