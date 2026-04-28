@@ -46,15 +46,18 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private final ScreenShake screenShake = new ScreenShake();
     private final RunStats runStats = new RunStats();
 
-    /** HUD toast queue — most recent at the end. */
+    /** HUD toast queue -- most recent at the end. */
     private final List<HudToast> toasts = new ArrayList<>();
 
-    /** Millisecond timestamp of the last hit — used for red vignette flash. */
+    /** Millisecond timestamp of the last hit -- used for red vignette flash. */
     private long lastHitTime = 0;
 
     private boolean horrorMode = false;
+    private String currentNoteLore = null;
 
     public boolean isHorrorMode() { return horrorMode; }
+    public String getCurrentNoteLore() { return currentNoteLore; }
+    public void setCurrentNoteLore(String lore) { this.currentNoteLore = lore; }
     public void setHorrorMode(boolean hm) { 
         boolean changed = (this.horrorMode != hm);
         this.horrorMode = hm; 
@@ -138,6 +141,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         renderer = new GameRenderer(this, levelManager);
         levelManager.setupGame();
         loadAndPlayBackgroundSound();
+    }
+
+    public LevelManager getLevelManager() {
+        return levelManager;
     }
 
     private final String[] playlist = { "unseen/assets/sound/caves1.wav", "unseen/assets/sound/caves2.wav" };
@@ -323,6 +330,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         final long TARGET_MS = 33L;
         while (gameThread != null) {
             long start = System.currentTimeMillis();
+            
+            if (state == GameState.PLAYING && horrorMode) {
+                levelManager.updateVisibility();
+            }
+            
             repaint();
             long elapsed = System.currentTimeMillis() - start;
             long sleep = TARGET_MS - elapsed;
@@ -584,6 +596,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         if (killPos != null) {
             spawnDeathPuff(killPos[0], killPos[1]);
+            if (horrorMode) {
+                unseen.utils.SoundManager.get().play("blood_splatter", 0.9f);
+            }
         }
 
         processTurnAndApply();

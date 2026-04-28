@@ -27,7 +27,7 @@ public class SentryEnemy extends Enemy {
         // Tick alert visual at the start so it doesn't decrement the same turn it's set
         tickAlertVisual();
         
-        // Sentry is usually stationary — it raises an alert when it spots the player.
+        // Sentry is usually stationary -- it raises an alert when it spots the player.
         if (canSeePlayer(map, player, smokes)) {
             setState(State.CHASE);
             this.lastKnownX = player.getX();
@@ -73,7 +73,7 @@ public class SentryEnemy extends Enemy {
      */
     public void handleAlerts(List<Enemy> allEnemies, Player player) {
         if (state == State.CHASE) {
-            // Use lastKnownX/Y — set to the player position when the sentry spots them
+            // Use lastKnownX/Y -- set to the player position when the sentry spots them
             // directly, or to the decoy position when alertTo() was called by an item.
             alertNearbyEnemies(allEnemies, Integer.MAX_VALUE, lastKnownX, lastKnownY);
             setAlertVisual(3);

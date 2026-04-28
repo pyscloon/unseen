@@ -12,7 +12,7 @@ public class RunStats {
     private int enemiesKilled;
     private int floorsCleared;
 
-    // Cached high score — loaded once, updated on death/win
+    // Cached high score -- loaded once, updated on death/win
     private int highScoreFloors;
     private int highScoreTurns;
     private int highScoreKills;
@@ -23,7 +23,7 @@ public class RunStats {
         loadHighScore();
     }
 
-    // ── Mutators ─────────────────────────────────────────────────────────────
+    // -- Mutators ------------------------------------------------------
 
     public void incrementTurns()         { turnsSurvived++; }
     public void incrementKills()         { enemiesKilled++; }
@@ -37,7 +37,7 @@ public class RunStats {
         floorsCleared = 0;
     }
 
-    // ── Accessors ────────────────────────────────────────────────────────────
+    // -- Accessors -----------------------------------------------------
 
     public int getTurnsSurvived()  { return turnsSurvived; }
     public int getEnemiesKilled()  { return enemiesKilled; }
@@ -53,7 +53,7 @@ public class RunStats {
         return false;
     }
 
-    // ── Persistence ──────────────────────────────────────────────────────────
+    // -- Persistence ---------------------------------------------------
 
     /** Checks if the current run beats the record and saves if so. */
     public void commitHighScore() {
@@ -76,7 +76,7 @@ public class RunStats {
                 highScoreTurns  = Integer.parseInt(parts[1]);
                 highScoreKills  = Integer.parseInt(parts[2]);
             }
-        } catch (Exception ignored) { /* first run or corrupt file — start at 0 */ }
+        } catch (Exception ignored) { /* first run or corrupt file -- start at 0 */ }
     }
 
     private void saveHighScore() {
@@ -84,6 +84,6 @@ public class RunStats {
             Path p = Paths.get(System.getProperty("user.home"), SAVE_FILE);
             String data = highScoreFloors + "," + highScoreTurns + "," + highScoreKills;
             Files.write(p, data.getBytes());
-        } catch (Exception ignored) { /* non-critical — silently skip */ }
+        } catch (Exception ignored) { /* non-critical -- silently skip */ }
     }
 }

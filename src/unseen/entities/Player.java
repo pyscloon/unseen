@@ -47,7 +47,7 @@
         public Facing getFacing() { return facing; }
         public void setFacing(Facing facing) { this.facing = facing; }
 
-        // ── Health ────────────────────────────────────────────────────────────
+        // -- Health ----------------------------------------------------
 
         public int getHealth()     { return health; }
         public boolean isDead()    { return health <= 0; }
@@ -110,7 +110,7 @@
                     return;
                 }
             }
-            // Cornered — no knockback, just take the damage in place
+            // Cornered -- no knockback, just take the damage in place
         }
 
         private boolean inBounds(int x, int y) {
@@ -118,7 +118,7 @@
                 && y >= 0 && y < unseen.utils.Constants.GRID_HEIGHT;
         }
 
-        // ── Inventory ─────────────────────────────────────────────────────────
+        // -- Inventory -------------------------------------------------
 
         public void addItem(Item item) { inventory.add(item); }
         public List<Item> getInventory() { return inventory; }

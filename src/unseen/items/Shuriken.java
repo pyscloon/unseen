@@ -21,7 +21,7 @@ public class Shuriken extends Item {
         fireInDirection(player.getX(), player.getY(), dx, 0, map, enemies);
     }
 
-    /** Throw in an explicit direction (dx, dy) — one of the 4 cardinal directions. */
+    /** Throw in an explicit direction (dx, dy) -- one of the 4 cardinal directions. */
     public void fireInDirection(int px, int py, int dx, int dy, Map map, List<Enemy> enemies) {
         lastKillPos = null;
         for (int i = 1; i <= RANGE; i++) {

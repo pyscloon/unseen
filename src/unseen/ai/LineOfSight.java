@@ -37,12 +37,12 @@ public class LineOfSight {
             if (e2 > -ady) { err -= ady; cx += sx; }
             if (e2 <  adx) { err += adx; cy += sy; }
 
-            // Wall blocks sight (skip destination — the target entity stands there)
+            // Wall blocks sight (skip destination -- the target entity stands there)
             if (cx != x2 || cy != y2) {
                 if (!map.isPassable(cx, cy)) return false;
             }
 
-            // Smoke blocks sight — check every tile including the destination
+            // Smoke blocks sight -- check every tile including the destination
             for (Smoke smoke : smokes) {
                 int dxS = cx - smoke.getX();
                 int dyS = cy - smoke.getY();
@@ -67,7 +67,7 @@ public class LineOfSight {
     }
 
     /**
-     * Convenience overload — no smoke list required (used for torch illumination).
+     * Convenience overload -- no smoke list required (used for torch illumination).
      */
     public static boolean hasLineOfSight(Map map, int x1, int y1, int x2, int y2, int maxRange) {
         return hasLineOfSight(map, x1, y1, x2, y2, maxRange, List.of());

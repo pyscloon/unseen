@@ -123,18 +123,23 @@ public class MapGenerator {
             }
         }
 
-        // Place torches
-        int torchCount = 5;
+        // Place torches/campfires
+        int torchCount = horrorMode ? 3 : 5;
         for (int i = 0; i < torchCount; i++) {
             int tx, ty;
             do {
                 tx = rand.nextInt(Constants.GRID_WIDTH);
                 ty = rand.nextInt(Constants.GRID_HEIGHT);
             } while (map.getTile(tx, ty) != Tile.FLOOR);
-            map.setTile(tx, ty, rand.nextDouble() < 0.4 ? Tile.CAMPFIRE : Tile.TORCH);
+            
+            if (horrorMode) {
+                map.setTile(tx, ty, Tile.CAMPFIRE);
+            } else {
+                map.setTile(tx, ty, rand.nextDouble() < 0.4 ? Tile.CAMPFIRE : Tile.TORCH);
+            }
         }
 
-        // Place ground items (pickupable) — never on the start tile
+        // Place ground items (pickupable) -- never on the start tile
         int itemCount = 6;
         for (int i = 0; i < itemCount; i++) {
             int tx, ty;
@@ -160,6 +165,22 @@ public class MapGenerator {
                 it = new Shuriken();
             }
             map.setItem(tx, ty, it);
+        }
+
+        // Place a few "Notes" for environmental storytelling
+        int noteCount = horrorMode ? 2 : 1;
+        for (int i = 0; i < noteCount; i++) {
+            int nx, ny;
+            int attempts = 0;
+            do {
+                nx = rand.nextInt(Constants.GRID_WIDTH);
+                ny = rand.nextInt(Constants.GRID_HEIGHT);
+                attempts++;
+            } while (attempts < 100 && (map.getTile(nx, ny) != Tile.FLOOR || map.getDecal(nx, ny) != null));
+            
+            if (attempts < 100) {
+                map.setDecal(nx, ny, DecalType.NOTE_SCRAP);
+            }
         }
 
         // Place start tile

@@ -6,7 +6,9 @@ import java.util.List;
 
 public class TutorialManager {
 
-    public enum PageType { INTRO, ITEMS, ENEMIES, HORROR, CONTROLS }
+    public enum PageType {
+        INTRO, ITEMS, ENEMIES, HORROR, CONTROLS
+    }
 
     public static class TutorialPage {
         public final PageType type;
@@ -16,33 +18,33 @@ public class TutorialManager {
         public final List<EntryRow> entries;
 
         public TutorialPage(PageType type, String title, String subtitle, String... body) {
-            this.type     = type;
-            this.title    = title;
+            this.type = type;
+            this.title = title;
             this.subtitle = subtitle;
-            this.body     = body;
-            this.entries  = new ArrayList<>();
+            this.body = body;
+            this.entries = new ArrayList<>();
         }
 
         public TutorialPage(PageType type, String title, String subtitle, List<EntryRow> entries) {
-            this.type     = type;
-            this.title    = title;
+            this.type = type;
+            this.title = title;
             this.subtitle = subtitle;
-            this.body     = new String[0];
-            this.entries  = entries;
+            this.body = new String[0];
+            this.entries = entries;
         }
     }
 
     public static class EntryRow {
         public final String name;
         public final String key;
-        public final Color  accent;
+        public final Color accent;
         public final String[] lines;
 
         public EntryRow(String name, String key, Color accent, String... lines) {
-            this.name   = name;
-            this.key    = key;
+            this.name = name;
+            this.key = key;
             this.accent = accent;
-            this.lines  = lines;
+            this.lines = lines;
         }
     }
 
@@ -54,114 +56,102 @@ public class TutorialManager {
         pages.add(new TutorialPage(
                 PageType.INTRO,
                 "UNSEEN",
-                "A stealth roguelike — stay in the shadows, survive the floors.",
+                "A stealth roguelike -- stay in the shadows, survive the floors.",
                 "You are a lone operative moving through a series of darkened",
                 "procedurally generated floors. Guards patrol every corridor.",
                 " ",
                 "Your goal is simple: reach the EXIT tile on each floor",
-                "without being caught. There are no second chances — if an",
+                "without being caught. There are no second chances -- if an",
                 "enemy steps onto your tile, the run is over.",
                 " ",
-                "Use items, shadows, and cunning to slip past every threat."
-        ));
+                "Use items, shadows, and cunning to slip past every threat."));
 
         pages.add(new TutorialPage(
                 PageType.CONTROLS,
                 "CONTROLS",
                 "Every action costs one turn. Enemies move after you.",
-                "W / A / S / D   —   Move up / left / down / right",
-                "E               —   Pick up item on current tile",
-                "1               —   Use Noise Maker  (click tile to target)",
-                "2               —   Use Smoke Bomb   (instant, centred on you)",
-                "3               —   Use Flare / Lantern  (click tile to target)",
-                "4               —   Use Shuriken  (WASD to aim, Space to throw)",
-                "5               —   Use Holy Cross (Purify Floor - Horror Mode Only)",
-                "ESC             —   Cancel targeting / Pause / Return to Menu",
-                "P               —   Pause / Resume (Any key also resumes)",
-                "M               —   Toggle Music",
-                "N               —   Toggle Sound Effects",
-                "R               —   Restart  (on death screen)"
-        ));
+                "W / A / S / D   --   Move up / left / down / right",
+                "E               --   Pick up item on current tile",
+                "1               --   Use Noise Maker  (click tile to target)",
+                "2               --   Use Smoke Bomb   (instant, centred on you)",
+                "3               --   Use Flare / Lantern  (click tile to target)",
+                "4               --   Use Shuriken  (WASD to aim, Space to throw)",
+                "5               --   Use Holy Cross (Purify Floor - Horror Mode Only)",
+                "ESC             --   Cancel targeting / Pause / Return to Menu",
+                "P               --   Pause / Resume (Any key also resumes)",
+                "M               --   Toggle Music",
+                "N               --   Toggle Sound Effects",
+                "R               --   Restart  (on death screen)"));
 
         List<EntryRow> itemRows = new ArrayList<>();
-        // ── ADD NEW ITEMS BELOW THIS LINE ──
+        // -- ADD NEW ITEMS BELOW THIS LINE --
         itemRows.add(new EntryRow(
                 "Noise Maker", "[1]",
                 new Color(255, 210, 60),
                 "Throw it to any visible floor tile.",
                 "Enemies within range will investigate the sound,",
-                "drawing them away from their patrol route."
-        ));
+                "drawing them away from their patrol route."));
         itemRows.add(new EntryRow(
                 "Smoke Bomb", "[2]",
                 new Color(160, 190, 220),
                 "Instantly detonates on your tile.",
                 "Creates a smoke cloud that blocks enemy line-of-sight",
-                "for several turns. Great for emergency cover."
-        ));
+                "for several turns. Great for emergency cover."));
         itemRows.add(new EntryRow(
                 "Flare / Lantern", "[3]",
                 new Color(255, 240, 100),
                 "Throw it to any visible floor tile.",
-                "Illuminates a wide radius for many turns —",
-                "useful for scouting ahead or confusing sentries."
-        ));
+                "Illuminates a wide radius for many turns --",
+                "useful for scouting ahead or confusing sentries."));
         itemRows.add(new EntryRow(
                 "Shuriken", "[4]",
                 new Color(180, 220, 255),
                 "Press 4 to enter aim mode. Use WASD to set direction.",
                 "Press Space or Enter to throw. Travels up to 5 tiles",
                 "in a straight line and silently eliminates the first enemy hit.",
-                "Wall stops the shuriken. Only one throw per shuriken."
-        ));
+                "Wall stops the shuriken. Only one throw per shuriken."));
         itemRows.add(new EntryRow(
                 "Holy Cross", "[5]",
                 new Color(255, 255, 180),
                 "A sacred artifact that only functions in HORROR MODE.",
                 "Instantly purifies the floor: banishes the Stalker,",
                 "cleanses blood, and reverts atmosphere to Normal Mode.",
-                "Extremely rare. Use it when the darkness becomes too much."
-        ));
-        // ── END ITEMS ──
+                "Extremely rare. Use it when the darkness becomes too much."));
+        // -- END ITEMS --
 
         pages.add(new TutorialPage(
                 PageType.ITEMS,
                 "ITEMS",
                 "Each item is consumed on use. Pick up more on each floor.",
-                itemRows
-        ));
+                itemRows));
 
         List<EntryRow> enemyRows = new ArrayList<>();
-        // ── ADD NEW ENEMIES BELOW THIS LINE ──
+        // -- ADD NEW ENEMIES BELOW THIS LINE --
         enemyRows.add(new EntryRow(
                 "Patrol Guard", "",
                 new Color(220, 100, 80),
                 "Walks a fixed route back and forth.",
                 "If it spots you it will chase aggressively.",
-                "Loses sight and searches briefly before resuming patrol."
-        ));
+                "Loses sight and searches briefly before resuming patrol."));
         enemyRows.add(new EntryRow(
                 "Hunter", "",
                 new Color(200, 60, 60),
-                "Actively hunts — smarter pathfinding than the Patrol Guard.",
+                "Actively hunts -- smarter pathfinding than the Patrol Guard.",
                 "On higher floors it may place Sticky Traps in your path.",
-                "Once alerted it is very persistent."
-        ));
+                "Once alerted it is very persistent."));
         enemyRows.add(new EntryRow(
                 "Sentry", "",
                 new Color(240, 140, 40),
                 "Stationary guard with a wide detection arc.",
                 "When it spots you, it alerts all nearby enemies.",
-                "BEWARE: It has a chance to leave its post and CHASE you!"
-        ));
-        // ── END ENEMIES ──
+                "BEWARE: It has a chance to leave its post and CHASE you!"));
+        // -- END ENEMIES --
 
         pages.add(new TutorialPage(
                 PageType.ENEMIES,
                 "ENEMIES",
                 "Standard threats found on every floor.",
-                enemyRows
-        ));
+                enemyRows));
 
         pages.add(new TutorialPage(
                 PageType.HORROR,
@@ -170,12 +160,11 @@ public class TutorialManager {
                 "Horror Mode is toggled with 'X' in the Main Menu.",
                 "It introduces new mechanics to challenge your sanity:",
                 " ",
-                "• TOTAL DARKNESS: Lights may fail, forcing you to move blind.",
-                "• UNRELIABLE TOOLS: Your lantern may flicker or fail in the dark.",
-                "• TENSION CYCLE: High-tension pulses bring audio hallucinations.",
-                "• THE LIMIT: You cannot linger. Something hunts you after Turn 40.",
-                "• PURIFICATION: Use the Holy Cross [5] to return to Normal Mode."
-        ));
+                "* TOTAL DARKNESS: Lights may fail, forcing you to move blind.",
+                "* UNRELIABLE TOOLS: Your lantern may flicker or fail in the dark.",
+                "* TENSION CYCLE: High-tension pulses bring audio hallucinations.",
+                "* THE LIMIT: You cannot linger. Something hunts you after Turn 40.",
+                "* PURIFICATION: Use the Holy Cross [5] to return to Normal Mode."));
 
         List<EntryRow> horrorRows = new ArrayList<>();
         horrorRows.add(new EntryRow(
@@ -183,29 +172,25 @@ public class TutorialManager {
                 new Color(40, 40, 45),
                 "Manifests only in total darkness.",
                 "It watches from the edge of your vision.",
-                "If it catches your gaze... it will vanish with a scream."
-        ));
+                "If it catches your gaze... it will vanish with a scream."));
         horrorRows.add(new EntryRow(
                 "The Stalker", "",
                 new Color(120, 20, 20),
                 "A persistent, invincible predator.",
                 "Spawns if you linger too long on a floor (Turn 40+).",
-                "It knows where you are. It cannot be killed. ESCAPE."
-        ));
+                "It knows where you are. It cannot be killed. ESCAPE."));
         horrorRows.add(new EntryRow(
                 "Mirror Phantom", "",
                 new Color(150, 150, 160),
                 "A psychological manifestation of your guilt.",
                 "Appears briefly in the distance, facing away.",
-                "If you approach your own reflection... it will evade you."
-        ));
+                "If you approach your own reflection... it will evade you."));
 
         pages.add(new TutorialPage(
                 PageType.HORROR,
                 "HORROR THREATS",
                 "Strictly limited to HORROR MODE (Press 'X' in Menu).",
-                horrorRows
-        ));
+                horrorRows));
 
         return pages;
     }
@@ -214,32 +199,46 @@ public class TutorialManager {
     // Runtime state
     // -------------------------------------------------------------------------
 
-    private boolean active  = false; // NOT shown at startup — opened via button
-    private int     pageIdx = 0;
+    private boolean active = false; // NOT shown at startup -- opened via button
+    private int pageIdx = 0;
 
-    public boolean isActive()             { return active; }
-    public int     currentPage()          { return pageIdx; }
-    public int     totalPages()           { return PAGES.size(); }
-    public TutorialPage currentPageData() { return PAGES.get(pageIdx); }
+    public boolean isActive() {
+        return active;
+    }
+
+    public int currentPage() {
+        return pageIdx;
+    }
+
+    public int totalPages() {
+        return PAGES.size();
+    }
+
+    public TutorialPage currentPageData() {
+        return PAGES.get(pageIdx);
+    }
 
     public void nextPage() {
-        if (pageIdx < PAGES.size() - 1) pageIdx++;
-        else dismiss();
+        if (pageIdx < PAGES.size() - 1)
+            pageIdx++;
+        else
+            dismiss();
     }
 
     public void prevPage() {
-        if (pageIdx > 0) pageIdx--;
+        if (pageIdx > 0)
+            pageIdx--;
     }
 
     public void dismiss() {
-        active  = false;
+        active = false;
         pageIdx = 0;
     }
 
     /** Open the tutorial from page 1 (called when "How to Play" is clicked). */
     public void reset() {
         pageIdx = 0;
-        active  = true;
+        active = true;
     }
 
     // -------------------------------------------------------------------------
@@ -247,10 +246,11 @@ public class TutorialManager {
     // -------------------------------------------------------------------------
 
     public void draw(Graphics g, int panelW, int panelH) {
-        if (!active) return;
+        if (!active)
+            return;
 
         Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,      RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         g2.setColor(new Color(0, 0, 0, 210));
@@ -272,11 +272,11 @@ public class TutorialManager {
 
         TutorialPage page = currentPageData();
 
-        int dotY  = cardY + 18;
-        int dotR  = 5;
+        int dotY = cardY + 18;
+        int dotR = 5;
         int dotGap = 16;
         int dotsW = PAGES.size() * dotGap - (dotGap - dotR * 2);
-        int dotX  = cardX + (cardW - dotsW) / 2;
+        int dotX = cardX + (cardW - dotsW) / 2;
         for (int i = 0; i < PAGES.size(); i++) {
             g2.setColor(i == pageIdx ? new Color(255, 230, 120) : new Color(80, 60, 30));
             g2.fillOval(dotX, dotY, dotR * 2, dotR * 2);
@@ -302,10 +302,10 @@ public class TutorialManager {
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawLine(cardX + 40, divY, cardX + cardW - 40, divY);
 
-        int contentY    = divY + 20;
+        int contentY = divY + 20;
         int contentMaxH = cardY + cardH - 70 - contentY;
-        int contentX    = cardX + 36;
-        int contentW    = cardW - 72;
+        int contentX = cardX + 36;
+        int contentW = cardW - 72;
 
         switch (page.type) {
             case INTRO:
@@ -335,10 +335,12 @@ public class TutorialManager {
         }
 
         String nextLabel = (pageIdx == PAGES.size() - 1) ? "Start Game >" : "Next >";
-        Color  nextFill  = (pageIdx == PAGES.size() - 1)
-                ? new Color(60, 100, 50, 220) : new Color(60, 45, 15, 220);
-        Color  nextText  = (pageIdx == PAGES.size() - 1)
-                ? new Color(140, 220, 100) : new Color(220, 185, 80);
+        Color nextFill = (pageIdx == PAGES.size() - 1)
+                ? new Color(60, 100, 50, 220)
+                : new Color(60, 45, 15, 220);
+        Color nextText = (pageIdx == PAGES.size() - 1)
+                ? new Color(140, 220, 100)
+                : new Color(220, 185, 80);
         drawNavButton(g2, cardX + cardW - btnW - 20, btnY, btnW, btnH, nextLabel, nextFill, nextText);
 
         g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
@@ -351,14 +353,18 @@ public class TutorialManager {
     }
 
     private void drawTextPage(Graphics2D g2, TutorialPage page,
-                              int x, int y, int w, int maxH) {
+            int x, int y, int w, int maxH) {
         g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
         FontMetrics fm = g2.getFontMetrics();
         int lineH = fm.getHeight() + 3;
         int cy = y;
         for (String line : page.body) {
-            if (cy + lineH > y + maxH) break;
-            if (line.isBlank()) { cy += lineH / 2; continue; }
+            if (cy + lineH > y + maxH)
+                break;
+            if (line.isBlank()) {
+                cy += lineH / 2;
+                continue;
+            }
             g2.setColor(new Color(210, 195, 160));
             g2.drawString(line, x, cy + fm.getAscent());
             cy += lineH;
@@ -366,14 +372,15 @@ public class TutorialManager {
     }
 
     private void drawEntryPage(Graphics2D g2, TutorialPage page,
-                               int x, int y, int w, int maxH) {
-        int cy        = y;
-        int swatchW   = 6;
-        int rowGap    = 14;
+            int x, int y, int w, int maxH) {
+        int cy = y;
+        int swatchW = 6;
+        int rowGap = 14;
         int descIndent = x + swatchW + 14;
 
         for (EntryRow row : page.entries) {
-            if (cy > y + maxH - 20) break;
+            if (cy > y + maxH - 20)
+                break;
 
             g2.setColor(row.accent);
             g2.fillRect(x, cy, swatchW, 14 + row.lines.length * 17);
@@ -405,7 +412,8 @@ public class TutorialManager {
             g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
             FontMetrics dfm = g2.getFontMetrics();
             for (String line : row.lines) {
-                if (cy > y + maxH - 10) break;
+                if (cy > y + maxH - 10)
+                    break;
                 g2.setColor(new Color(170, 158, 130));
                 g2.drawString(line, descIndent, cy + dfm.getAscent());
                 cy += dfm.getHeight() + 1;
@@ -416,7 +424,7 @@ public class TutorialManager {
     }
 
     private void drawNavButton(Graphics2D g2, int x, int y, int w, int h,
-                               String label, Color fill, Color textColor) {
+            String label, Color fill, Color textColor) {
         g2.setColor(fill);
         g2.fillRoundRect(x, y, w, h, 10, 10);
         g2.setColor(textColor.darker());
@@ -433,17 +441,21 @@ public class TutorialManager {
     // Mouse click handling
     // -------------------------------------------------------------------------
 
-    /** Returns true if tutorial consumed the click, false if "Start Game" was pressed. */
+    /**
+     * Returns true if tutorial consumed the click, false if "Start Game" was
+     * pressed.
+     */
     public boolean handleClick(int mouseX, int mouseY, int panelW, int panelH) {
-        if (!active) return false;
+        if (!active)
+            return false;
 
         int cardW = Math.min(680, panelW - 80);
         int cardH = Math.min(500, panelH - 80);
         int cardX = (panelW - cardW) / 2;
         int cardY = (panelH - cardH) / 2;
-        int btnY  = cardY + cardH - 48;
-        int btnH  = 32;
-        int btnW  = 110;
+        int btnY = cardY + cardH - 48;
+        int btnH = 32;
+        int btnW = 110;
 
         // Next / Start button
         int nextX = cardX + cardW - btnW - 20;

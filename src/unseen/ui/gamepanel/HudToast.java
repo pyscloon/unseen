@@ -11,7 +11,7 @@ public class HudToast {
     private final long createdAt;
     private final long durationMs;
 
-    /** Default toast — white text, 2 seconds. */
+    /** Default toast -- white text, 2 seconds. */
     public HudToast(String message) {
         this(message, new java.awt.Color(220, 220, 220), 2000L);
     }
@@ -30,7 +30,7 @@ public class HudToast {
     public String getMessage() { return message; }
     public java.awt.Color getColor() { return color; }
 
-    /** Returns 1.0 → 0.0 as the toast ages. */
+    /** Returns 1.0 -> 0.0 as the toast ages. */
     public float getAlpha() {
         long age = System.currentTimeMillis() - createdAt;
         if (age >= durationMs) return 0f;
