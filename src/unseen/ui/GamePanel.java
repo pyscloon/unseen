@@ -680,7 +680,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             unseen.utils.SoundManager.get().play("item_pickup"); // Or a specific heal sound if available
             showToast("Restored 1 Health!", new Color(255, 100, 100));
         } else {
-            levelManager.getPlayer().addItem(it);
+            boolean pickedUp = levelManager.getPlayer().addItem(it);
+            if (!pickedUp) {
+                showToast("Too many " + it.getClass().getSimpleName() + "! Max 5.", new Color(255, 110, 110));
+                return false;
+            }
             levelManager.getMap().removeItem(px, py);
             unseen.utils.SoundManager.get().play("item_pickup");
             showToast("Picked up " + it.getClass().getSimpleName(), new Color(120, 255, 160));
