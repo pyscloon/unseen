@@ -42,6 +42,16 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
+        if (panel.getGameState() == GameState.INTRO) {
+            if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
+                panel.advanceIntro();
+            } else if (key == KeyEvent.VK_ESCAPE) {
+                panel.skipIntroToMenu();
+            }
+            return;
+        }
+
+
         // Main menu controls
         if (panel.getGameState() == GameState.MENU) {
             if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {

@@ -67,6 +67,7 @@ public class SoundManager {
         load("heartbeat", "unseen/assets/sound/horror-mode/heartbeat.wav");
         load("suspense", "unseen/assets/sound/horror-mode/suspense.wav");
         load("holy_cross", "unseen/assets/sound/horror-mode/holy-cross.wav");
+        load("paper", "unseen/assets/sound/paper_sf.wav");
     }
 
     public static SoundManager get() {

@@ -1,6 +1,7 @@
 package unseen.game;
 
 public enum GameState {
+    INTRO,
     MENU,
     PLAYING,
     PAUSED,

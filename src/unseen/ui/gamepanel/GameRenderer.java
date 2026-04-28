@@ -19,6 +19,7 @@ import unseen.utils.AssetLoader;
 import unseen.utils.Constants;
 
 import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
 import java.util.List;
 import java.util.Random;
 
@@ -27,6 +28,37 @@ import java.util.Random;
  * effects, HUD, and overlay screens.
  */
 public class GameRenderer {
+
+    public enum MenuAction {
+        NONE, START, TUTORIAL, TOGGLE_HORROR, QUIT
+    }
+
+    private static final class MenuLayout {
+        final int cardX;
+        final int cardY;
+        final int cardW;
+        final int cardH;
+        final int titleY;
+        final int separatorY;
+        final Rectangle startButton;
+        final Rectangle tutorialButton;
+        final Rectangle horrorButton;
+        final Rectangle quitButton;
+
+        MenuLayout(int cardX, int cardY, int cardW, int cardH, int titleY, int separatorY,
+                Rectangle startButton, Rectangle tutorialButton, Rectangle horrorButton, Rectangle quitButton) {
+            this.cardX = cardX;
+            this.cardY = cardY;
+            this.cardW = cardW;
+            this.cardH = cardH;
+            this.titleY = titleY;
+            this.separatorY = separatorY;
+            this.startButton = startButton;
+            this.tutorialButton = tutorialButton;
+            this.horrorButton = horrorButton;
+            this.quitButton = quitButton;
+        }
+    }
 
     private final GamePanel panel;
     private final LevelManager levelManager;
@@ -38,6 +70,11 @@ public class GameRenderer {
 
     /** Entry point called from {@link GamePanel#paintComponent}. */
     public void render(Graphics g) {
+        if (panel.getGameState() == GameState.INTRO) {
+            drawIntroScreen(g);
+            return;
+        }
+
         if (panel.getGameState() == GameState.MENU) {
             drawMainMenu(g);
             if (panel.getTutorial().isActive()) {
@@ -402,6 +439,229 @@ public class GameRenderer {
         }
     }
 
+    private void drawIntroScreen(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        int w = panel.getWidth();
+        int h = panel.getHeight();
+        long now = System.currentTimeMillis();
+
+        Graphics2D bg = (Graphics2D) g2.create();
+        double panX = Math.sin(now / 3300.0) * 12.0 + Math.cos(now / 1700.0) * 4.5;
+        double panY = Math.cos(now / 4100.0) * 8.0 + Math.sin(now / 2100.0) * 3.0;
+        double zoom = 1.06 + 0.022 * Math.sin(now / 4700.0) + 0.012 * Math.cos(now / 2600.0);
+        bg.translate(panX - (w * (zoom - 1.0)) / 2.0, panY - (h * (zoom - 1.0)) / 2.0);
+        bg.scale(zoom, zoom);
+        drawMap(bg);
+        drawMenuTorchFlicker(bg, now);
+        bg.dispose();
+
+        drawMenuMist(g2, w, h, now);
+
+        g2.setColor(new Color(0, 0, 0, 182));
+        g2.fillRect(0, 0, w, h);
+
+        RadialGradientPaint vignette = new RadialGradientPaint(
+                w / 2f, h / 2f, Math.max(w, h) * 0.82f,
+                new float[] { 0.08f, 0.54f, 1.0f },
+                new Color[] {
+                        new Color(0, 0, 0, 0),
+                        new Color(8, 7, 5, 132),
+                        new Color(0, 0, 0, 248)
+                });
+        g2.setPaint(vignette);
+        g2.fillRect(0, 0, w, h);
+
+        int cardW = Math.max(760, Math.min(940, w - 56));
+        int cardH = Math.max(560, Math.min(660, h - 36));
+        int cardX = (w - cardW) / 2;
+        int cardY = (h - cardH) / 2;
+
+        RoundRectangle2D.Float card = new RoundRectangle2D.Float(cardX, cardY, cardW, cardH, 40, 40);
+        g2.setPaint(new GradientPaint(
+                cardX, cardY, new Color(24, 18, 15, 212),
+                cardX, cardY + cardH, new Color(8, 7, 6, 236)));
+        g2.fill(card);
+        g2.setColor(new Color(255, 245, 220, 16));
+        g2.fillRoundRect(cardX + 18, cardY + 18, cardW - 36, 64, 30, 30);
+        g2.setColor(new Color(214, 164, 70, 180));
+        g2.setStroke(new BasicStroke(2.2f));
+        g2.draw(card);
+        g2.setColor(new Color(104, 72, 28, 140));
+        g2.setStroke(new BasicStroke(1.1f));
+        g2.drawRoundRect(cardX + 8, cardY + 8, cardW - 16, cardH - 16, 32, 32);
+
+        String chapter = "PROLOGUE";
+        g2.setFont(new Font("DialogInput", Font.BOLD, 16));
+        FontMetrics chapterFm = g2.getFontMetrics();
+        g2.setColor(new Color(237, 192, 94, 226));
+        g2.drawString(chapter, w / 2 - chapterFm.stringWidth(chapter) / 2, cardY + 42);
+
+        String title = "THE LEGEND BELOW ROOM 205";
+        g2.setFont(new Font("Serif", Font.BOLD, 38));
+        FontMetrics titleFm = g2.getFontMetrics();
+        int titleW = titleFm.stringWidth(title);
+        int titleX = (w - titleW) / 2;
+        int titleY = cardY + 84;
+
+        g2.setColor(new Color(0, 0, 0, 220));
+        g2.drawString(title, titleX + 3, titleY + 3);
+        g2.setColor(new Color(78, 40, 8, 180));
+        g2.drawString(title, titleX + 1, titleY + 1);
+        g2.setPaint(new GradientPaint(
+                titleX, titleY - 40, new Color(255, 231, 150),
+                titleX, titleY + 8, new Color(241, 143, 44)));
+        g2.drawString(title, titleX, titleY);
+
+        g2.setFont(new Font("Serif", Font.ITALIC, 19));
+        String subtitle = "A voice rises from the buried dark.";
+        int subtitleW = g2.getFontMetrics().stringWidth(subtitle);
+        g2.setColor(new Color(188, 153, 101, 228));
+        g2.drawString(subtitle, (w - subtitleW) / 2, titleY + 34);
+
+        int sepY = cardY + 108;
+        int sepInset = 88;
+        g2.setColor(new Color(120, 79, 26, 190));
+        g2.setStroke(new BasicStroke(1.6f));
+        g2.drawLine(cardX + sepInset, sepY, cardX + cardW - sepInset, sepY);
+        g2.setColor(new Color(240, 199, 94, 120));
+        g2.drawLine(cardX + sepInset, sepY - 2, cardX + cardW - sepInset, sepY - 2);
+        int dx = w / 2;
+        int ds = 7;
+        int[] dpx = { dx, dx + ds, dx, dx - ds };
+        int[] dpy = { sepY - ds, sepY, sepY + ds, sepY };
+        g2.setColor(new Color(211, 165, 61, 232));
+        g2.fillPolygon(dpx, dpy, 4);
+
+        int textX = cardX + 56;
+        int textY = cardY + 142;
+        int textW = cardW - 112;
+        int textBottom = cardY + cardH - 84;
+
+        Font bodyFont = fitIntroBodyFont(g2, textW, textBottom - textY);
+        g2.setFont(bodyFont);
+        FontMetrics bodyFm = g2.getFontMetrics();
+        List<String> lines = buildIntroLines(textW, bodyFm, panel.getIntroVisibleTicks());
+        int lineHeight = bodyFm.getHeight() + 1;
+        int paraGap = 10;
+
+        int drawY = textY;
+        for (String line : lines) {
+            if (drawY > textBottom) {
+                break;
+            }
+            if (line.isEmpty()) {
+                drawY += paraGap;
+                continue;
+            }
+            g2.setColor(new Color(0, 0, 0, 150));
+            g2.drawString(line, textX + 2, drawY + 2);
+            g2.setColor(new Color(232, 220, 198, 232));
+            g2.drawString(line, textX, drawY);
+            drawY += lineHeight;
+        }
+
+        if (!panel.isIntroFullyRevealed()) {
+            int cursorY = Math.min(textBottom - 8, drawY + 4);
+            float cursorPulse = 0.35f + 0.65f * (0.5f + 0.5f * (float) Math.sin(now / 180.0));
+            g2.setColor(new Color(255, 194, 92, (int) (160 * cursorPulse)));
+            g2.fillRoundRect(textX, cursorY, 14, 3, 3, 3);
+        }
+
+        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
+        String prompt = panel.isIntroFullyRevealed()
+                ? "SPACE / ENTER / CLICK  -  descend to the menu"
+                : "SPACE / ENTER / CLICK  -  reveal the whole tale    ESC  -  skip";
+        int promptW = g2.getFontMetrics().stringWidth(prompt);
+        float promptPulse = 0.55f + 0.45f * (0.5f + 0.5f * (float) Math.sin(now / 360.0));
+        g2.setColor(new Color(0, 0, 0, 120));
+        g2.fillRoundRect((w - promptW) / 2 - 18, cardY + cardH - 54, promptW + 36, 32, 18, 18);
+        g2.setColor(new Color(228, 188, 100, (int) (185 + 45 * promptPulse)));
+        g2.drawString(prompt, (w - promptW) / 2, cardY + cardH - 33);
+
+        g2.dispose();
+    }
+
+
+    private Font fitIntroBodyFont(Graphics2D g2, int maxWidth, int maxHeight) {
+        for (int size = 30; size >= 20; size--) {
+            Font font = new Font("Serif", Font.PLAIN, size);
+            FontMetrics fm = g2.getFontMetrics(font);
+            List<String> fullLines = buildIntroLines(maxWidth, fm, panel.getIntroTotalTicks());
+            if (measureIntroHeight(fullLines, fm) <= maxHeight) {
+                return font;
+            }
+        }
+        return new Font("Serif", Font.PLAIN, 20);
+    }
+
+    private int measureIntroHeight(List<String> lines, FontMetrics fm) {
+        int lineHeight = fm.getHeight() + 1;
+        int paraGap = 10;
+        int height = 0;
+        for (String line : lines) {
+            height += line.isEmpty() ? paraGap : lineHeight;
+        }
+        return height;
+    }
+
+    private List<String> buildIntroLines(int maxWidth, FontMetrics fm, int visibleTicks) {
+        List<String> lines = new java.util.ArrayList<>();
+        int remainingTicks = visibleTicks;
+        int paragraphPauseTicks = panel.getIntroParagraphPauseTicks();
+
+        for (String paragraph : panel.getIntroNarration()) {
+            if (remainingTicks <= 0) {
+                break;
+            }
+
+            if (paragraph == null || paragraph.isEmpty()) {
+                continue;
+            }
+
+            int visible = Math.min(remainingTicks, paragraph.length());
+            if (visible <= 0) {
+                break;
+            }
+
+            String visibleText = paragraph.substring(0, visible);
+            wrapParagraph(lines, visibleText, maxWidth, fm);
+            remainingTicks -= visible;
+
+            if (visible == paragraph.length() && remainingTicks > 0) {
+                if (remainingTicks >= paragraphPauseTicks) {
+                    lines.add("");
+                    remainingTicks -= paragraphPauseTicks;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        return lines;
+    }
+
+    private void wrapParagraph(List<String> lines, String text, int maxWidth, FontMetrics fm) {
+        String[] words = text.split("\\s+");
+        StringBuilder current = new StringBuilder();
+        for (String word : words) {
+            String candidate = current.length() == 0 ? word : current + " " + word;
+            if (current.length() > 0 && fm.stringWidth(candidate) > maxWidth) {
+                lines.add(current.toString());
+                current.setLength(0);
+                current.append(word);
+            } else {
+                current.setLength(0);
+                current.append(candidate);
+            }
+        }
+        if (current.length() > 0) {
+            lines.add(current.toString());
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Toast notifications -- drawn from bottom-center, stacking upward
     // -------------------------------------------------------------------------
@@ -517,124 +777,117 @@ public class GameRenderer {
         int w = panel.getWidth();
         int h = panel.getHeight();
         long now = System.currentTimeMillis();
+        MenuLayout layout = buildMenuLayout(w, h);
+        MenuAction hovered = getMenuActionAt(panel.getMouseX(), panel.getMouseY(), w, h);
 
         Graphics2D bg = (Graphics2D) g2.create();
-        double panX = Math.sin(now / 5000.0) * 5.0;
-        double panY = Math.cos(now / 6500.0) * 3.5;
-        double zoom = 1.02 + 0.008 * Math.sin(now / 7200.0);
+        double panX = Math.sin(now / 3300.0) * 12.0 + Math.cos(now / 1700.0) * 4.5;
+        double panY = Math.cos(now / 4100.0) * 8.0 + Math.sin(now / 2100.0) * 3.0;
+        double zoom = 1.06 + 0.022 * Math.sin(now / 4700.0) + 0.012 * Math.cos(now / 2600.0);
         bg.translate(panX - (w * (zoom - 1.0)) / 2.0, panY - (h * (zoom - 1.0)) / 2.0);
         bg.scale(zoom, zoom);
         drawMap(bg);
         drawMenuTorchFlicker(bg, now);
         bg.dispose();
 
-        g2.setColor(new Color(0, 0, 0, 155));
+        drawMenuMist(g2, w, h, now);
+
+        g2.setColor(new Color(0, 0, 0, 168));
         g2.fillRect(0, 0, w, h);
 
         java.awt.RadialGradientPaint vignette = new java.awt.RadialGradientPaint(
-                w / 2f, h / 2f, Math.max(w, h) * 0.72f,
-                new float[] { 0.0f, 1.0f },
-                new Color[] { new Color(0, 0, 0, 0), new Color(0, 0, 0, 160) });
+                w / 2f, h / 2f, Math.max(w, h) * 0.82f,
+                new float[] { 0.10f, 0.58f, 1.0f },
+                new Color[] {
+                        new Color(0, 0, 0, 0),
+                        new Color(8, 7, 5, 120),
+                        new Color(0, 0, 0, 245)
+                });
         g2.setPaint(vignette);
         g2.fillRect(0, 0, w, h);
 
-        int cardW = w - 160;
-        int cardH = h - 230;
-        int cardX = (w - cardW) / 2;
-        int cardY = (h - cardH) / 2;
+        RoundRectangle2D.Float card = new RoundRectangle2D.Float(
+                layout.cardX, layout.cardY, layout.cardW, layout.cardH, 38, 38);
+        g2.setPaint(new GradientPaint(
+                layout.cardX, layout.cardY, new Color(28, 21, 17, 196),
+                layout.cardX, layout.cardY + layout.cardH, new Color(10, 8, 7, 232)));
+        g2.fill(card);
+        g2.setColor(new Color(255, 245, 220, 18));
+        g2.fillRoundRect(layout.cardX + 16, layout.cardY + 16, layout.cardW - 32, 56, 30, 30);
+        g2.setColor(new Color(214, 164, 70, 175));
+        g2.setStroke(new BasicStroke(2.2f));
+        g2.draw(card);
+        g2.setColor(new Color(104, 72, 28, 160));
+        g2.setStroke(new BasicStroke(1.1f));
+        g2.drawRoundRect(layout.cardX + 7, layout.cardY + 7, layout.cardW - 14, layout.cardH - 14, 30, 30);
 
-        g2.setColor(new Color(14, 11, 9, 210));
-        g2.fillRect(cardX, cardY, cardW, cardH);
-
-        g2.setColor(new Color(90, 58, 18, 180));
-        g2.setStroke(new BasicStroke(2f));
-        g2.drawRect(cardX, cardY, cardW, cardH);
-
-        g2.setColor(new Color(50, 33, 10, 120));
-        g2.setStroke(new BasicStroke(1f));
-        g2.drawRect(cardX + 5, cardY + 5, cardW - 10, cardH - 10);
-
-        int cs = 7;
-        g2.setColor(new Color(110, 72, 22, 200));
-        g2.fillRect(cardX - 2, cardY - 2, cs, cs);
-        g2.fillRect(cardX + cardW - cs + 2, cardY - 2, cs, cs);
-        g2.fillRect(cardX - 2, cardY + cardH - cs + 2, cs, cs);
-        g2.fillRect(cardX + cardW - cs + 2, cardY + cardH - cs + 2, cs, cs);
-
-        float pulse = (float) (0.5 + 0.5 * Math.sin(now / 820.0));
+        float beatA = Math.max(0f, (float) Math.sin(now / 220.0));
+        float beatB = Math.max(0f, (float) Math.sin((now - 150.0) / 220.0));
+        float pulse = Math.min(1f, beatA * 0.9f + beatB * 0.55f);
         String title = "UNSEEN";
         Font titleFont = new Font("Serif", Font.BOLD, 68);
         g2.setFont(titleFont);
         int tw = g2.getFontMetrics().stringWidth(title);
         int titleX = (w - tw) / 2;
-        int titleY = cardY + 115;
+        int titleY = layout.titleY;
 
-        g2.setColor(new Color(0, 0, 0, 200));
-        g2.drawString(title, titleX + 4, titleY + 4);
+        g2.setColor(new Color(0, 0, 0, 220));
+        g2.drawString(title, titleX + 6, titleY + 6);
+        g2.setColor(new Color(35, 10, 0, 170));
+        g2.drawString(title, titleX + 2, titleY + 2);
 
-        int glowAlpha = 55 + (int) (55 * pulse);
-        g2.setColor(new Color(200, 110, 20, glowAlpha));
-        for (int r = 5; r >= 1; r--) {
+        int glowAlpha = 48 + (int) (96 * pulse);
+        for (int r = 10; r >= 2; r--) {
+            g2.setColor(new Color(255, 140 + r * 4, 30, Math.max(18, glowAlpha - r * 8)));
             g2.drawString(title, titleX - r, titleY);
             g2.drawString(title, titleX + r, titleY);
             g2.drawString(title, titleX, titleY - r);
             g2.drawString(title, titleX, titleY + r);
         }
 
-        g2.setColor(new Color(220, 170, 60));
+        g2.setPaint(new GradientPaint(
+                titleX, titleY - 60, new Color(255, 233, 151),
+                titleX, titleY + 10, new Color(245, 144, 42)));
         g2.drawString(title, titleX, titleY);
 
-        int sepY = titleY + 18;
-        int sepInset = 60;
-        g2.setColor(new Color(90, 58, 18, 180));
-        g2.setStroke(new BasicStroke(1.5f));
-        g2.drawLine(cardX + sepInset, sepY, cardX + cardW - sepInset, sepY);
+        g2.setFont(new Font("Serif", Font.ITALIC, 18));
+        String subtitle = "Every floor is listening.";
+        int subtitleW = g2.getFontMetrics().stringWidth(subtitle);
+        g2.setColor(new Color(185, 150, 95, 220));
+        g2.drawString(subtitle, (w - subtitleW) / 2, titleY + 34);
+
+        int sepY = layout.separatorY;
+        int sepInset = 72;
+        g2.setColor(new Color(120, 79, 26, 200));
+        g2.setStroke(new BasicStroke(1.8f));
+        g2.drawLine(layout.cardX + sepInset, sepY, layout.cardX + layout.cardW - sepInset, sepY);
+        g2.setColor(new Color(240, 199, 94, 135));
+        g2.drawLine(layout.cardX + sepInset, sepY - 2, layout.cardX + layout.cardW - sepInset, sepY - 2);
         int dx = w / 2, dy = sepY;
-        int ds = 5;
+        int ds = 7;
         int[] dpx = { dx, dx + ds, dx, dx - ds };
         int[] dpy = { dy - ds, dy, dy + ds, dy };
-        g2.setColor(new Color(140, 90, 25, 220));
+        g2.setColor(new Color(211, 165, 61, 235));
         g2.fillPolygon(dpx, dpy, 4);
 
-        // -- Menu options -- all uniform plain text style --------------------------
-        int optY = sepY + 52;
+        drawMenuPill(g2, layout.startButton, "SPACE", "Start Adventure",
+                new Color(94, 56, 15, hovered == MenuAction.START ? 235 : 208),
+                new Color(255, 215, 120), hovered == MenuAction.START, pulse);
+        drawMenuPill(g2, layout.tutorialButton, "H", "How to Play",
+                new Color(56, 43, 28, hovered == MenuAction.TUTORIAL ? 228 : 202),
+                new Color(220, 191, 126), hovered == MenuAction.TUTORIAL, 0f);
 
-        String start = "SPACE  to  Start";
-        g2.setFont(new Font("Serif", Font.BOLD, 22));
-        int sw = g2.getFontMetrics().stringWidth(start);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(start, (w - sw) / 2 + 1, optY + 1);
-        g2.setColor(new Color(210, 175, 90));
-        g2.drawString(start, (w - sw) / 2, optY);
+        String horrorLabel = panel.isHorrorMode() ? "HORROR MODE (ON)" : "HORROR MODE (OFF)";
+        Color horrorFill = panel.isHorrorMode()
+                ? new Color(96, 30, 8, hovered == MenuAction.TOGGLE_HORROR ? 242 : 216)
+                : new Color(52, 37, 29, hovered == MenuAction.TOGGLE_HORROR ? 226 : 198);
+        Color horrorText = panel.isHorrorMode() ? new Color(255, 132, 42) : new Color(186, 152, 110);
+        drawMenuPill(g2, layout.horrorButton, "X", horrorLabel, horrorFill, horrorText,
+                hovered == MenuAction.TOGGLE_HORROR, pulse);
 
-        String howTo = "H : How to Play";
-        g2.setFont(new Font("Serif", Font.PLAIN, 18));
-        int hw2 = g2.getFontMetrics().stringWidth(howTo);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(howTo, (w - hw2) / 2 + 1, optY + 33);
-        g2.setColor(new Color(118, 100, 72));
-        g2.drawString(howTo, (w - hw2) / 2, optY + 32);
-
-        String horror = "X : Horror Mode [" + (panel.isHorrorMode() ? "ON" : "OFF") + "]";
-        g2.setFont(new Font("Serif", Font.BOLD, 19));
-        int hwx = g2.getFontMetrics().stringWidth(horror);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(horror, (w - hwx) / 2 + 1, optY + 68);
-        if (panel.isHorrorMode()) {
-            g2.setColor(new Color(220, 80, 20)); // Bright horror orange
-        } else {
-            g2.setColor(new Color(118, 100, 72));
-        }
-        g2.drawString(horror, (w - hwx) / 2, optY + 67);
-
-        String quit = "Q : Quit";
-        g2.setFont(new Font("Serif", Font.PLAIN, 18));
-        int qw = g2.getFontMetrics().stringWidth(quit);
-        g2.setColor(new Color(0, 0, 0, 130));
-        g2.drawString(quit, (w - qw) / 2 + 1, optY + 101);
-        g2.setColor(new Color(118, 100, 72));
-        g2.drawString(quit, (w - qw) / 2, optY + 100);
-        // -- end menu options -----------------------------------------------------
+        drawMenuPill(g2, layout.quitButton, "Q", "Leave the Dungeon",
+                new Color(42, 34, 32, hovered == MenuAction.QUIT ? 224 : 192),
+                new Color(180, 162, 148), hovered == MenuAction.QUIT, 0f);
 
         String hint = "WASD - Move     E - Pick up     1/2/3/4/5/6 - Items";
         g2.setFont(new Font("SansSerif", Font.BOLD, 15));
@@ -651,6 +904,130 @@ public class GameRenderer {
         g2.drawString(version, w - vw - 12, h - 14);
 
         g2.dispose();
+    }
+
+    public MenuAction getMenuActionAt(int mouseX, int mouseY, int panelW, int panelH) {
+        MenuLayout layout = buildMenuLayout(panelW, panelH);
+        Point point = new Point(mouseX, mouseY);
+        if (layout.startButton.contains(point))
+            return MenuAction.START;
+        if (layout.tutorialButton.contains(point))
+            return MenuAction.TUTORIAL;
+        if (layout.horrorButton.contains(point))
+            return MenuAction.TOGGLE_HORROR;
+        if (layout.quitButton.contains(point))
+            return MenuAction.QUIT;
+        return MenuAction.NONE;
+    }
+
+    private MenuLayout buildMenuLayout(int w, int h) {
+        int cardW = Math.min(560, w - 120);
+        int cardH = Math.min(500, h - 150);
+        int cardX = (w - cardW) / 2;
+        int cardY = (h - cardH) / 2;
+        int titleY = cardY + 120;
+        int separatorY = titleY + 56;
+        int buttonW = Math.min(340, cardW - 120);
+        int buttonH = 44;
+        int buttonX = cardX + (cardW - buttonW) / 2;
+        int firstButtonY = separatorY + 38;
+        int gap = 16;
+
+        Rectangle startButton = new Rectangle(buttonX, firstButtonY, buttonW, buttonH);
+        Rectangle tutorialButton = new Rectangle(buttonX, firstButtonY + (buttonH + gap), buttonW, buttonH);
+        Rectangle horrorButton = new Rectangle(buttonX, firstButtonY + 2 * (buttonH + gap), buttonW, buttonH);
+        Rectangle quitButton = new Rectangle(buttonX, firstButtonY + 3 * (buttonH + gap), buttonW, buttonH);
+        return new MenuLayout(cardX, cardY, cardW, cardH, titleY, separatorY,
+                startButton, tutorialButton, horrorButton, quitButton);
+    }
+
+    private void drawMenuMist(Graphics2D g2, int w, int h, long now) {
+        Graphics2D mist = (Graphics2D) g2.create();
+        mist.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        for (int layer = 0; layer < 4; layer++) {
+            int blobs = 4 + layer;
+            float alpha = 0.035f + layer * 0.015f;
+            mist.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+            Color tint = new Color(190 - layer * 12, 186 - layer * 14, 180 - layer * 16);
+            mist.setColor(tint);
+            for (int i = 0; i < blobs; i++) {
+                double drift = ((now * (0.018 + layer * 0.006)) + i * 180.0) % (w + 380.0) - 220.0;
+                double wave = Math.sin(now / (1800.0 + layer * 280.0) + i * 0.8 + layer) * (24 + layer * 14);
+                int cloudW = 220 + layer * 90 + (i % 3) * 42;
+                int cloudH = 70 + layer * 18 + (i % 2) * 12;
+                int x = (int) drift;
+                int y = (int) (h * (0.16 + layer * 0.18) + wave + i * 18);
+                mist.fillRoundRect(x, y, cloudW, cloudH, cloudH, cloudH);
+                mist.fillOval(x - 28, y + 8, cloudW / 2, cloudH);
+                mist.fillOval(x + cloudW / 3, y - 10, cloudW / 2, cloudH + 18);
+            }
+        }
+        mist.dispose();
+    }
+
+    private void drawMenuPill(Graphics2D g2, Rectangle bounds, String key, String label,
+            Color fill, Color textColor, boolean hovered, float pulse) {
+        Graphics2D pill = (Graphics2D) g2.create();
+        pill.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int arc = 24;
+        pill.setColor(new Color(0, 0, 0, hovered ? 110 : 82));
+        pill.fillRoundRect(bounds.x + 4, bounds.y + 5, bounds.width, bounds.height, arc, arc);
+        pill.setPaint(new GradientPaint(
+                bounds.x, bounds.y, brighten(fill, hovered ? 0.12f : 0.04f),
+                bounds.x, bounds.y + bounds.height, darken(fill, 0.18f)));
+        pill.fillRoundRect(bounds.x, bounds.y, bounds.width, bounds.height, arc, arc);
+
+        if (hovered) {
+            pill.setColor(new Color(textColor.getRed(), textColor.getGreen(), textColor.getBlue(),
+                    24 + (int) (48 * pulse)));
+            pill.setStroke(new BasicStroke(6f));
+            pill.drawRoundRect(bounds.x - 1, bounds.y - 1, bounds.width + 2, bounds.height + 2, arc, arc);
+        }
+
+        pill.setColor(new Color(255, 245, 224, 24));
+        pill.fillRoundRect(bounds.x + 10, bounds.y + 6, bounds.width - 20, 11, 18, 18);
+        pill.setColor(brighten(textColor, 0.10f));
+        pill.setStroke(new BasicStroke(1.6f));
+        pill.drawRoundRect(bounds.x, bounds.y, bounds.width, bounds.height, arc, arc);
+
+        pill.setFont(new Font("DialogInput", Font.BOLD, 15));
+        FontMetrics keyFm = pill.getFontMetrics();
+        int badgeW = Math.max(44, keyFm.stringWidth(key) + 16);
+        int badgeH = bounds.height - 12;
+        int badgeX = bounds.x + 10;
+        int badgeY = bounds.y + 6;
+        pill.setColor(new Color(8, 7, 5, 145));
+        pill.fillRoundRect(badgeX, badgeY, badgeW, badgeH, 16, 16);
+        pill.setColor(new Color(textColor.getRed(), textColor.getGreen(), textColor.getBlue(), 180));
+        pill.drawRoundRect(badgeX, badgeY, badgeW, badgeH, 16, 16);
+        pill.setColor(textColor);
+        pill.drawString(key, badgeX + (badgeW - keyFm.stringWidth(key)) / 2,
+                badgeY + (badgeH - keyFm.getHeight()) / 2 + keyFm.getAscent());
+
+        pill.setFont(new Font("Serif", Font.BOLD, 22));
+        FontMetrics labelFm = pill.getFontMetrics();
+        pill.setColor(new Color(0, 0, 0, 140));
+        pill.drawString(label, badgeX + badgeW + 16, bounds.y + bounds.height / 2 + labelFm.getAscent() / 2 - 1);
+        pill.setColor(textColor);
+        pill.drawString(label, badgeX + badgeW + 15, bounds.y + bounds.height / 2 + labelFm.getAscent() / 2 - 2);
+        pill.dispose();
+    }
+
+    private Color brighten(Color color, float amount) {
+        amount = Math.max(0f, Math.min(1f, amount));
+        int r = color.getRed() + Math.round((255 - color.getRed()) * amount);
+        int g = color.getGreen() + Math.round((255 - color.getGreen()) * amount);
+        int b = color.getBlue() + Math.round((255 - color.getBlue()) * amount);
+        return new Color(Math.min(255, r), Math.min(255, g), Math.min(255, b), color.getAlpha());
+    }
+
+    private Color darken(Color color, float amount) {
+        amount = Math.max(0f, Math.min(1f, amount));
+        int r = Math.round(color.getRed() * (1f - amount));
+        int g = Math.round(color.getGreen() * (1f - amount));
+        int b = Math.round(color.getBlue() * (1f - amount));
+        return new Color(Math.max(0, r), Math.max(0, g), Math.max(0, b), color.getAlpha());
     }
 
     private void drawMenuTorchFlicker(Graphics2D g2, long now) {
@@ -1659,35 +2036,36 @@ public class GameRenderer {
     }
 
     private void drawGrappleAnimation(Graphics2D g2) {
-        if (!panel.isGrappling()) return;
+        if (!panel.isGrappling())
+            return;
 
         int ts = Constants.TILE_SIZE;
         float progress = panel.getGrappleProgress();
-        
+
         // Start pixel position (center of start tile)
         int sx = panel.getGrappleStartX() * ts + ts / 2;
         int sy = panel.getGrappleStartY() * ts + ts / 2;
-        
+
         // Wall pixel position (center of wall tile)
         int wx = panel.getGrappleWallX() * ts + ts / 2;
         int wy = panel.getGrappleWallY() * ts + ts / 2;
-        
+
         // End pixel position (center of landing tile)
         int ex = panel.getGrappleEndX() * ts + ts / 2;
         int ey = panel.getGrappleEndY() * ts + ts / 2;
 
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
+
         // Two phases:
         // 0.0 -> 0.4: Hook flies to wall
         // 0.4 -> 1.0: Player zips to landing spot
-        
+
         if (progress < 0.4f) {
             // PHASE 1: Hook flies out
             float hookP = progress / 0.4f;
-            int hx = (int)(sx + (wx - sx) * hookP);
-            int hy = (int)(sy + (wy - sy) * hookP);
-            
+            int hx = (int) (sx + (wx - sx) * hookP);
+            int hy = (int) (sy + (wy - sy) * hookP);
+
             // Draw rope (thick cable)
             g2.setStroke(new BasicStroke(3f));
             g2.setColor(new Color(100, 100, 110));
@@ -1695,26 +2073,27 @@ public class GameRenderer {
             g2.setStroke(new BasicStroke(1.5f));
             g2.setColor(new Color(180, 180, 200));
             g2.drawLine(sx, sy, hx, hy);
-            
+
             // Draw hook sprite at the tip
             Image hookImg = AssetLoader.get().grappleNoRope;
-            if (hookImg == null) hookImg = AssetLoader.get().grapplingHook; // Fallback
-            
+            if (hookImg == null)
+                hookImg = AssetLoader.get().grapplingHook; // Fallback
+
             if (hookImg != null) {
-                int sz = (int)(ts * 0.7);
+                int sz = (int) (ts * 0.7);
                 double angle = Math.atan2(wy - sy, wx - sx);
                 java.awt.geom.AffineTransform at = new java.awt.geom.AffineTransform();
                 at.translate(hx, hy);
-                at.rotate(angle + Math.PI/2); // Align top of sprite to direction
-                at.translate(-sz/2.0, -sz/2.0);
+                at.rotate(angle + Math.PI / 2); // Align top of sprite to direction
+                at.translate(-sz / 2.0, -sz / 2.0);
                 g2.drawImage(hookImg, at, null);
             }
         } else {
             // PHASE 2: Player zips
             float zipP = (progress - 0.4f) / 0.6f;
-            int px = (int)(sx + (ex - sx) * zipP);
-            int py = (int)(sy + (ey - sy) * zipP);
-            
+            int px = (int) (sx + (ex - sx) * zipP);
+            int py = (int) (sy + (ey - sy) * zipP);
+
             // Draw rope from player to wall
             g2.setStroke(new BasicStroke(2.5f));
             g2.setColor(new Color(90, 90, 100));
@@ -1722,15 +2101,15 @@ public class GameRenderer {
             g2.setStroke(new BasicStroke(1f));
             g2.setColor(new Color(160, 160, 180));
             g2.drawLine(px, py, wx, wy);
-            
+
             // Draw a motion blur/ghosting effect behind the zip
             int blurSteps = 3;
             for (int i = 1; i <= blurSteps; i++) {
                 float trailP = Math.max(0, zipP - i * 0.05f);
-                int tx = (int)(sx + (ex - sx) * trailP);
-                int ty = (int)(sy + (ey - sy) * trailP);
+                int tx = (int) (sx + (ex - sx) * trailP);
+                int ty = (int) (sy + (ey - sy) * trailP);
                 g2.setColor(new Color(150, 220, 255, 100 / i));
-                g2.fillOval(tx - ts/4, ty - ts/4, ts/2, ts/2);
+                g2.fillOval(tx - ts / 4, ty - ts / 4, ts / 2, ts / 2);
             }
 
             // Draw player sprite at moving position
@@ -1762,8 +2141,8 @@ public class GameRenderer {
         boolean validTile = mouseGridX >= 0 && mouseGridY >= 0
                 && mouseGridX < Constants.GRID_WIDTH && mouseGridY < Constants.GRID_HEIGHT
                 && (panel.isTargetingGrapplingHook()
-                    ? panel.isValidGrapplingHookTarget(mouseGridX, mouseGridY)
-                    : levelManager.getMap().isPassable(mouseGridX, mouseGridY));
+                        ? panel.isValidGrapplingHookTarget(mouseGridX, mouseGridY)
+                        : levelManager.getMap().isPassable(mouseGridX, mouseGridY));
 
         int tx = mouseGridX * ts;
         int ty = mouseGridY * ts;
@@ -1966,8 +2345,8 @@ public class GameRenderer {
                 break;
             case PUDDLE:
                 if (AssetLoader.get().puddle != null) {
-                    g2.drawImage(AssetLoader.get().puddle, drawX, drawY, 
-                                 Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                    g2.drawImage(AssetLoader.get().puddle, drawX, drawY,
+                            Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                 } else {
                     // Fallback to a translucent blue oval
                     g2.setColor(new Color(60, 120, 200, 120));

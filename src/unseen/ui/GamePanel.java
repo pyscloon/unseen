@@ -1,12 +1,25 @@
 package unseen.ui;
 
-import unseen.entities.Enemy;
-import unseen.entities.Player;
+import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.event.KeyEvent;
+import java.io.File;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+
+import unseen.utils.Constants;
 import unseen.game.GameState;
 import unseen.game.RunStats;
 import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
 import unseen.game.TurnManager;
+import unseen.entities.Player;
+import unseen.entities.Enemy;
 import unseen.items.Item;
 import unseen.items.GrapplingHook;
 import unseen.items.Shuriken;
@@ -16,19 +29,23 @@ import unseen.ui.gamepanel.HudToast;
 import unseen.ui.gamepanel.LevelManager;
 import unseen.ui.gamepanel.ScreenShake;
 import unseen.ui.gamepanel.TutorialManager;
-import unseen.utils.Constants;
-
-import javax.swing.*;
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
+    private static final String[] INTRO_NARRATION = {
+            "Beneath Room 205 of the Engineering Building, below the old software engineering room, there waits a dungeon that should never have been found.",
+            "Then a virus spread through the buried halls. Stone soured. Shadows learned to move. And from the dark came monsters, as if broken code itself had grown teeth and hunger.",
+            "The first to descend were Lon, Ron, and Dom. They entered as heroes. Whether they died in the deep or vanished into it, no one can say. Only their relics remain, waiting on the floors for the next hand brave enough to claim them.",
+            "Now that burden passes to you. One day, chasing adventure, you found the hidden path beneath Room 205 and chose to challenge the legend yourself."
+    };
+    private static final int INTRO_CHAR_REVEAL_MS = 65;
+    private static final int INTRO_PARAGRAPH_PAUSE_MS = 900;
+    private static final int INTRO_PARAGRAPH_PAUSE_TICKS = Math.max(1, INTRO_PARAGRAPH_PAUSE_MS / INTRO_CHAR_REVEAL_MS);
 
     private javax.sound.sampled.Clip backgroundClip;
+    private javax.sound.sampled.Clip narratorClip;
 
     private Thread gameThread;
-    private GameState state = GameState.MENU;
+    private GameState state = GameState.INTRO;
 
     private boolean targetingNoiseMaker = false;
     private boolean targetingFlare = false;
@@ -65,13 +82,29 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     private boolean horrorMode = false;
     private String currentNoteLore = null;
+    private long introRevealStartMs;
+    private int introForcedVisibleTicks = -1;
+    private final int introTotalTicks = countIntroTicks(INTRO_NARRATION);
+    private long introFullyRevealedMs = -1;
 
-    public boolean isHorrorMode() { return horrorMode; }
-    public String getCurrentNoteLore() { return currentNoteLore; }
-    public void setCurrentNoteLore(String lore) { this.currentNoteLore = lore; }
-    public void setHorrorMode(boolean hm) { 
+    public boolean isHorrorMode() {
+        return horrorMode;
+    }
+
+    public String getCurrentNoteLore() {
+        return currentNoteLore;
+    }
+
+    public void setCurrentNoteLore(String lore) {
+        if (this.currentNoteLore == null && lore != null) {
+            unseen.utils.SoundManager.get().play("paper", 0.7f);
+        }
+        this.currentNoteLore = lore;
+    }
+
+    public void setHorrorMode(boolean hm) {
         boolean changed = (this.horrorMode != hm);
-        this.horrorMode = hm; 
+        this.horrorMode = hm;
         if (changed) {
             currentTrackIndex = 0;
             loadAndPlayBackgroundSound();
@@ -116,7 +149,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 mouseY = e.getY();
                 targetGridX = e.getX() / Constants.TILE_SIZE;
                 targetGridY = e.getY() / Constants.TILE_SIZE;
-                if (targetingNoiseMaker || targetingFlare || targetingGrapplingHook)
+                if (state == GameState.INTRO
+                        || state == GameState.MENU || tutorial.isActive()
+                        || targetingNoiseMaker || targetingFlare || targetingGrapplingHook)
                     repaint();
             }
         });
@@ -124,6 +159,11 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         this.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (state == GameState.INTRO) {
+                    advanceIntro();
+                    requestFocusInWindow();
+                    return;
+                }
                 // Tutorial click handling
                 if (tutorial.isActive()) {
                     boolean tutConsumed = tutorial.handleClick(e.getX(), e.getY(), getWidth(), getHeight());
@@ -134,6 +174,29 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                     if (!tutorial.isActive() && state == GameState.MENU) {
                         startFromMenu();
                         return;
+                    }
+                }
+
+                if (state == GameState.MENU) {
+                    GameRenderer.MenuAction action = renderer.getMenuActionAt(e.getX(), e.getY(), getWidth(),
+                            getHeight());
+                    switch (action) {
+                        case START:
+                            startFromMenu();
+                            return;
+                        case TUTORIAL:
+                            tutorial.reset();
+                            repaint();
+                            return;
+                        case TOGGLE_HORROR:
+                            setHorrorMode(!isHorrorMode());
+                            repaint();
+                            return;
+                        case QUIT:
+                            System.exit(0);
+                            return;
+                        default:
+                            break;
                     }
                 }
 
@@ -152,6 +215,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         renderer = new GameRenderer(this, levelManager);
         levelManager.setupGame();
         loadAndPlayBackgroundSound();
+        resetIntro();
     }
 
     public LevelManager getLevelManager() {
@@ -190,8 +254,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         try {
             boolean isActuallyHorror = horrorMode && !levelManager.isFloorPurified();
             String[] activePlaylist = isActuallyHorror ? horrorPlaylist : playlist;
-            if (currentTrackIndex >= activePlaylist.length) currentTrackIndex = 0;
-            
+            if (currentTrackIndex >= activePlaylist.length)
+                currentTrackIndex = 0;
+
             String path = activePlaylist[currentTrackIndex];
             java.net.URL soundURL = getClass().getClassLoader().getResource(path);
 
@@ -239,6 +304,41 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             System.err.println(
                     "Audio Error: Could not play " + playlist[currentTrackIndex] + ". Details: " + e.getMessage());
             backgroundClip = null;
+        }
+    }
+
+    public void stopBackgroundSound() {
+        if (backgroundClip != null) {
+            backgroundClip.stop();
+        }
+    }
+
+    private void playNarration() {
+        stopNarration();
+        try {
+            java.net.URL soundURL = getClass().getClassLoader().getResource("unseen/assets/sound/narrator.wav");
+            if (soundURL == null) {
+                // Fallback to mp3 if wav is missing
+                soundURL = getClass().getClassLoader().getResource("unseen/assets/sound/narrator.mp3");
+            }
+
+            if (soundURL != null) {
+                javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem
+                        .getAudioInputStream(soundURL);
+                narratorClip = javax.sound.sampled.AudioSystem.getClip();
+                narratorClip.open(audioIn);
+                narratorClip.start();
+            }
+        } catch (Exception e) {
+            System.err.println("Narration Error: " + e.getMessage());
+        }
+    }
+
+    private void stopNarration() {
+        if (narratorClip != null) {
+            narratorClip.stop();
+            narratorClip.close();
+            narratorClip = null;
         }
     }
 
@@ -335,6 +435,86 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         gameThread.start();
     }
 
+    private void resetIntro() {
+        introRevealStartMs = System.currentTimeMillis();
+        introForcedVisibleTicks = -1;
+        introFullyRevealedMs = -1;
+        playNarration();
+    }
+
+    private static int countIntroTicks(String[] paragraphs) {
+        int total = 0;
+        int visibleParagraphs = 0;
+        for (String paragraph : paragraphs) {
+            if (paragraph != null && !paragraph.isEmpty()) {
+                total += paragraph.length();
+                visibleParagraphs++;
+            }
+        }
+        if (visibleParagraphs > 1) {
+            total += (visibleParagraphs - 1) * INTRO_PARAGRAPH_PAUSE_TICKS;
+        }
+        return total;
+    }
+
+    public String[] getIntroNarration() {
+        return INTRO_NARRATION;
+    }
+
+    public int getIntroVisibleTicks() {
+        if (introForcedVisibleTicks >= 0) {
+            return introForcedVisibleTicks;
+        }
+        long elapsed = Math.max(0L, System.currentTimeMillis() - introRevealStartMs);
+        int visible = 1 + (int) (elapsed / INTRO_CHAR_REVEAL_MS);
+        return Math.min(introTotalTicks, visible);
+    }
+
+    public int getIntroTotalTicks() {
+        return introTotalTicks;
+    }
+
+    public int getIntroParagraphPauseTicks() {
+        return INTRO_PARAGRAPH_PAUSE_TICKS;
+    }
+
+    public boolean isIntroFullyRevealed() {
+        return getIntroVisibleTicks() >= introTotalTicks;
+    }
+
+    public void advanceIntro() {
+        if (state != GameState.INTRO) {
+            return;
+        }
+        if (!isIntroFullyRevealed()) {
+            introForcedVisibleTicks = introTotalTicks;
+        } else {
+            startIntroVideo();
+        }
+        repaint();
+    }
+
+    private void startIntroVideo() {
+        // Since we are skipping the video, we transition straight to the menu
+        state = GameState.MENU;
+        stopBackgroundSound();
+        stopNarration();
+        loadAndPlayBackgroundSound();
+        requestFocusInWindow();
+        repaint();
+    }
+
+    public void skipIntroToMenu() {
+        if (state != GameState.INTRO) {
+            return;
+        }
+        stopNarration();
+        introForcedVisibleTicks = introTotalTicks;
+        state = GameState.MENU;
+        requestFocusInWindow();
+        repaint();
+    }
+
     @Override
     public void run() {
         // ~30 FPS - smooth enough for screen-shake and HUD animations
@@ -350,7 +530,18 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             if (!frozen && grappling) {
                 updateGrappling();
             }
-            
+
+            if (state == GameState.INTRO && isIntroFullyRevealed()) {
+                boolean narrationDone = (narratorClip == null || !narratorClip.isRunning());
+                if (narrationDone) {
+                    if (introFullyRevealedMs == -1) {
+                        introFullyRevealedMs = System.currentTimeMillis();
+                    } else if (System.currentTimeMillis() - introFullyRevealedMs > 1500) {
+                        startIntroVideo();
+                    }
+                }
+            }
+
             repaint();
             long elapsed = System.currentTimeMillis() - start;
             long sleep = TARGET_MS - elapsed;
@@ -463,7 +654,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 unseen.items.GrapplingHook hook = (unseen.items.GrapplingHook) item;
                 return hook.isValidWallTarget(levelManager.getPlayer(), levelManager.getMap(), gx, gy)
                         && hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(),
-                        levelManager.getEnemies(), gx, gy) != null;
+                                levelManager.getEnemies(), gx, gy) != null;
             }
         }
         return false;
@@ -555,7 +746,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             return;
         }
 
-        int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(), gx, gy);
+        int[] landing = hook.findLandingSpot(levelManager.getPlayer(), levelManager.getMap(), levelManager.getEnemies(),
+                gx, gy);
         if (landing == null) {
             showToast("Wall out of reach (max 6 tiles) or path blocked.", new Color(220, 120, 90));
             repaint();
@@ -574,7 +766,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         grappleWallY = gy;
         grapplePathHits = hook.countEnemiesInPath(levelManager.getPlayer(), levelManager.getMap(),
                 levelManager.getEnemies(), gx, gy);
-            grappleHitWall = false;
+        grappleHitWall = false;
         grappleUsedItem = inv.remove(idx);
         targetingGrapplingHook = false;
         repaint();
@@ -593,12 +785,14 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         if (grappleProgress >= 1.0f) {
             grappleProgress = 1.0f;
             grappling = false;
-            
+
             // Apply the actual movement now
             levelManager.getPlayer().setPosition(grappleEndX, grappleEndY);
             // Update facing
-            if (grappleEndX < grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.LEFT);
-            else if (grappleEndX > grappleStartX) levelManager.getPlayer().setFacing(Player.Facing.RIGHT);
+            if (grappleEndX < grappleStartX)
+                levelManager.getPlayer().setFacing(Player.Facing.LEFT);
+            else if (grappleEndX > grappleStartX)
+                levelManager.getPlayer().setFacing(Player.Facing.RIGHT);
 
             if (grapplePathHits > 0) {
                 applyDirectPlayerDamage();
@@ -639,14 +833,37 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
     }
 
-    public boolean isGrappling() { return grappling; }
-    public float getGrappleProgress() { return grappleProgress; }
-    public int getGrappleStartX() { return grappleStartX; }
-    public int getGrappleStartY() { return grappleStartY; }
-    public int getGrappleWallX() { return grappleWallX; }
-    public int getGrappleWallY() { return grappleWallY; }
-    public int getGrappleEndX() { return grappleEndX; }
-    public int getGrappleEndY() { return grappleEndY; }
+    public boolean isGrappling() {
+        return grappling;
+    }
+
+    public float getGrappleProgress() {
+        return grappleProgress;
+    }
+
+    public int getGrappleStartX() {
+        return grappleStartX;
+    }
+
+    public int getGrappleStartY() {
+        return grappleStartY;
+    }
+
+    public int getGrappleWallX() {
+        return grappleWallX;
+    }
+
+    public int getGrappleWallY() {
+        return grappleWallY;
+    }
+
+    public int getGrappleEndX() {
+        return grappleEndX;
+    }
+
+    public int getGrappleEndY() {
+        return grappleEndY;
+    }
 
     public void confirmShurikenThrow() {
         List<Item> inv = levelManager.getPlayer().getInventory();
@@ -694,12 +911,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 travelTiles = i;
             }
         }
-        
+
         if (killPos != null || hitWall) {
             triggerShake(10, 3f);
             triggerFreeze(50);
         }
-        
+
         if (travelTiles > 0) {
             levelManager.spawnShurikenFlight(px, py, shurikenDx, shurikenDy, travelTiles);
         }
@@ -773,17 +990,35 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         } else {
             boolean pickedUp = levelManager.getPlayer().addItem(it);
             if (!pickedUp) {
-                showToast("Too many " + it.getClass().getSimpleName() + "! Max 5.", new Color(255, 110, 110));
+                showToast("Too many " + itemDisplayName(it) + "! Max 5.", new Color(255, 110, 110));
                 return false;
             }
             levelManager.getMap().removeItem(px, py);
             unseen.utils.SoundManager.get().play("item_pickup");
-            showToast("Picked up " + it.getClass().getSimpleName(), new Color(120, 255, 160));
+            showToast("Picked up " + itemDisplayName(it), new Color(120, 255, 160));
         }
 
         processTurnAndApply();
         levelManager.updateVisibility();
         return true;
+    }
+
+    private String itemDisplayName(Item item) {
+        if (item instanceof unseen.items.NoiseMaker)
+            return "Noise Maker";
+        if (item instanceof unseen.items.SmokeBomb)
+            return "Smoke Bomb";
+        if (item instanceof unseen.items.Flare)
+            return "Flare";
+        if (item instanceof unseen.items.Shuriken)
+            return "Shuriken";
+        if (item instanceof unseen.items.GrapplingHook)
+            return "Grappling Hook";
+        if (item instanceof unseen.items.Cross)
+            return "Holy Cross";
+        if (item instanceof unseen.items.Heart)
+            return "Heart";
+        return item.getClass().getSimpleName();
     }
 
     // -------------------------------------------------------------------------
@@ -801,7 +1036,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     // -------------------------------------------------------------------------
 
     private boolean jumpscareActive = false;
-    public boolean isJumpscareActive() { return jumpscareActive; }
+
+    public boolean isJumpscareActive() {
+        return jumpscareActive;
+    }
 
     public void setGameState(GameState s) {
         this.state = s;
@@ -812,7 +1050,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 jumpscareActive = true;
                 // Auto-clear jumpscare after 1.5 seconds
                 new Thread(() -> {
-                    try { Thread.sleep(1500); } catch (InterruptedException e) {}
+                    try {
+                        Thread.sleep(1500);
+                    } catch (InterruptedException e) {
+                    }
                     jumpscareActive = false;
                     repaint();
                 }).start();
@@ -866,6 +1107,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     public int getMouseGridX() {
         return targetGridX;
     }
+
     public int getMouseGridY() {
         return targetGridY;
     }

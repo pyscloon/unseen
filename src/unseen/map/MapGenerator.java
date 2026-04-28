@@ -20,6 +20,7 @@ public class MapGenerator {
     private static final int HALLWAY_WIDTH = 2;
     private static final int ROOM_SPACING = 0;
     private static final double MIN_OPEN_RATIO = 0.78;
+    private static final int LIGHT_SPACING_RADIUS = 4;
 
     private static class Room {
         final int x;
@@ -80,9 +81,12 @@ public class MapGenerator {
         }
 
         placeRoomInRegion(map, rooms, rand, 0, 0, Constants.GRID_WIDTH / 2, Constants.GRID_HEIGHT / 2);
-        placeRoomInRegion(map, rooms, rand, Constants.GRID_WIDTH / 2, 0, Constants.GRID_WIDTH, Constants.GRID_HEIGHT / 2);
-        placeRoomInRegion(map, rooms, rand, 0, Constants.GRID_HEIGHT / 2, Constants.GRID_WIDTH / 2, Constants.GRID_HEIGHT);
-        placeRoomInRegion(map, rooms, rand, Constants.GRID_WIDTH / 2, Constants.GRID_HEIGHT / 2, Constants.GRID_WIDTH, Constants.GRID_HEIGHT);
+        placeRoomInRegion(map, rooms, rand, Constants.GRID_WIDTH / 2, 0, Constants.GRID_WIDTH,
+                Constants.GRID_HEIGHT / 2);
+        placeRoomInRegion(map, rooms, rand, 0, Constants.GRID_HEIGHT / 2, Constants.GRID_WIDTH / 2,
+                Constants.GRID_HEIGHT);
+        placeRoomInRegion(map, rooms, rand, Constants.GRID_WIDTH / 2, Constants.GRID_HEIGHT / 2, Constants.GRID_WIDTH,
+                Constants.GRID_HEIGHT);
 
         for (int attempt = 0; attempt < ROOM_ATTEMPTS
                 && (rooms.size() < TARGET_ROOMS || openRatio(map) < MIN_OPEN_RATIO); attempt++) {
@@ -101,7 +105,8 @@ public class MapGenerator {
         Constants.START_X = startRoom.centerX();
         Constants.START_Y = startRoom.centerY();
 
-        // Place horror decals after the layout exists so walls and floors get fitting marks.
+        // Place horror decals after the layout exists so walls and floors get fitting
+        // marks.
         if (horrorMode) {
             for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
                 for (int x = 0; x < Constants.GRID_WIDTH; x++) {
@@ -112,13 +117,20 @@ public class MapGenerator {
                             map.setDecal(x, y, DecalType.BLOODY_HANDPRINT);
                         } else {
                             double subRoll = rand.nextDouble();
-                            if (subRoll < 0.4) map.setDecal(x, y, DecalType.BLOOD_SPLATTER);
-                            else if (subRoll < 0.7) map.setDecal(x, y, DecalType.BLOOD_TILE);
-                            else if (subRoll < 0.85) map.setDecal(x, y, DecalType.DIE_TILE);
-                            else if (subRoll < 0.90) map.setDecal(x, y, DecalType.BLOODY_TEXT_RUN);
-                            else if (subRoll < 0.94) map.setDecal(x, y, DecalType.BLOODY_TEXT_HELP);
-                            else if (subRoll < 0.97) map.setDecal(x, y, DecalType.BLOODY_TEXT_WATCHING);
-                            else map.setDecal(x, y, DecalType.BLOODY_TEXT_HIDE);
+                            if (subRoll < 0.4)
+                                map.setDecal(x, y, DecalType.BLOOD_SPLATTER);
+                            else if (subRoll < 0.7)
+                                map.setDecal(x, y, DecalType.BLOOD_TILE);
+                            else if (subRoll < 0.85)
+                                map.setDecal(x, y, DecalType.DIE_TILE);
+                            else if (subRoll < 0.90)
+                                map.setDecal(x, y, DecalType.BLOODY_TEXT_RUN);
+                            else if (subRoll < 0.94)
+                                map.setDecal(x, y, DecalType.BLOODY_TEXT_HELP);
+                            else if (subRoll < 0.97)
+                                map.setDecal(x, y, DecalType.BLOODY_TEXT_WATCHING);
+                            else
+                                map.setDecal(x, y, DecalType.BLOODY_TEXT_HIDE);
                         }
                     }
                 }
@@ -129,11 +141,19 @@ public class MapGenerator {
         int torchCount = horrorMode ? 3 : 5;
         for (int i = 0; i < torchCount; i++) {
             int tx, ty;
+            int attempts = 0;
             do {
                 tx = rand.nextInt(Constants.GRID_WIDTH);
                 ty = rand.nextInt(Constants.GRID_HEIGHT);
-            } while (map.getTile(tx, ty) != Tile.FLOOR);
-            
+                attempts++;
+            } while (attempts < 200
+                    && (map.getTile(tx, ty) != Tile.FLOOR
+                            || hasNearbyLight(map, tx, ty, LIGHT_SPACING_RADIUS)));
+
+            if (attempts >= 200) {
+                continue;
+            }
+
             if (horrorMode) {
                 map.setTile(tx, ty, Tile.CAMPFIRE);
             } else {
@@ -179,7 +199,7 @@ public class MapGenerator {
                 ny = rand.nextInt(Constants.GRID_HEIGHT);
                 attempts++;
             } while (attempts < 100 && (map.getTile(nx, ny) != Tile.FLOOR || map.getDecal(nx, ny) != null));
-            
+
             if (attempts < 100) {
                 map.setDecal(nx, ny, DecalType.NOTE_SCRAP);
             }
@@ -187,7 +207,7 @@ public class MapGenerator {
 
         // Place Puddles (Normal Mode only)
         if (!horrorMode) {
-            int puddleCount = 3 + rand.nextInt(2); // 3-4 puddles
+            int puddleCount = 2 + rand.nextInt(2); // 3-4 puddles
             for (int i = 0; i < puddleCount; i++) {
                 int px, py;
                 int attempts = 0;
@@ -217,8 +237,24 @@ public class MapGenerator {
         }
     }
 
+    private static boolean hasNearbyLight(Map map, int cx, int cy, int radius) {
+        for (int y = Math.max(0, cy - radius); y <= Math.min(Constants.GRID_HEIGHT - 1, cy + radius); y++) {
+            for (int x = Math.max(0, cx - radius); x <= Math.min(Constants.GRID_WIDTH - 1, cx + radius); x++) {
+                if (x == cx && y == cy) {
+                    continue;
+                }
+                Tile tile = map.getTile(x, y);
+                if ((tile == Tile.TORCH || tile == Tile.CAMPFIRE)
+                        && Math.hypot(x - cx, y - cy) <= radius) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static void placeRoomInRegion(Map map, List<Room> rooms, Random rand,
-                                          int minX, int minY, int maxX, int maxY) {
+            int minX, int minY, int maxX, int maxY) {
         for (int attempt = 0; attempt < ROOM_ATTEMPTS && rooms.size() < TARGET_ROOMS; attempt++) {
             if (tryPlaceRoom(map, rooms, rand, minX, minY, maxX, maxY)) {
                 return;
@@ -227,7 +263,7 @@ public class MapGenerator {
     }
 
     private static boolean tryPlaceRoom(Map map, List<Room> rooms, Random rand,
-                                        int minX, int minY, int maxX, int maxY) {
+            int minX, int minY, int maxX, int maxY) {
         int regionWidth = maxX - minX;
         int regionHeight = maxY - minY;
         if (regionWidth < MIN_ROOM_SIZE + 2 || regionHeight < MIN_ROOM_SIZE + 2) {

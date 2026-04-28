@@ -129,7 +129,6 @@ public class TurnManager {
                 }
             }
             if (panel != null) {
-                panel.showToast("SPLASH! Nearby enemies alerted!", new java.awt.Color(100, 180, 255));
                 panel.addNoiseFlash(player.getX(), player.getY());
             }
         }
