@@ -245,14 +245,35 @@ public class TutorialManager {
                 "Stationary guard with a wide detection arc.",
                 "When it spots you, it alerts all nearby enemies.",
                 "BEWARE: It has a chance to leave its post and CHASE you!"));
+        enemyRows.add(new EntryRow(
+                "Crawler", "",
+                new Color(140, 80, 20),
+                assets.crawler != null ? assets.crawler : assets.patrol,
+                "Completely blind — ignores light, darkness, and smoke.",
+                "Detects you by proximity (≤ 3 tiles) or sound. When triggered,",
+                "it charges at 2 steps per turn — twice as fast as you.",
+                "Smoke bombs are useless. Noise Maker lures it away.",
+                "A Shuriken is a clean one-shot. Stay ≥ 4 tiles away to be safe.",
+                "First appears on Floor 3."
+        ));
+
+
         // -- END ENEMIES --
+
+        List<EntryRow> enemyRows1 = new ArrayList<>(enemyRows.subList(0, 2));
+        List<EntryRow> enemyRows2 = new ArrayList<>(enemyRows.subList(2, enemyRows.size()));
 
         pages.add(new TutorialPage(
                 PageType.ENEMIES,
-                "ENEMIES",
+                "ENEMIES (1/2)",
                 "Standard threats found on every floor.",
-                enemyRows));
+                enemyRows1));
 
+        pages.add(new TutorialPage(
+                PageType.ENEMIES,
+                "ENEMIES (2/2)",
+                "Advanced threats that demand different counterplay.",
+                enemyRows2));
         pages.add(new TutorialPage(
                 PageType.HORROR,
                 "HORROR MODE",

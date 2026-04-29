@@ -15,7 +15,7 @@ public abstract class Enemy extends Entity {
     protected java.awt.Image leftImage;
     protected java.awt.Image rightImage;
     protected java.awt.Image enemyImage;
-    public enum EnemyType { PATROL, HUNTER, SENTRY, STALKER }
+    public enum EnemyType { PATROL, HUNTER, SENTRY, STALKER, CRAWLER }
     protected EnemyType type;
 
     public enum State { PATROL, CHASE, SEARCH }
@@ -25,7 +25,6 @@ public abstract class Enemy extends Entity {
     protected State state = State.PATROL;
     public void setState(State newState) {
         if (this.state != State.CHASE && newState == State.CHASE) {
-            // Only play alert sound for Sentries once.
             if (this.type == EnemyType.SENTRY && !hasPlayedAlertSound) {
                 unseen.utils.SoundManager.get().play("alert", 0.6f);
                 hasPlayedAlertSound = true;
@@ -45,10 +44,6 @@ public abstract class Enemy extends Entity {
     public void setFlanker(boolean flanker) { this.isFlanker = flanker; }
     public boolean isFlanker() { return isFlanker; }
 
-    /**
-     * Calculates a tile "behind" the player based on their movement trajectory.
-     * Used for coordinated flanking.
-     */
     protected java.awt.Point getFlankingTarget(Map map, Player player) {
         int px = player.getX();
         int py = player.getY();
@@ -58,26 +53,22 @@ public abstract class Enemy extends Entity {
         int dx = px - lx;
         int dy = py - ly;
 
-        // If player stayed still, infer trajectory from facing
         if (dx == 0 && dy == 0) {
             dx = (player.getFacing() == Player.Facing.RIGHT) ? 1 : -1;
             dy = 0;
         }
 
-        // Target a spot behind the player (opposite of their movement)
-        // We go back 3 tiles, but if blocked, we try closer.
         for (int offset = 3; offset >= 1; offset--) {
             int tx = px - (dx * offset);
             int ty = py - (dy * offset);
 
             if (tx >= 0 && tx < unseen.utils.Constants.GRID_WIDTH &&
-                ty >= 0 && ty < unseen.utils.Constants.GRID_HEIGHT &&
-                map.isPassable(tx, ty)) {
+                    ty >= 0 && ty < unseen.utils.Constants.GRID_HEIGHT &&
+                    map.isPassable(tx, ty)) {
                 return new java.awt.Point(tx, ty);
             }
         }
 
-        // Fallback: Just return player position if no flanking spot found
         return new java.awt.Point(px, py);
     }
 
@@ -92,15 +83,12 @@ public abstract class Enemy extends Entity {
         this.direction = Direction.DOWN;
         this.detectionRange = detectionRange;
         this.pathfinder = pathfinder;
-        // Image loaded in subclasses
     }
 
     public java.awt.Image getSlimeImage() {
         return enemyImage;
     }
     public java.awt.Image getEnemyImage() {
-        // Return image based on direction.
-        // LEFT/RIGHT are swapped here because the sprite sheets use the opposite naming convention.
         switch (direction) {
             case UP:
                 return upImage != null ? upImage : enemyImage;
@@ -133,7 +121,6 @@ public abstract class Enemy extends Entity {
     }
     public abstract void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> allEnemies);
 
-    /** Returns true if another enemy already occupies tile (tx, ty). */
     protected boolean isTileOccupied(int tx, int ty, List<Enemy> allEnemies) {
         if (allEnemies == null) return false;
         for (Enemy e : allEnemies) {
@@ -184,7 +171,6 @@ public abstract class Enemy extends Entity {
         int px = player.getX();
         int py = player.getY();
 
-        // Return cached path if inputs haven't changed
         if (cachedPath != null
                 && px == cachedPlayerX && py == cachedPlayerY
                 && this.x == cachedEnemyX && this.y == cachedEnemyY
@@ -207,7 +193,6 @@ public abstract class Enemy extends Entity {
         return this.state;
     }
 
-    /** Legacy single-arg takeTurn kept for compatibility; delegates with null enemy list. */
     public final void takeTurn(Map map, Player player, List<Smoke> smokes) {
         takeTurn(map, player, smokes, null);
     }
@@ -231,11 +216,10 @@ public abstract class Enemy extends Entity {
         this.lastKnownY = y;
         this.state = State.CHASE;
         this.searchTurns = unseen.utils.Constants.SEARCH_TURNS;
-        this.distractedTurns = 2; // blocks LOS re-detection for 2 turns
+        this.distractedTurns = 2;
         invalidatePathCache();
     }
 
-    // Add this helper:
     protected boolean isDistracted() {
         if (distractedTurns > 0) {
             distractedTurns--;

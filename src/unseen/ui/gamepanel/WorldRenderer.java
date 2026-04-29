@@ -4,6 +4,7 @@ import unseen.entities.Enemy;
 import unseen.entities.PatrolEnemy;
 import unseen.entities.Player;
 import unseen.entities.SentryEnemy;
+import unseen.entities.CrawlerEnemy;
 import unseen.game.ActiveFlare;
 import unseen.game.Smoke;
 import unseen.items.Flare;
@@ -301,7 +302,76 @@ class WorldRenderer {
             int ey = e.getY();
             if (!visible[ey][ex])
                 continue;
+            if (e instanceof unseen.entities.CrawlerEnemy) {
+                unseen.entities.CrawlerEnemy crawler = (unseen.entities.CrawlerEnemy) e;
+                int ts = Constants.TILE_SIZE;
+                int tx = ex * ts;
+                int ty = ey * ts;
 
+                // -- Proximity danger ring (always visible when the tile is visible) --
+                // Draws a faint pulsing ring to warn the player of its detection radius.
+                long now2 = System.currentTimeMillis();
+                float pulse2 = (float) (0.5 + 0.5 * Math.sin(now2 / 600.0));
+                int ringRadius = (unseen.entities.CrawlerEnemy.getProximityRange() * ts)
+                        + ts / 2; // half-tile buffer
+                int alpha2 = crawler.isHunting()
+                        ? (int) (160 + 60 * pulse2)   // bright red when chasing
+                        : (int) (35 + 25 * pulse2);  // faint amber when wandering
+                java.awt.Color ringColor = crawler.isHunting()
+                        ? new java.awt.Color(220, 40, 40, alpha2)
+                        : new java.awt.Color(180, 120, 40, alpha2);
+
+                int ringCx = tx + ts / 2;
+                int ringCy = ty + ts / 2;
+                java.awt.Stroke savedForRing = g2.getStroke();
+                g2.setColor(ringColor);
+                g2.setStroke(new java.awt.BasicStroke(
+                        crawler.isHunting() ? 2f : 1f,
+                        java.awt.BasicStroke.CAP_ROUND,
+                        java.awt.BasicStroke.JOIN_ROUND,
+                        1f,
+                        new float[]{4f, 4f},
+                        (float) (now2 / 80.0 % 8)));   // animated dash offset
+                g2.drawOval(ringCx - ringRadius, ringCy - ringRadius,
+                        ringRadius * 2, ringRadius * 2);
+                g2.setStroke(savedForRing);
+
+                // -- Sprite (or fallback) ----------------------------------------
+                java.awt.Image img2 = e.getEnemyImage();
+                if (img2 != null) {
+                    // Flip horizontally when moving left
+                    if (e.getDirection() == unseen.entities.Enemy.Direction.LEFT) {
+                        g2.drawImage(img2, tx + ts, ty, -ts, ts, null);
+                    } else {
+                        g2.drawImage(img2, tx, ty, ts, ts, null);
+                    }
+                } else {
+                    // Fallback: dark brown oval with small red eye-dots
+                    g2.setColor(new java.awt.Color(50, 28, 8, 220));
+                    g2.fillOval(tx + 4, ty + 6, ts - 8, ts - 12);
+                    g2.setColor(new java.awt.Color(180, 20, 20));
+                    g2.fillOval(tx + 9, ty + 10, 5, 5);
+                    g2.fillOval(tx + ts - 14, ty + 10, 5, 5);
+                }
+
+                // -- "HUNTING!" badge above sprite when chasing ------------------
+                if (crawler.isHunting()) {
+                    int badgeY = ty - 14;
+                    if (badgeY < 2) badgeY = ty + ts + 2;
+                    String badge = "!";
+                    g2.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+                    java.awt.FontMetrics bfm = g2.getFontMetrics();
+                    int bw = bfm.stringWidth(badge) + 10;
+                    g2.setColor(new java.awt.Color(200, 30, 30, 210));
+                    g2.fillOval(tx + ts / 2 - bw / 2, badgeY, bw, 18);
+                    g2.setColor(java.awt.Color.WHITE);
+                    g2.drawString(badge,
+                            tx + ts / 2 - bfm.stringWidth(badge) / 2,
+                            badgeY + bfm.getAscent() + 1);
+                }
+
+                continue; // skip the generic rendering below
+            };
             if (e.getType() == Enemy.EnemyType.STALKER) {
                 // Draw a terrifying shadowy glitch figure
                 int ts = Constants.TILE_SIZE;

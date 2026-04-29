@@ -17,6 +17,8 @@ import unseen.map.Map;
 import unseen.map.MapGenerator;
 import unseen.map.Tile;
 import unseen.utils.Constants;
+import unseen.entities.CrawlerEnemy;
+
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -543,28 +545,36 @@ public class LevelManager implements SmokeSpawner {
 
             String type;
             double roll = rand.nextDouble();
-            long sentryCount = enemies.stream().filter(e -> e instanceof SentryEnemy).count();
+            long sentryCount  = enemies.stream().filter(e -> e instanceof SentryEnemy).count();
+            long crawlerCount = enemies.stream().filter(e -> e instanceof unseen.entities.CrawlerEnemy).count();
 
-            if (roll < 0.5)
+            // Crawlers appear from floor 3 onward; at most 1 per floor until floor 6.
+            int maxCrawlers = (floorNumber >= 6) ? 2 : 1;
+            boolean crawlerAllowed = floorNumber >= 3 && crawlerCount < maxCrawlers;
+
+            if (crawlerAllowed && roll < 0.18) {
+                type = "crawler";
+            } else if (roll < 0.50) {
                 type = "patrol";
-            else if (roll < 0.8 && sentryCount < 1)
+            } else if (roll < 0.78 && sentryCount < 1) {
                 type = "sentry";
-            else
+            } else {
                 type = "hunter";
+            }
 
             switch (type) {
-
                 case "patrol":
                     enemies.add(new PatrolEnemy(ex, ey, pathfinder));
                     break;
-
                 case "hunter":
                     enemies.add(new HunterEnemy(ex, ey, pathfinder,
                             floorNumber > 5 ? traps : null));
                     break;
-
                 case "sentry":
                     enemies.add(new SentryEnemy(ex, ey, pathfinder, panel.isHorrorMode()));
+                    break;
+                case "crawler":
+                    enemies.add(new unseen.entities.CrawlerEnemy(ex, ey, pathfinder));
                     break;
             }
         }

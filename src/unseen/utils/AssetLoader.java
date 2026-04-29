@@ -20,10 +20,10 @@ public class AssetLoader {
     public final Image smokeBomb;
     public final Image lantern;
     public final Image nextFloor;
-    public final Image shuriken; 
+    public final Image shuriken;
     public final Image grapplingHook;
     public final Image grappleNoRope;
-    public final Image heart;    
+    public final Image heart;
     public final Image campfire;
     public final Image horrorFloor;
     public final Image dieTile;
@@ -40,19 +40,22 @@ public class AssetLoader {
     public final Image sentry;
     public final Image patrol;
 
+    /** Crawler sprite — placed at unseen/assets/crawler.png by the developer. */
+    public final Image crawler;
+
     private AssetLoader() {
-        wall       = load("unseen/assets/wall.png");
-        floor      = load("unseen/assets/tile.png");
-        torch      = load("unseen/assets/torch.png");
-        noiseMaker = load("unseen/assets/noise.png");
-        smokeBomb  = load("unseen/assets/smoke.png");
-        lantern    = load("unseen/assets/lantern.png");
-        nextFloor  = load("unseen/assets/next_floor.png");
-        shuriken   = load("unseen/assets/shuriken.png");
+        wall          = load("unseen/assets/wall.png");
+        floor         = load("unseen/assets/tile.png");
+        torch         = load("unseen/assets/torch.png");
+        noiseMaker    = load("unseen/assets/noise.png");
+        smokeBomb     = load("unseen/assets/smoke.png");
+        lantern       = load("unseen/assets/lantern.png");
+        nextFloor     = load("unseen/assets/next_floor.png");
+        shuriken      = load("unseen/assets/shuriken.png");
         grapplingHook = load("unseen/assets/grapple.png");
         grappleNoRope = load("unseen/assets/grapple_norope.png");
-        heart      = load("unseen/assets/heart.png");
-        
+        heart         = load("unseen/assets/heart.png");
+
         Image cf = load("unseen/assets/campfire.png");
         if (cf == null) cf = load("unseen/assets/torch.png");
         campfire = cf;
@@ -71,6 +74,7 @@ public class AssetLoader {
         enemyBase  = load("unseen/assets/enemy.png");
         sentry     = load("unseen/assets/sentry.png");
         patrol     = load("unseen/assets/patrol.png");
+        crawler    = load("unseen/assets/crawler.png");
     }
 
     private Image load(String path) {
@@ -79,7 +83,7 @@ public class AssetLoader {
             if (url != null) {
                 return ImageIO.read(url);
             }
-            if (!path.contains("campfire.png")) {
+            if (!path.contains("campfire.png") && !path.contains("crawler.png")) {
                 System.out.println("Asset not found: " + path);
             }
         } catch (Exception e) {
