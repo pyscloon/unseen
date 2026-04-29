@@ -23,10 +23,12 @@ public class AssetLoader {
     public final Image shuriken;
     public final Image grapplingHook;
     public final Image grappleNoRope;
+    public final Image barrel;
     public final Image heart;
     public final Image campfire;
     public final Image horrorFloor;
     public final Image dieTile;
+    public final Image deadBones;
     public final Image cross;
     public final Image puddle;
 
@@ -55,6 +57,7 @@ public class AssetLoader {
         shuriken      = load("unseen/assets/shuriken.png");
         grapplingHook = load("unseen/assets/grapple.png");
         grappleNoRope = load("unseen/assets/grapple_norope.png");
+        barrel        = load("unseen/assets/barrel.png");
         heart         = load("unseen/assets/heart.png");
 
         Image cf = load("unseen/assets/campfire.png");
@@ -63,6 +66,7 @@ public class AssetLoader {
 
         horrorFloor = load("unseen/assets/horror assets/blood time.png");
         dieTile     = load("unseen/assets/horror assets/die-tile.png");
+        deadBones   = load("unseen/assets/deadbones.png");
         cross       = load("unseen/assets/cross.png");
         puddle      = load("unseen/assets/puddle.png");
 

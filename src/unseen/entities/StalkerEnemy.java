@@ -29,6 +29,9 @@ public class StalkerEnemy extends Enemy {
 
     @Override
     public void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> enemies) {
+        if (player.isHiddenInBarrel()) {
+            return;
+        }
         // The Stalker always knows where you are and ignores LOS for chasing.
         // It moves 2 or 3 times per turn (erratic and terrifying)
         int moves = (Math.random() < 0.3) ? 3 : 2;

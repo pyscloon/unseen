@@ -8,6 +8,7 @@ import unseen.entities.CrawlerEnemy;
 import unseen.game.ActiveFlare;
 import unseen.game.Smoke;
 import unseen.items.Flare;
+import unseen.items.GrapplingHook;
 import unseen.items.NoiseMaker;
 import unseen.items.Shuriken;
 import unseen.items.SmokeBomb;
@@ -199,12 +200,36 @@ class WorldRenderer {
                     } else if (ground instanceof Shuriken && AssetLoader.get().shuriken != null) {
                         g2.drawImage(AssetLoader.get().shuriken, tx + iconPad, ty + iconPad,
                                 Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
+                    } else if (ground instanceof GrapplingHook && AssetLoader.get().grapplingHook != null) {
+                        g2.drawImage(AssetLoader.get().grapplingHook, tx + iconPad, ty + iconPad,
+                                Constants.TILE_SIZE - 2 * iconPad, Constants.TILE_SIZE - 2 * iconPad, null);
                     } else if (ground instanceof unseen.items.Heart && AssetLoader.get().heart != null) {
                         int heartPad = 2; // smaller pad = bigger icon
                         g2.drawImage(AssetLoader.get().heart, tx + heartPad, ty + heartPad,
                                 Constants.TILE_SIZE - 2 * heartPad, Constants.TILE_SIZE - 2 * heartPad, null);
                     }
                 }
+            }
+        }
+
+        // Hide barrels
+        for (int[] barrel : levelManager.getBarrels()) {
+            int bx = barrel[0];
+            int by = barrel[1];
+            if (!visible[by][bx]) {
+                continue;
+            }
+            int tx = bx * Constants.TILE_SIZE;
+            int ty = by * Constants.TILE_SIZE;
+            int pad = 2;
+            if (AssetLoader.get().barrel != null) {
+                g2.drawImage(AssetLoader.get().barrel, tx + pad, ty + pad,
+                        Constants.TILE_SIZE - 2 * pad, Constants.TILE_SIZE - 2 * pad, null);
+            } else {
+                g2.setColor(new Color(95, 56, 32));
+                g2.fillOval(tx + 5, ty + 3, Constants.TILE_SIZE - 10, Constants.TILE_SIZE - 6);
+                g2.setColor(new Color(45, 28, 18));
+                g2.drawOval(tx + 5, ty + 3, Constants.TILE_SIZE - 10, Constants.TILE_SIZE - 6);
             }
         }
 
@@ -231,17 +256,7 @@ class WorldRenderer {
         savedStroke = g2.getStroke();
         long smokeNow = System.currentTimeMillis();
         for (Smoke smoke : smokes) {
-            int cx = smoke.getX() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
-            int cy = smoke.getY() * Constants.TILE_SIZE + Constants.TILE_SIZE / 2;
-            int pr = (int) ((smoke.getRadius() + 0.5f) * Constants.TILE_SIZE);
-            float pulse = (float) (0.5 + 0.5 * Math.sin(smokeNow / 450.0));
-            int alpha = (int) (120 + 50 * pulse);
-            g2.setColor(new Color(100, 130, 100, alpha));
-            g2.fillOval(cx - pr, cy - pr, pr * 2, pr * 2);
-            int borderAlpha = Math.min(255, alpha + 40);
-            g2.setColor(new Color(60, 90, 60, borderAlpha));
-            g2.setStroke(new BasicStroke(2.5f));
-            g2.drawOval(cx - pr, cy - pr, pr * 2, pr * 2);
+            drawSmokeCloud(g2, smoke, smokeNow);
         }
         g2.setStroke(savedStroke);
 
@@ -280,7 +295,7 @@ class WorldRenderer {
         Player player = levelManager.getPlayer();
 
         boolean hidingPlayer = panel.isGrappling() && panel.getGrappleProgress() >= 0.4f;
-        if (!hidingPlayer && visible[player.getY()][player.getX()]) {
+        if (!hidingPlayer && !player.isHiddenInBarrel() && visible[player.getY()][player.getX()]) {
             if (player.getHeroImage() != null) {
                 int scaledSize = Constants.TILE_SIZE * 2;
                 int drawX = player.getX() * Constants.TILE_SIZE + (Constants.TILE_SIZE - scaledSize) / 2;
@@ -386,6 +401,47 @@ class WorldRenderer {
     }
 
 
+    private void drawSmokeCloud(Graphics2D g2, Smoke smoke, long now) {
+        int ts = Constants.TILE_SIZE;
+        int cx = smoke.getX() * ts + ts / 2;
+        int cy = smoke.getY() * ts + ts / 2;
+        int radiusPx = (int) ((smoke.getRadius() + 0.55f) * ts);
+
+        Composite savedComposite = g2.getComposite();
+        Stroke savedStroke = g2.getStroke();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        Random smokeRand = new Random(smoke.getX() * 73856093L ^ smoke.getY() * 19349663L);
+        for (int i = 0; i < 18; i++) {
+            double baseAngle = smokeRand.nextDouble() * Math.PI * 2.0;
+            double baseDist = smokeRand.nextDouble() * radiusPx * 0.72;
+            double driftAngle = baseAngle + now / 1800.0 + i * 0.37;
+            double drift = Math.sin(now / 850.0 + i * 1.8) * ts * 0.18;
+            int px = cx + (int) (Math.cos(baseAngle) * baseDist + Math.cos(driftAngle) * drift);
+            int py = cy + (int) (Math.sin(baseAngle) * baseDist + Math.sin(driftAngle) * drift * 0.7);
+
+            int puffW = (int) (ts * (0.75 + smokeRand.nextDouble() * 0.75));
+            int puffH = (int) (ts * (0.55 + smokeRand.nextDouble() * 0.55));
+            int shade = 118 + smokeRand.nextInt(64);
+            int alpha = 58 + smokeRand.nextInt(45);
+
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha / 255f));
+            g2.setColor(new Color(shade, shade + 4, shade + 8));
+            g2.fillOval(px - puffW / 2, py - puffH / 2, puffW, puffH);
+        }
+
+        float pulse = (float) (0.5 + 0.5 * Math.sin(now / 620.0));
+        int edgeAlpha = (int) (45 + 20 * pulse);
+        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, edgeAlpha / 255f));
+        g2.setColor(new Color(205, 210, 214));
+        g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2.drawOval(cx - radiusPx, cy - radiusPx, radiusPx * 2, radiusPx * 2);
+
+        g2.setStroke(savedStroke);
+        g2.setComposite(savedComposite);
+    }
+
+
     private void drawSentrySprite(Graphics2D g2, SentryEnemy sentry, int tx, int ty, int ts) {
         java.awt.Image img = sentry.getEnemyImage();
         if (img == null) {
@@ -448,11 +504,20 @@ class WorldRenderer {
     private void drawCrawlerSprite(Graphics2D g2, CrawlerEnemy crawler, int tx, int ty, int ts) {
         java.awt.Image img = crawler.getEnemyImage();
         if (img == null) {
+            long now = System.currentTimeMillis();
+            double idle = (Math.sin(now / 420.0 + crawler.getX() * 0.7 + crawler.getY() * 0.41) + 1.0) * 0.5;
+            int bob = (int) Math.round(-idle * Math.max(1, ts / 18.0));
+            int bodyW = ts - 8 + (int) Math.round(idle * Math.max(1, ts / 12.0));
+            int bodyH = ts - 12 - (int) Math.round(idle * Math.max(1, ts / 16.0));
+            int bodyX = tx + (ts - bodyW) / 2;
+            int bodyY = ty + 6 + bob + (ts - 12 - bodyH);
+            g2.setColor(new java.awt.Color(0, 0, 0, 55));
+            g2.fillOval(tx + ts / 4, ty + ts - 6, ts / 2, 6);
             g2.setColor(new java.awt.Color(50, 28, 8, 220));
-            g2.fillOval(tx + 4, ty + 6, ts - 8, ts - 12);
+            g2.fillOval(bodyX, bodyY, bodyW, bodyH);
             g2.setColor(new java.awt.Color(180, 20, 20));
-            g2.fillOval(tx + 9, ty + 10, 5, 5);
-            g2.fillOval(tx + ts - 14, ty + 10, 5, 5);
+            g2.fillOval(bodyX + 5, bodyY + 4, 5, 5);
+            g2.fillOval(bodyX + bodyW - 10, bodyY + 4, 5, 5);
             return;
         }
 
@@ -492,14 +557,27 @@ class WorldRenderer {
         }
 
         long now = System.currentTimeMillis();
-        double stride = fast ? Math.sin(now / 55.0) : Math.sin(now / 180.0);
-        int lunge = fast ? (int) Math.round(stride * Math.max(1, ts / 14.0)) : 0;
-        double stretch = fast ? 1.0 + Math.abs(stride) * 0.16 : 1.0;
-        double squeeze = fast ? 1.0 - Math.abs(stride) * 0.08 : 1.0;
+        double stride = fast ? Math.sin(now / 55.0) : 0.0;
+        int lunge = 0;
+        int bob = 0;
+        double stretch = 1.0;
+        double squeeze = 1.0;
+
+        if (fast) {
+            lunge = (int) Math.round(stride * Math.max(1, ts / 14.0));
+            stretch = 1.0 + Math.abs(stride) * 0.16;
+            squeeze = 1.0 - Math.abs(stride) * 0.08;
+        } else {
+            double phase = crawler.getX() * 0.7 + crawler.getY() * 0.41;
+            double idle = (Math.sin(now / 420.0 + phase) + 1.0) * 0.5;
+            bob = (int) Math.round(-idle * Math.max(1, ts / 18.0));
+            squeeze = 1.03 - idle * 0.06;
+            stretch = 0.97 + idle * 0.07;
+        }
 
         drawOrientedEnemyImage(g2, img,
                 tx + dx * lunge,
-                ty + dy * lunge,
+                ty + dy * lunge + bob,
                 ts, direction, squeeze, stretch);
     }
 
@@ -805,7 +883,6 @@ private void drawCenteredMark(Graphics2D g2, String mark, int cx, int cy, Color 
             ShurikenProjectile proj = it.next();
 
             if (proj.isDone()) {
-                it.remove();
                 continue;
             }
 
@@ -1039,6 +1116,17 @@ private void drawDecal(Graphics2D g2, int gx, int gy, unseen.map.DecalType type)
 
                     g2.drawImage(img, -ts / 2, -ts / 2, ts, ts, null);
                     g2.setTransform(saved);
+                }
+                break;
+            case DEAD_BONES:
+                if (AssetLoader.get().deadBones != null) {
+                    g2.drawImage(AssetLoader.get().deadBones, drawX, drawY,
+                            Constants.TILE_SIZE, Constants.TILE_SIZE, null);
+                } else {
+                    g2.setColor(new Color(205, 205, 190, 210));
+                    g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g2.drawLine(drawX + 8, drawY + 10, drawX + 24, drawY + 24);
+                    g2.drawLine(drawX + 24, drawY + 10, drawX + 8, drawY + 24);
                 }
                 break;
             case NOTE_SCRAP:

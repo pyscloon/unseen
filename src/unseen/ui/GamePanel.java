@@ -616,6 +616,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 updateGrappling();
             }
 
+            if (!frozen && state == GameState.PLAYING) {
+                updateShurikenImpacts();
+            }
+
             if (state == GameState.INTRO && isIntroFullyRevealed()) {
                 boolean narrationDone = (narratorClip == null || !narratorClip.isRunning());
                 if (narrationDone) {
@@ -994,13 +998,15 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     public void confirmShurikenThrow() {
+        if (!levelManager.getShurikenProjectiles().isEmpty()) {
+            return;
+        }
+
         List<Item> inv = levelManager.getPlayer().getInventory();
         int idx = -1;
-        Shuriken shuriken = null;
         for (int i = 0; i < inv.size(); i++) {
             if (inv.get(i) instanceof Shuriken) {
                 idx = i;
-                shuriken = (Shuriken) inv.get(i);
                 break;
             }
         }
@@ -1013,6 +1019,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         int py = levelManager.getPlayer().getY();
         int travelTiles;
         boolean hitWall = false;
+        Enemy targetEnemy = null;
+        int targetX = -1;
+        int targetY = -1;
         travelTiles = 0;
         for (int i = 1; i <= unseen.items.Shuriken.RANGE; i++) {
             int tx = px + shurikenDx * i;
@@ -1026,6 +1035,17 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 break;
             }
             travelTiles = i;
+            for (Enemy enemy : levelManager.getEnemies()) {
+                if (enemy.isAlive() && enemy.getX() == tx && enemy.getY() == ty) {
+                    targetEnemy = enemy;
+                    targetX = tx;
+                    targetY = ty;
+                    break;
+                }
+            }
+            if (targetEnemy != null) {
+                break;
+            }
         }
         if (travelTiles <= 0) {
             showToast("Throw blocked.", new Color(220, 120, 90));
@@ -1034,35 +1054,62 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         }
 
         unseen.utils.SoundManager.get().play("shuriken");
-        shuriken.fireInDirection(px, py, shurikenDx, shurikenDy,
-                levelManager.getMap(), levelManager.getEnemies());
         inv.remove(idx);
         targetingShuriken = false;
 
-        int[] killPos = shuriken.getLastKillPos();
-        if (killPos != null) {
-            travelTiles = Math.abs(killPos[0] - px) + Math.abs(killPos[1] - py);
-        }
-
-        if (killPos != null || hitWall) {
-            triggerShake(10, 3f);
-            triggerFreeze(50);
-        }
-
         if (travelTiles > 0) {
-            levelManager.spawnShurikenFlight(px, py, shurikenDx, shurikenDy, travelTiles);
+            levelManager.spawnShurikenFlight(px, py, shurikenDx, shurikenDy, travelTiles,
+                    targetEnemy, targetX, targetY, hitWall);
         }
 
-        if (killPos != null) {
-            spawnDeathPuff(killPos[0], killPos[1]);
-            if (horrorMode) {
-                unseen.utils.SoundManager.get().play("blood_splatter", 0.9f);
+        requestFocusInWindow();
+        repaint();
+    }
+
+    private void updateShurikenImpacts() {
+        java.util.List<ShurikenProjectile> projectiles = levelManager.getShurikenProjectiles();
+        if (projectiles.isEmpty()) {
+            return;
+        }
+
+        java.util.Iterator<ShurikenProjectile> it = projectiles.iterator();
+        while (it.hasNext()) {
+            ShurikenProjectile projectile = it.next();
+            if (!projectile.isDone()) {
+                continue;
+            }
+
+            it.remove();
+            resolveShurikenImpact(projectile);
+            processTurnAndApply();
+            repaint();
+            return;
+        }
+    }
+
+    private void resolveShurikenImpact(ShurikenProjectile projectile) {
+        Enemy target = projectile.getTargetEnemy();
+        if (target != null && target.isAlive()) {
+            target.die();
+            if (!target.isAlive()) {
+                int tx = projectile.getTargetX();
+                int ty = projectile.getTargetY();
+                Enemy.EnemyType killedType = projectile.getTargetEnemyType();
+                levelManager.getMap().setDecal(tx, ty,
+                        killedType == Enemy.EnemyType.PATROL
+                                ? unseen.map.DecalType.DEAD_BONES
+                                : (killedType == Enemy.EnemyType.HUNTER
+                                ? unseen.map.DecalType.PUDDLE
+                                : unseen.map.DecalType.BLOOD_TILE));
+                String killSound = killedType == Enemy.EnemyType.PATROL ? "bone_break" : "splash";
+                unseen.utils.SoundManager.get().play(killSound, 0.9f);
             }
         }
 
-        processTurnAndApply();
-        requestFocusInWindow();
-        repaint();
+        if (target != null || projectile.hitWall()) {
+            triggerShake(10, 3f);
+            triggerFreeze(50);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -1139,6 +1186,58 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         levelManager.updateVisibility();
         return true;
+    }
+
+    public boolean interactWithBarrel() {
+        Player player = levelManager.getPlayer();
+
+        if (player.isHiddenInBarrel()) {
+            player.setHiddenInBarrel(false);
+            unseen.utils.SoundManager.get().play("ladder", 0.6f);
+            showToast("Left the barrel.", new Color(180, 190, 210));
+            levelManager.updateVisibility();
+            repaint();
+            return true;
+        }
+
+        int[] barrel = getNearbyBarrel();
+        if (barrel == null) {
+            return false;
+        }
+
+        for (Enemy enemy : levelManager.getEnemies()) {
+            if (enemy.isAlive() && enemy.getX() == barrel[0] && enemy.getY() == barrel[1]) {
+                showToast("Something is blocking the barrel.", new Color(220, 120, 90));
+                return true;
+            }
+        }
+
+        player.setPosition(barrel[0], barrel[1]);
+        player.setHiddenInBarrel(true);
+        unseen.utils.SoundManager.get().play("ladder", 0.6f);
+        showToast("Hidden in barrel.", new Color(190, 210, 180));
+        processTurnAndApply();
+        levelManager.updateVisibility();
+        repaint();
+        return true;
+    }
+
+    private int[] getNearbyBarrel() {
+        Player player = levelManager.getPlayer();
+        int px = player.getX();
+        int py = player.getY();
+        int[] best = null;
+        int bestDist = Integer.MAX_VALUE;
+
+        for (int[] barrel : levelManager.getBarrels()) {
+            int dist = Math.abs(barrel[0] - px) + Math.abs(barrel[1] - py);
+            if (dist <= 1 && dist < bestDist) {
+                best = barrel;
+                bestDist = dist;
+            }
+        }
+
+        return best;
     }
 
     private String itemDisplayName(Item item) {
@@ -1320,6 +1419,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         return targetingShuriken;
     }
 
+    public boolean isShurikenInFlight() {
+        return !levelManager.getShurikenProjectiles().isEmpty();
+    }
+
     public int getShurikenDx() {
         return shurikenDx;
     }
@@ -1336,8 +1439,24 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     public void setShurikenDirection(int dx, int dy) {
-        shurikenDx = dx;
-        shurikenDy = dy;
+        if (dx == 0 && dy == 0) {
+            return;
+        }
+        shurikenDx = Integer.signum(dx);
+        shurikenDy = Integer.signum(dy);
+        repaint();
+    }
+
+    public void angleShurikenDirection(int dx, int dy) {
+        if (dx != 0) {
+            int nextDx = Integer.signum(dx);
+            int nextDy = shurikenDy != 0 ? shurikenDy : 0;
+            setShurikenDirection(nextDx, nextDy);
+        } else if (dy != 0) {
+            int nextDx = shurikenDx != 0 ? shurikenDx : 0;
+            int nextDy = Integer.signum(dy);
+            setShurikenDirection(nextDx, nextDy);
+        }
         repaint();
     }
 
@@ -1458,7 +1577,6 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         levelManager.getPlayer().setTrapped(2);
         levelManager.addTileEffect(levelManager.getPlayer().getX(), levelManager.getPlayer().getY(),
                 unseen.ui.gamepanel.TileEffect.Kind.ALERT);
-        unseen.utils.SoundManager.get().play("jumpscare", 0.55f);
     }
 
     private void drainAchievementToasts() {

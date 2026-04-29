@@ -1,5 +1,6 @@
 package unseen.ui.gamepanel;
 
+import unseen.entities.Enemy;
 import unseen.utils.Constants;
 
 /**
@@ -21,12 +22,17 @@ public class ShurikenProjectile {
     private final int originX;
     private final int originY;
 
-    // Direction vector (one of the 4 cardinals)
+    // Direction vector (cardinal or diagonal)
     private final int dx;
     private final int dy;
 
     // How many tiles the shuriken travels before stopping
     private final int travelTiles;
+    private final Enemy targetEnemy;
+    private final Enemy.EnemyType targetEnemyType;
+    private final int targetX;
+    private final int targetY;
+    private final boolean hitWall;
 
     // When the animation was spawned
     private final long startMs;
@@ -42,11 +48,21 @@ public class ShurikenProjectile {
      * @param travelTiles how many tiles until it stops (wall or edge)
      */
     public ShurikenProjectile(int originX, int originY, int dx, int dy, int travelTiles) {
+        this(originX, originY, dx, dy, travelTiles, null, -1, -1, false);
+    }
+
+    public ShurikenProjectile(int originX, int originY, int dx, int dy, int travelTiles,
+                              Enemy targetEnemy, int targetX, int targetY, boolean hitWall) {
         this.originX     = originX;
         this.originY     = originY;
         this.dx          = dx;
         this.dy          = dy;
         this.travelTiles = Math.max(1, travelTiles);
+        this.targetEnemy = targetEnemy;
+        this.targetEnemyType = targetEnemy != null ? targetEnemy.getType() : null;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.hitWall = hitWall;
         this.startMs     = System.currentTimeMillis();
         this.durationMs  = (long) (travelTiles / SPEED_TILES_PER_SEC * 1000f);
     }
@@ -86,4 +102,9 @@ public class ShurikenProjectile {
     public int getOriginY()     { return originY; }
     public int getDx()          { return dx; }
     public int getDy()          { return dy; }
+    public Enemy getTargetEnemy() { return targetEnemy; }
+    public Enemy.EnemyType getTargetEnemyType() { return targetEnemyType; }
+    public int getTargetX() { return targetX; }
+    public int getTargetY() { return targetY; }
+    public boolean hitWall() { return hitWall; }
 }

@@ -324,8 +324,9 @@ class OverlayRenderer {
                 unseen.items.Shuriken.RANGE * ts * 2, unseen.items.Shuriken.RANGE * ts * 2);
 
         String msg = blockedImmediately
-                ? "Blocked  |  WASD aim  |  Esc cancel"
-                : ((hitEnemy ? "Will hit enemy!  " : "") + "WASD aim  |  Space/Enter throw  |  Esc cancel");
+                ? "Blocked  |  WASD/QEZC aim  |  Esc cancel"
+                : ((hitEnemy ? "Will hit enemy!  " : "")
+                + "WASD/QEZC aim  |  Space/Enter throw  |  Esc cancel");
         g2.setFont(new Font("Arial", Font.BOLD, 15));
         FontMetrics fm = g2.getFontMetrics();
         int msgW = fm.stringWidth(msg);

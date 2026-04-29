@@ -132,6 +132,9 @@ public abstract class Enemy extends Entity {
     }
 
     protected boolean canSeePlayer(Map map, Player player, List<Smoke> smokes) {
+        if (player.isHiddenInBarrel()) {
+            return false;
+        }
         return LineOfSight.hasLineOfSight(
                 map,
                 x, y,

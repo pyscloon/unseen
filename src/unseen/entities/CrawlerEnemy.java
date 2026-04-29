@@ -56,7 +56,7 @@ public class CrawlerEnemy extends Enemy {
     public void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> allEnemies) {
 
         int dist = Math.abs(x - player.getX()) + Math.abs(y - player.getY());
-        if (!isNoiseDistracted() && dist <= PROXIMITY_RANGE) {
+        if (!player.isHiddenInBarrel() && !isNoiseDistracted() && dist <= PROXIMITY_RANGE) {
             lastKnownX = player.getX();
             lastKnownY = player.getY();
 
@@ -111,7 +111,7 @@ public class CrawlerEnemy extends Enemy {
     private void chase(Map map, Player player, List<Enemy> allEnemies) {
         for (int step = 0; step < CHASE_STEPS; step++) {
             int dist = Math.abs(x - player.getX()) + Math.abs(y - player.getY());
-            if (dist <= PROXIMITY_RANGE) {
+            if (!player.isHiddenInBarrel() && dist <= PROXIMITY_RANGE) {
                 lastKnownX = player.getX();
                 lastKnownY = player.getY();
             }

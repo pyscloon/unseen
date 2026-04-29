@@ -83,6 +83,7 @@ public class TurnManager {
 
             if (enemy.isAlive()
                     && !(enemy instanceof unseen.entities.StalkerEnemy)
+                    && !player.isHiddenInBarrel()
                     && (attackedPlayer
                     || (enemy.getX() == player.getX() && enemy.getY() == player.getY()))) {
 

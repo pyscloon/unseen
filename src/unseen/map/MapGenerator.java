@@ -163,6 +163,7 @@ public class MapGenerator {
 
         // Place ground items (pickupable) -- never on the start tile
         int itemCount = 6;
+        int guaranteedHookSlot = rand.nextInt(itemCount);
         for (int i = 0; i < itemCount; i++) {
             int tx, ty;
             do {
@@ -173,7 +174,9 @@ public class MapGenerator {
                     || map.getItem(tx, ty) != null);
             double roll = rand.nextDouble();
             Item it;
-            if (horrorMode && rand.nextDouble() < 0.03) {
+            if (i == guaranteedHookSlot) {
+                it = new GrapplingHook();
+            } else if (horrorMode && rand.nextDouble() < 0.03) {
                 it = new unseen.items.Cross();
             } else if (roll < 0.33) {
                 it = new NoiseMaker();
@@ -207,7 +210,7 @@ public class MapGenerator {
 
         // Place Puddles (Normal Mode only)
         if (!horrorMode) {
-            int puddleCount = 2 + rand.nextInt(2); // 3-4 puddles
+            int puddleCount = 1 + rand.nextInt(2); // 2-3 puddles
             for (int i = 0; i < puddleCount; i++) {
                 int px, py;
                 int attempts = 0;

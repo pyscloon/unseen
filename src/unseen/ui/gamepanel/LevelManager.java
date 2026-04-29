@@ -122,6 +122,7 @@ public class LevelManager implements SmokeSpawner {
     private List<FlashEffect> noiseFlashes = new ArrayList<>();
     private List<ActiveFlare> flares = new ArrayList<>();
     private List<unseen.game.StickyTrap> traps = new ArrayList<>();
+    private List<int[]> barrels = new ArrayList<>();
     private List<ShurikenProjectile> shurikenProjectiles = new ArrayList<>();
     private List<TileEffect> tileEffects = new ArrayList<>();
 
@@ -165,6 +166,19 @@ public class LevelManager implements SmokeSpawner {
         return traps;
     }
 
+    public List<int[]> getBarrels() {
+        return barrels;
+    }
+
+    public boolean hasBarrelAt(int x, int y) {
+        for (int[] barrel : barrels) {
+            if (barrel[0] == x && barrel[1] == y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public List<ShurikenProjectile> getShurikenProjectiles() {
         return shurikenProjectiles;
     }
@@ -188,6 +202,12 @@ public class LevelManager implements SmokeSpawner {
      */
     public void spawnShurikenFlight(int originX, int originY, int dx, int dy, int travelTiles) {
         shurikenProjectiles.add(new ShurikenProjectile(originX, originY, dx, dy, travelTiles));
+    }
+
+    public void spawnShurikenFlight(int originX, int originY, int dx, int dy, int travelTiles,
+                                    Enemy targetEnemy, int targetX, int targetY, boolean hitWall) {
+        shurikenProjectiles.add(new ShurikenProjectile(originX, originY, dx, dy, travelTiles,
+                targetEnemy, targetX, targetY, hitWall));
     }
 
     public int getFloorNumber() {
@@ -494,10 +514,12 @@ public class LevelManager implements SmokeSpawner {
         smokes.clear();
         flares.clear();
         traps.clear();
+        barrels.clear();
         shurikenProjectiles.clear();
         tileEffects.clear();
         enemies = new ArrayList<>();
         shadowFigures.clear(); // Clear old figures
+        placeBarrels();
 
         Random rand = new Random();
         AStar pathfinder = new AStar();
@@ -512,8 +534,13 @@ public class LevelManager implements SmokeSpawner {
             else if (floorNumber <= 5)
                 count = 3;
         }
+        count = Math.min(count, getEnemySpawnCapacity());
 
         for (int i = 0; i < count; i++) {
+            String type = chooseEnemyType(rand);
+            if (type == null) {
+                break;
+            }
 
             int ex = 0, ey = 0;
             for (int attempt = 0; attempt < 500; attempt++) {
@@ -524,7 +551,8 @@ public class LevelManager implements SmokeSpawner {
                         + Math.abs(cy - Constants.START_Y);
 
                 if (map.getTile(cx, cy) == Tile.FLOOR
-                        && dist >= minDist) {
+                        && dist >= minDist
+                        && !hasBarrelAt(cx, cy)) {
 
                     boolean overlap = placed.stream().anyMatch(p -> p[0] == cx && p[1] == cy);
 
@@ -535,25 +563,6 @@ public class LevelManager implements SmokeSpawner {
                         break;
                     }
                 }
-            }
-
-            String type;
-            double roll = rand.nextDouble();
-            long sentryCount  = enemies.stream().filter(e -> e instanceof SentryEnemy).count();
-            long crawlerCount = enemies.stream().filter(e -> e instanceof unseen.entities.CrawlerEnemy).count();
-
-            // Crawlers appear from floor 3 onward; at most 1 per floor until floor 6.
-            int maxCrawlers = (floorNumber >= 6) ? 2 : 1;
-            boolean crawlerAllowed = floorNumber >= 3 && crawlerCount < maxCrawlers;
-
-            if (crawlerAllowed && roll < 0.18) {
-                type = "crawler";
-            } else if (roll < 0.50) {
-                type = "patrol";
-            } else if (roll < 0.78 && sentryCount < 1) {
-                type = "sentry";
-            } else {
-                type = "hunter";
             }
 
             switch (type) {
@@ -604,6 +613,102 @@ public class LevelManager implements SmokeSpawner {
                 flickerCampfireY = pick[1];
             }
         }
+    }
+
+    private int getEnemySpawnCapacity() {
+        int capacity = 2; // patrol
+        capacity += 2; // hunter
+        capacity += 2; // sentry
+        if (floorNumber >= 3) {
+            capacity += Math.min(2, floorNumber >= 6 ? 2 : 1);
+        }
+        return capacity;
+    }
+
+    private String chooseEnemyType(Random rand) {
+        java.util.List<String> candidates = new ArrayList<>();
+
+        addEnemyTypeCandidates(candidates, "patrol", 4, countEnemiesOfType(Enemy.EnemyType.PATROL), 2);
+        addEnemyTypeCandidates(candidates, "hunter", 4, countEnemiesOfType(Enemy.EnemyType.HUNTER), 2);
+        addEnemyTypeCandidates(candidates, "sentry", 3, countEnemiesOfType(Enemy.EnemyType.SENTRY), 2);
+        if (floorNumber >= 3) {
+            int maxCrawlers = (floorNumber >= 6) ? 2 : 1;
+            addEnemyTypeCandidates(candidates, "crawler", 2,
+                    countEnemiesOfType(Enemy.EnemyType.CRAWLER), maxCrawlers);
+        }
+
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        return candidates.get(rand.nextInt(candidates.size()));
+    }
+
+    private void addEnemyTypeCandidates(java.util.List<String> candidates, String type,
+                                        int weight, long currentCount, int maxCount) {
+        if (currentCount >= maxCount) {
+            return;
+        }
+        for (int i = 0; i < weight; i++) {
+            candidates.add(type);
+        }
+    }
+
+    private long countEnemiesOfType(Enemy.EnemyType type) {
+        return enemies.stream().filter(e -> e.getType() == type).count();
+    }
+
+    private void placeBarrels() {
+        int[][] corners = {
+                {1, 1},
+                {Constants.GRID_WIDTH - 2, 1},
+                {1, Constants.GRID_HEIGHT - 2},
+                {Constants.GRID_WIDTH - 2, Constants.GRID_HEIGHT - 2}
+        };
+        java.util.List<int[]> cornerList = new ArrayList<>(Arrays.asList(corners));
+        Collections.shuffle(cornerList);
+
+        for (int[] corner : cornerList) {
+            int[] spot = findBarrelSpotNear(corner[0], corner[1]);
+            if (spot != null) {
+                barrels.add(spot);
+                if (barrels.size() >= 2) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private int[] findBarrelSpotNear(int targetX, int targetY) {
+        int[] best = null;
+        int bestDist = Integer.MAX_VALUE;
+        for (int y = 1; y < Constants.GRID_HEIGHT - 1; y++) {
+            for (int x = 1; x < Constants.GRID_WIDTH - 1; x++) {
+                if (!isValidBarrelTile(x, y)) {
+                    continue;
+                }
+                int dist = Math.abs(x - targetX) + Math.abs(y - targetY);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    best = new int[]{x, y};
+                }
+            }
+        }
+        return best;
+    }
+
+    private boolean isValidBarrelTile(int x, int y) {
+        if (map.getTile(x, y) != Tile.FLOOR || map.getItem(x, y) != null) {
+            return false;
+        }
+        if (x == Constants.START_X && y == Constants.START_Y) {
+            return false;
+        }
+        for (int[] barrel : barrels) {
+            if (barrel[0] == x && barrel[1] == y) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Full game reset: floor 1, new map, fresh player with starting items. */
@@ -660,6 +765,7 @@ public class LevelManager implements SmokeSpawner {
 
         buildFloor();
         player.setPosition(Constants.START_X, Constants.START_Y);
+        player.setHiddenInBarrel(false);
         // We no longer clear inventory or refill items here,
         // allowing the player to bring their current items to the next floor.
         updateVisibility();
@@ -697,7 +803,7 @@ public class LevelManager implements SmokeSpawner {
         for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
             for (int x = 0; x < Constants.GRID_WIDTH; x++) {
 
-                if (LineOfSight.hasLineOfSight(map, px, py, x, y, baseRange, smokes)) {
+                if (LineOfSight.hasLineOfSight(map, px, py, x, y, baseRange)) {
                     visible[y][x] = true;
                     double dist = Math.hypot(px - x, py - y);
                     float light = (float) Math.max(0, 1.0 - Math.pow(dist / (double) baseRange, 1.3));
@@ -823,7 +929,7 @@ public class LevelManager implements SmokeSpawner {
 
     @Override
     public void spawnSmoke(int x, int y) {
-        smokes.add(new Smoke(x, y, 2, 5)); // radius 2, lasts 5 turns
+        smokes.add(new Smoke(x, y, 2, 6, true)); // radius 2, lasts 6 full turns
     }
 
     @Override

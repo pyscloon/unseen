@@ -9,6 +9,7 @@ public enum DecalType {
     BLOODY_TEXT_HIDE,
     BLOOD_TILE,
     DIE_TILE,
+    DEAD_BONES,
     NOTE_SCRAP,
     PUDDLE
 }

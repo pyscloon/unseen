@@ -11,8 +11,10 @@ public class Shuriken extends Item {
 
     public static final int RANGE = 5;
     private int[] lastKillPos = null;
+    private Enemy.EnemyType lastKilledEnemyType = null;
 
     public int[] getLastKillPos() { return lastKillPos; }
+    public Enemy.EnemyType getLastKilledEnemyType() { return lastKilledEnemyType; }
 
     @Override
     public void use(Player player, Map map, List<Enemy> enemies) {
@@ -21,9 +23,10 @@ public class Shuriken extends Item {
         fireInDirection(player.getX(), player.getY(), dx, 0, map, enemies);
     }
 
-    /** Throw in an explicit direction (dx, dy) -- one of the 4 cardinal directions. */
+    /** Throw in an explicit direction (dx, dy) -- cardinal or diagonal. */
     public void fireInDirection(int px, int py, int dx, int dy, Map map, List<Enemy> enemies) {
         lastKillPos = null;
+        lastKilledEnemyType = null;
         for (int i = 1; i <= RANGE; i++) {
             int tx = px + dx * i;
             int ty = py + dy * i;
@@ -33,6 +36,7 @@ public class Shuriken extends Item {
                 if (e.isAlive() && e.getX() == tx && e.getY() == ty) {
                     e.die();
                     lastKillPos = new int[]{tx, ty};
+                    lastKilledEnemyType = e.getType();
                     return;
                 }
             }

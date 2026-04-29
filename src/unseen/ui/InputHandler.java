@@ -225,6 +225,9 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
+        if (panel.getGameState() == GameState.PLAYING && panel.isShurikenInFlight()) {
+            return;
+        }
 
         if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingGrapplingHook()) {
             switch (key) {
@@ -254,6 +257,18 @@ public class InputHandler extends KeyAdapter {
 
         if (panel.isTargetingShuriken()) {
             switch (key) {
+                case KeyEvent.VK_Q:
+                    panel.setShurikenDirection(-1, -1);
+                    return;
+                case KeyEvent.VK_E:
+                    panel.setShurikenDirection(1, -1);
+                    return;
+                case KeyEvent.VK_Z:
+                    panel.setShurikenDirection(-1, 1);
+                    return;
+                case KeyEvent.VK_C:
+                    panel.setShurikenDirection(1, 1);
+                    return;
                 case KeyEvent.VK_W:
                 case KeyEvent.VK_UP:
                     panel.setShurikenDirection(0, -1);
@@ -363,6 +378,9 @@ public class InputHandler extends KeyAdapter {
         }
 
         if (key == KeyEvent.VK_E) {
+            if (panel.interactWithBarrel()) {
+                return;
+            }
             boolean picked = panel.attemptPickup();
             if (!picked)
                 panel.showToast("Nothing to pick up here", new java.awt.Color(160, 160, 170));
@@ -432,6 +450,10 @@ public class InputHandler extends KeyAdapter {
                 player.setFacing(Player.Facing.LEFT);
             else if (x > player.getX())
                 player.setFacing(Player.Facing.RIGHT);
+            if (player.isHiddenInBarrel()) {
+                player.setHiddenInBarrel(false);
+                unseen.utils.SoundManager.get().play("ladder", 0.45f);
+            }
             player.setPosition(x, y);
 
             final int movedX = x, movedY = y;

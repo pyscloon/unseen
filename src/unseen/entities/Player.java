@@ -32,6 +32,7 @@ public class Player extends Entity {
 
         private int campfireTurns = 0;
         private int lastRestedFloor = -1;
+        private boolean hiddenInBarrel = false;
 
         public int getCampfireTurns() { return campfireTurns; }
         public void setCampfireTurns(int t) { this.campfireTurns = t; }
@@ -55,6 +56,8 @@ public class Player extends Entity {
 
         public Facing getFacing() { return facing; }
         public void setFacing(Facing facing) { this.facing = facing; }
+        public boolean isHiddenInBarrel() { return hiddenInBarrel; }
+        public void setHiddenInBarrel(boolean hiddenInBarrel) { this.hiddenInBarrel = hiddenInBarrel; }
 
         // -- Health ----------------------------------------------------
 
@@ -76,7 +79,7 @@ public class Player extends Entity {
             health = Math.min(MAX_HEALTH, health + amount);
         }
 
-        public void resetHealth() { health = MAX_HEALTH; invincibleTurns = 0; }
+        public void resetHealth() { health = MAX_HEALTH; invincibleTurns = 0; hiddenInBarrel = false; }
 
         /**
          * Knocks the player one tile away from the attacker.
