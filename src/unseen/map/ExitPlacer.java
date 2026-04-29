@@ -29,7 +29,7 @@ public class ExitPlacer {
         map.setTile(exitX, exitY, Tile.EXIT);
 
         // TESTING: always place a fake exit from floor 3 onward.
-        if (floorNumber >= 3) {
+        if (floorNumber >= 3 && Math.random() <= 0.30) {
             placeFakeExit(map, exitX, exitY);
         }
     }
