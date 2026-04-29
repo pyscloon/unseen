@@ -26,7 +26,10 @@ public class ExitPlacer {
             }
         }
 
+        map.removeItem(exitX, exitY);
+        map.setDecal(exitX, exitY, null);
         map.setTile(exitX, exitY, Tile.EXIT);
+
 
         // TESTING: always place a fake exit from floor 3 onward.
         if (floorNumber >= 3 && Math.random() <= 0.30) {
@@ -65,6 +68,8 @@ public class ExitPlacer {
         }
 
         if (fakeX != -1) {
+            map.removeItem(fakeX, fakeY);
+            map.setDecal(fakeX, fakeY, null);
             map.setTile(fakeX, fakeY, Tile.FAKE_EXIT);
         }
     }
