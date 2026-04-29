@@ -56,7 +56,7 @@ public class CrawlerEnemy extends Enemy {
     public void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> allEnemies) {
 
         int dist = Math.abs(x - player.getX()) + Math.abs(y - player.getY());
-        if (dist <= PROXIMITY_RANGE) {
+        if (!isNoiseDistracted() && dist <= PROXIMITY_RANGE) {
             lastKnownX = player.getX();
             lastKnownY = player.getY();
 
@@ -119,6 +119,7 @@ public class CrawlerEnemy extends Enemy {
             List<Node> path = pathfinder.findPath(map, x, y, lastKnownX, lastKnownY);
 
             if (path == null || path.size() < 2) {
+                clearNoiseDistraction();
                 setState(State.SEARCH);
                 searchTurns = Constants.SEARCH_TURNS;
                 return;
@@ -158,6 +159,7 @@ public class CrawlerEnemy extends Enemy {
         this.lastKnownY = ny;
         setState(State.CHASE);
         this.searchTurns = Constants.SEARCH_TURNS + 2;
+        this.noiseDistracted = true;
         invalidatePathCache();
     }
 

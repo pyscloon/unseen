@@ -42,6 +42,7 @@ public class AssetLoader {
 
     /** Crawler sprite — placed at unseen/assets/crawler.png by the developer. */
     public final Image crawler;
+    public final Image redJumpscare;
 
     private AssetLoader() {
         wall          = load("unseen/assets/wall.png");
@@ -75,6 +76,7 @@ public class AssetLoader {
         sentry     = load("unseen/assets/sentry.png");
         patrol     = load("unseen/assets/patrol.png");
         crawler    = load("unseen/assets/crawler.png");
+        redJumpscare = load("unseen/assets/redjumpscare.jpg");
     }
 
     private Image load(String path) {

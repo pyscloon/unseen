@@ -174,6 +174,11 @@ public class LevelManager implements SmokeSpawner {
     }
 
     public void addTileEffect(int x, int y, TileEffect.Kind kind) {
+        if (kind == TileEffect.Kind.PICKUP
+                || kind == TileEffect.Kind.ALERT
+                || kind == TileEffect.Kind.DAMAGE) {
+            return;
+        }
         tileEffects.add(new TileEffect(x, y, kind));
     }
 

@@ -5,6 +5,7 @@ import unseen.entities.Player;
 import unseen.items.Shuriken;
 import unseen.map.Tile;
 import unseen.ui.GamePanel;
+import unseen.utils.AssetLoader;
 import unseen.utils.Constants;
 
 import java.awt.*;
@@ -482,6 +483,11 @@ class OverlayRenderer {
         int h = panel.getHeight();
         Random rand = new Random();
 
+        if (panel.isRedJumpscareActive() && AssetLoader.get().redJumpscare != null) {
+            drawRedJumpscare(g2, w, h, rand);
+            return;
+        }
+
         // 1. Deep Void Background
         g2.setColor(new Color(5, 2, 2));
         g2.fillRect(0, 0, w, h);
@@ -566,6 +572,54 @@ class OverlayRenderer {
                 centerX, centerY, (float) Math.max(w, h) * 0.7f,
                 new float[] { 0.0f, 1.0f },
                 new Color[] { new Color(0, 0, 0, 0), new Color(0, 0, 0, 255) });
+        g2.setPaint(vignette);
+        g2.fillRect(0, 0, w, h);
+    }
+
+    private void drawRedJumpscare(Graphics2D g2, int w, int h, Random rand) {
+        Image img = AssetLoader.get().redJumpscare;
+        int iw = img.getWidth(null);
+        int ih = img.getHeight(null);
+
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0, 0, w, h);
+
+        if (iw > 0 && ih > 0) {
+            double scale = Math.max(w / (double) iw, h / (double) ih);
+            int drawW = (int) Math.ceil(iw * scale);
+            int drawH = (int) Math.ceil(ih * scale);
+            int drawX = (w - drawW) / 2 + rand.nextInt(17) - 8;
+            int drawY = (h - drawH) / 2 + rand.nextInt(17) - 8;
+            g2.drawImage(img, drawX, drawY, drawW, drawH, null);
+        }
+
+        g2.setColor(new Color(155, 0, 0, 95));
+        g2.fillRect(0, 0, w, h);
+
+        for (int i = 0; i < 140; i++) {
+            int alpha = 18 + rand.nextInt(42);
+            g2.setColor(new Color(255, rand.nextInt(45), rand.nextInt(45), alpha));
+            g2.fillRect(rand.nextInt(w), rand.nextInt(h), 2 + rand.nextInt(5), 1 + rand.nextInt(3));
+        }
+
+        if (rand.nextDouble() < 0.45) {
+            int slices = 2 + rand.nextInt(5);
+            for (int i = 0; i < slices; i++) {
+                int sy = rand.nextInt(h);
+                int sh = 4 + rand.nextInt(20);
+                int offset = rand.nextInt(28) - 14;
+                g2.copyArea(0, sy, w, sh, offset, 0);
+            }
+        }
+
+        RadialGradientPaint vignette = new RadialGradientPaint(
+                w / 2f, h / 2f, (float) Math.max(w, h) * 0.72f,
+                new float[] { 0.0f, 0.82f, 1.0f },
+                new Color[] {
+                        new Color(0, 0, 0, 0),
+                        new Color(70, 0, 0, 80),
+                        new Color(0, 0, 0, 240)
+                });
         g2.setPaint(vignette);
         g2.fillRect(0, 0, w, h);
     }

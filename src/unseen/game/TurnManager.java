@@ -33,7 +33,9 @@ public class TurnManager {
 
         List<Enemy> chasers = new ArrayList<>();
         for (Enemy e : enemies) {
-            if (e.isAlive() && e.getState() == Enemy.State.CHASE) {
+            if (e.isAlive()
+                    && e.getState() == Enemy.State.CHASE
+                    && !e.isNoiseDistracted()) {
                 chasers.add(e);
             }
         }

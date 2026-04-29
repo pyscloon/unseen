@@ -18,6 +18,7 @@ import unseen.utils.AssetLoader;
 import unseen.utils.Constants;
 
 import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.util.List;
 import java.util.Random;
 
@@ -304,73 +305,14 @@ class WorldRenderer {
             int ey = e.getY();
             if (!visible[ey][ex])
                 continue;
-            if (e instanceof unseen.entities.CrawlerEnemy) {
-                unseen.entities.CrawlerEnemy crawler = (unseen.entities.CrawlerEnemy) e;
+            if (e instanceof CrawlerEnemy) {
+                CrawlerEnemy crawler = (CrawlerEnemy) e;
                 int ts = Constants.TILE_SIZE;
                 int tx = ex * ts;
                 int ty = ey * ts;
 
-                // -- Proximity danger ring (always visible when the tile is visible) --
-                // Draws a faint pulsing ring to warn the player of its detection radius.
-                long now2 = System.currentTimeMillis();
-                float pulse2 = (float) (0.5 + 0.5 * Math.sin(now2 / 600.0));
-                int ringRadius = (unseen.entities.CrawlerEnemy.getProximityRange() * ts)
-                        + ts / 2; // half-tile buffer
-                int alpha2 = crawler.isHunting()
-                        ? (int) (160 + 60 * pulse2)   // bright red when chasing
-                        : (int) (35 + 25 * pulse2);  // faint amber when wandering
-                java.awt.Color ringColor = crawler.isHunting()
-                        ? new java.awt.Color(220, 40, 40, alpha2)
-                        : new java.awt.Color(180, 120, 40, alpha2);
-
-                int ringCx = tx + ts / 2;
-                int ringCy = ty + ts / 2;
-                java.awt.Stroke savedForRing = g2.getStroke();
-                g2.setColor(ringColor);
-                g2.setStroke(new java.awt.BasicStroke(
-                        crawler.isHunting() ? 2f : 1f,
-                        java.awt.BasicStroke.CAP_ROUND,
-                        java.awt.BasicStroke.JOIN_ROUND,
-                        1f,
-                        new float[]{4f, 4f},
-                        (float) (now2 / 80.0 % 8)));   // animated dash offset
-                g2.drawOval(ringCx - ringRadius, ringCy - ringRadius,
-                        ringRadius * 2, ringRadius * 2);
-                g2.setStroke(savedForRing);
-
-                // -- Sprite (or fallback) ----------------------------------------
-                java.awt.Image img2 = e.getEnemyImage();
-                if (img2 != null) {
-                    // Flip horizontally when moving left
-                    if (e.getDirection() == unseen.entities.Enemy.Direction.LEFT) {
-                        g2.drawImage(img2, tx + ts, ty, -ts, ts, null);
-                    } else {
-                        g2.drawImage(img2, tx, ty, ts, ts, null);
-                    }
-                } else {
-                    // Fallback: dark brown oval with small red eye-dots
-                    g2.setColor(new java.awt.Color(50, 28, 8, 220));
-                    g2.fillOval(tx + 4, ty + 6, ts - 8, ts - 12);
-                    g2.setColor(new java.awt.Color(180, 20, 20));
-                    g2.fillOval(tx + 9, ty + 10, 5, 5);
-                    g2.fillOval(tx + ts - 14, ty + 10, 5, 5);
-                }
-
-                // -- "HUNTING!" badge above sprite when chasing ------------------
-                if (crawler.isHunting()) {
-                    int badgeY = ty - 14;
-                    if (badgeY < 2) badgeY = ty + ts + 2;
-                    String badge = "!";
-                    g2.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
-                    java.awt.FontMetrics bfm = g2.getFontMetrics();
-                    int bw = bfm.stringWidth(badge) + 10;
-                    g2.setColor(new java.awt.Color(200, 30, 30, 210));
-                    g2.fillOval(tx + ts / 2 - bw / 2, badgeY, bw, 18);
-                    g2.setColor(java.awt.Color.WHITE);
-                    g2.drawString(badge,
-                            tx + ts / 2 - bfm.stringWidth(badge) / 2,
-                            badgeY + bfm.getAscent() + 1);
-                }
+                drawCrawlerRange(g2, tx, ty, ts);
+                drawCrawlerSprite(g2, crawler, tx, ty, ts);
 
                 continue; // skip the generic rendering below
             };
@@ -404,6 +346,13 @@ class WorldRenderer {
                 }
                 continue;
             }
+            if (e instanceof SentryEnemy) {
+                int ts = Constants.TILE_SIZE;
+                int tx = ex * ts;
+                int ty = ey * ts;
+                drawSentrySprite(g2, (SentryEnemy) e, tx, ty, ts);
+                continue;
+            }
 
             java.awt.Image img = e.getEnemyImage();
             if (img != null) {
@@ -416,37 +365,6 @@ class WorldRenderer {
                 g2.fillOval(ex * Constants.TILE_SIZE, ey * Constants.TILE_SIZE,
                         Constants.TILE_SIZE, Constants.TILE_SIZE);
             }
-
-            if (e instanceof SentryEnemy) {
-                SentryEnemy s = (SentryEnemy) e;
-                if (s.isAlertVisualActive()) {
-                    int tileSize = Constants.TILE_SIZE;
-                    int size = tileSize / 2;
-                    int centerX = ex * tileSize + tileSize / 2;
-                    int badgeX = centerX - size / 2;
-                    int badgeY = ey * tileSize - (size / 2);
-                    if (badgeY < 2)
-                        badgeY = 2;
-
-                    g2.setColor(new Color(200, 40, 40, 220));
-                    g2.fillOval(badgeX, badgeY, size, size);
-                    g2.setColor(new Color(255, 255, 255, 200));
-                    g2.setStroke(new BasicStroke(2f));
-                    g2.drawOval(badgeX, badgeY, size, size);
-
-                    String mark = "!";
-                    int fontSize = Math.max(10, size / 2 + 6);
-                    Font oldFont = g2.getFont();
-                    g2.setFont(new Font("Arial", Font.BOLD, fontSize));
-                    FontMetrics fm = g2.getFontMetrics();
-                    int tx = badgeX + (size - fm.stringWidth(mark)) / 2;
-                    int ty = badgeY + (size - fm.getHeight()) / 2 + fm.getAscent();
-                    g2.setColor(Color.WHITE);
-                    g2.drawString(mark, tx, ty);
-                    g2.setFont(oldFont);
-                }
-            }
-
             if (e.getState() == Enemy.State.CHASE
                     && e.hasLineOfSightToPlayer(levelManager.getMap(), player, levelManager.getSmokes())) {
                 java.util.List<unseen.ai.Node> path = e.getPlannedPath(levelManager.getMap(), player);
@@ -468,7 +386,155 @@ class WorldRenderer {
     }
 
 
-private void drawPhantom(Graphics2D g2) {
+    private void drawSentrySprite(Graphics2D g2, SentryEnemy sentry, int tx, int ty, int ts) {
+        java.awt.Image img = sentry.getEnemyImage();
+        if (img == null) {
+            g2.setColor(new Color(90, 70, 50));
+            g2.fillRect(tx + 5, ty + 4, ts - 10, ts - 8);
+            g2.setColor(new Color(190, 40, 35));
+            g2.fillOval(tx + ts / 2 - 4, ty + ts / 2 - 4, 8, 8);
+            return;
+        }
+
+        Enemy.Direction direction = sentry.getState() == Enemy.State.CHASE
+                ? sentry.getDirection()
+                : getSentryScanDirection(tx, ty);
+
+        long now = System.currentTimeMillis();
+        int phase = (tx / Constants.TILE_SIZE) * 37 + (ty / Constants.TILE_SIZE) * 19;
+        int bob = (int) Math.round(Math.sin((now + phase * 30L) / 650.0) * Math.max(1, ts / 18.0));
+
+        g2.setColor(new Color(0, 0, 0, 70));
+        g2.fillOval(tx + ts / 4, ty + ts - 7, ts / 2, 7);
+        drawOrientedEnemyImage(g2, img, tx, ty + bob, ts, direction, 1.0, 1.0);
+    }
+
+    private Enemy.Direction getSentryScanDirection(int tx, int ty) {
+        int offset = Math.abs((tx / Constants.TILE_SIZE) * 31 + (ty / Constants.TILE_SIZE) * 17) % 4;
+        int frame = (int) ((System.currentTimeMillis() / 1000L + offset) % 4);
+        switch (frame) {
+            case 0:
+                return Enemy.Direction.DOWN;
+            case 1:
+                return Enemy.Direction.LEFT;
+            case 2:
+                return Enemy.Direction.UP;
+            case 3:
+            default:
+                return Enemy.Direction.RIGHT;
+        }
+    }
+
+
+    private void drawCrawlerRange(Graphics2D g2, int tx, int ty, int ts) {
+        int radius = CrawlerEnemy.getProximityRange() * ts + ts / 2;
+        int cx = tx + ts / 2;
+        int cy = ty + ts / 2;
+
+        Stroke savedStroke = g2.getStroke();
+        g2.setColor(new Color(210, 150, 55, 95));
+        g2.setStroke(new BasicStroke(
+                2f,
+                BasicStroke.CAP_ROUND,
+                BasicStroke.JOIN_ROUND,
+                1f,
+                new float[]{5f, 5f},
+                0f));
+        g2.drawOval(cx - radius, cy - radius, radius * 2, radius * 2);
+        g2.setStroke(savedStroke);
+    }
+
+
+    private void drawCrawlerSprite(Graphics2D g2, CrawlerEnemy crawler, int tx, int ty, int ts) {
+        java.awt.Image img = crawler.getEnemyImage();
+        if (img == null) {
+            g2.setColor(new java.awt.Color(50, 28, 8, 220));
+            g2.fillOval(tx + 4, ty + 6, ts - 8, ts - 12);
+            g2.setColor(new java.awt.Color(180, 20, 20));
+            g2.fillOval(tx + 9, ty + 10, 5, 5);
+            g2.fillOval(tx + ts - 14, ty + 10, 5, 5);
+            return;
+        }
+
+        Enemy.Direction direction = crawler.getDirection();
+        int dx = 0;
+        int dy = 0;
+        switch (direction) {
+            case LEFT:
+                dx = -1;
+                break;
+            case RIGHT:
+                dx = 1;
+                break;
+            case UP:
+                dy = -1;
+                break;
+            case DOWN:
+            default:
+                dy = 1;
+                break;
+        }
+
+        boolean fast = crawler.isHunting();
+        if (fast) {
+            java.awt.Composite savedComposite = g2.getComposite();
+            for (int i = 2; i >= 1; i--) {
+                float alpha = i == 2 ? 0.16f : 0.26f;
+                int trail = i * Math.max(3, ts / 7);
+                g2.setComposite(java.awt.AlphaComposite.getInstance(
+                        java.awt.AlphaComposite.SRC_OVER, alpha));
+                drawOrientedEnemyImage(g2, img,
+                        tx - dx * trail,
+                        ty - dy * trail,
+                        ts, direction, 1.0, 1.0);
+            }
+            g2.setComposite(savedComposite);
+        }
+
+        long now = System.currentTimeMillis();
+        double stride = fast ? Math.sin(now / 55.0) : Math.sin(now / 180.0);
+        int lunge = fast ? (int) Math.round(stride * Math.max(1, ts / 14.0)) : 0;
+        double stretch = fast ? 1.0 + Math.abs(stride) * 0.16 : 1.0;
+        double squeeze = fast ? 1.0 - Math.abs(stride) * 0.08 : 1.0;
+
+        drawOrientedEnemyImage(g2, img,
+                tx + dx * lunge,
+                ty + dy * lunge,
+                ts, direction, squeeze, stretch);
+    }
+
+    private void drawOrientedEnemyImage(Graphics2D g2, java.awt.Image img, int tx, int ty,
+                                        int ts, Enemy.Direction direction,
+                                        double scaleX, double scaleY) {
+        double angle = 0.0;
+        switch (direction) {
+            case UP:
+                angle = Math.PI;
+                break;
+            case LEFT:
+                angle = Math.PI / 2.0;
+                break;
+            case RIGHT:
+                angle = -Math.PI / 2.0;
+                break;
+            case DOWN:
+            default:
+                angle = 0.0;
+                break;
+        }
+
+        double cx = tx + ts / 2.0;
+        double cy = ty + ts / 2.0;
+        AffineTransform savedTransform = g2.getTransform();
+        g2.translate(cx, cy);
+        g2.rotate(angle);
+        g2.scale(scaleX, scaleY);
+        g2.drawImage(img, -ts / 2, -ts / 2, ts, ts, null);
+        g2.setTransform(savedTransform);
+    }
+
+
+    private void drawPhantom(Graphics2D g2) {
         int px = levelManager.getPhantomX();
         int py = levelManager.getPhantomY();
         if (px != -1) {

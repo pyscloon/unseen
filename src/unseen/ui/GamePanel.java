@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Random;
 
 public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
+    private static final int HORROR_JUMPSCARE_TURN_THRESHOLD = 60;
     private static final String[] INTRO_NARRATION = {
             "Beneath Room 205 of the Engineering Building, below the old software engineering room, there waits a dungeon that should never have been found.",
             "Then a virus spread through the buried halls. Stone soured. Shadows learned to move. And from the dark came monsters, as if broken code itself had grown teeth and hunger.",
@@ -67,6 +68,8 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private boolean achievementsOpen = false;
 
     private boolean roundQuestHudVisible = false;
+    private int horrorModeTurnsThisRun = 0;
+    private boolean timedHorrorJumpscareTriggered = false;
 
 
     /** HUD toast queue -- most recent at the end. */
@@ -451,6 +454,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     public void returnToMenu() {
         runStats.commitHighScore();
         questManager.resetRun();
+        resetTimedHorrorJumpscare();
         levelManager.setupGame();
         floorRewardChoices.clear();
         questNotificationText = null;
@@ -470,6 +474,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         runStats.commitHighScore();
         runStats.resetRun();
         questManager.resetRun();
+        resetTimedHorrorJumpscare();
         floorRewardChoices.clear();
         questNotificationText = null;
         achievementsOpen = false;
@@ -487,6 +492,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     public void startFromMenu() {
         runStats.resetRun();
         questManager.resetRun();
+        resetTimedHorrorJumpscare();
         floorRewardChoices.clear();
         questNotificationText = null;
         achievementsOpen = false;
@@ -651,6 +657,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         runStats.incrementTurns();
         levelManager.incrementTurn();
+        updateTimedHorrorJumpscare(result.state);
         runStats.incrementKills(result.killsThisTurn);
         runStats.setFloorsCleared(levelManager.getFloorNumber() - 1);
 
@@ -1183,9 +1190,54 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     private boolean jumpscareActive = false;
+    private boolean redJumpscareActive = false;
 
     public boolean isJumpscareActive() {
         return jumpscareActive;
+    }
+
+    public boolean isRedJumpscareActive() {
+        return redJumpscareActive;
+    }
+
+    private void resetTimedHorrorJumpscare() {
+        horrorModeTurnsThisRun = 0;
+        timedHorrorJumpscareTriggered = false;
+        redJumpscareActive = false;
+        jumpscareActive = false;
+    }
+
+    private void updateTimedHorrorJumpscare(GameState turnState) {
+        if (timedHorrorJumpscareTriggered
+                || turnState != GameState.PLAYING
+                || !horrorMode
+                || levelManager.isFloorPurified()) {
+            return;
+        }
+
+        horrorModeTurnsThisRun++;
+        if (horrorModeTurnsThisRun >= HORROR_JUMPSCARE_TURN_THRESHOLD) {
+            triggerTimedHorrorJumpscare();
+        }
+    }
+
+    private void triggerTimedHorrorJumpscare() {
+        timedHorrorJumpscareTriggered = true;
+        redJumpscareActive = true;
+        jumpscareActive = true;
+        triggerShake(28, 7f);
+        triggerFreeze(350);
+        unseen.utils.SoundManager.get().play("jumpscare");
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException ignored) {
+            }
+            redJumpscareActive = false;
+            jumpscareActive = false;
+            repaint();
+        }).start();
     }
 
     public void setGameState(GameState s) {
@@ -1194,6 +1246,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             screenShake.trigger(18, 8f);
             if (horrorMode) {
                 unseen.utils.SoundManager.get().play("jumpscare");
+                redJumpscareActive = false;
                 jumpscareActive = true;
                 // Auto-clear jumpscare after 1.5 seconds
                 new Thread(() -> {

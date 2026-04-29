@@ -26,7 +26,9 @@ public class SentryEnemy extends Enemy {
     public void takeTurn(Map map, Player player, List<Smoke> smokes, List<Enemy> allEnemies) {
         tickAlertVisual();
 
-        if (canSeePlayer(map, player, smokes)) {
+        if (!isDistracted() && canSeePlayer(map, player, smokes)) {
+            clearNoiseDistraction();
+            updateDirectionToward(player.getX(), player.getY());
             setState(State.CHASE);
             this.lastKnownX = player.getX();
             this.lastKnownY = player.getY();
@@ -55,21 +57,36 @@ public class SentryEnemy extends Enemy {
                 }
 
                 if (!isTileOccupied(next.x, next.y, allEnemies)) {
+                    updateDirectionToward(next.x, next.y);
                     this.x = next.x;
                     this.y = next.y;
                 }
+            } else {
+                clearNoiseDistraction();
+                setState(State.SEARCH);
+                searchTurns = Constants.SEARCH_TURNS;
             }
+        }
+    }
+
+    private void updateDirectionToward(int tx, int ty) {
+        int dx = tx - x;
+        int dy = ty - y;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            setDirection(dx > 0 ? Direction.RIGHT : Direction.LEFT);
+        } else if (dy != 0) {
+            setDirection(dy > 0 ? Direction.DOWN : Direction.UP);
         }
     }
 
     @Override
     public void redirectToNoise(int x, int y) {
         super.redirectToNoise(x, y);
-        setState(State.SEARCH);
     }
 
     public void handleAlerts(List<Enemy> allEnemies, Player player) {
-        if (state == State.CHASE) {
+        if (state == State.CHASE && !isNoiseDistracted()) {
             alertNearbyEnemies(allEnemies, Integer.MAX_VALUE, lastKnownX, lastKnownY);
             setAlertVisual(3);
         }

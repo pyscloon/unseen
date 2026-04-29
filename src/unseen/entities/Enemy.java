@@ -38,6 +38,7 @@ public abstract class Enemy extends Entity {
     protected int lastKnownX, lastKnownY;
     protected int searchTurns = 0;
     protected int distractedTurns = 0;
+    protected boolean noiseDistracted = false;
     protected boolean alive = true;
     private boolean attackedPlayerThisTurn = false;
     protected boolean isFlanker = false;
@@ -140,6 +141,7 @@ public abstract class Enemy extends Entity {
     }
 
     public void alertTo(int x, int y) {
+        clearNoiseDistraction();
         this.state = State.CHASE;
         this.lastKnownX = x;
         this.lastKnownY = y;
@@ -218,15 +220,28 @@ public abstract class Enemy extends Entity {
         this.state = State.CHASE;
         this.searchTurns = unseen.utils.Constants.SEARCH_TURNS;
         this.distractedTurns = 2;
+        this.noiseDistracted = true;
         invalidatePathCache();
     }
 
     protected boolean isDistracted() {
+        if (noiseDistracted) {
+            return true;
+        }
         if (distractedTurns > 0) {
             distractedTurns--;
             return true;
         }
         return false;
+    }
+
+    public boolean isNoiseDistracted() {
+        return noiseDistracted;
+    }
+
+    protected void clearNoiseDistraction() {
+        noiseDistracted = false;
+        distractedTurns = 0;
     }
 
     public void clearAttackedPlayerThisTurn() {
