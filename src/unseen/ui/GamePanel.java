@@ -1,40 +1,20 @@
 package unseen.ui;
 
-import java.awt.Color;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.event.KeyEvent;
-import java.io.File;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-
-
-import java.util.Random;
-import unseen.game.QuestManager;
-import unseen.game.RewardChoice;
-
-import unseen.utils.Constants;
-import unseen.game.GameState;
-import unseen.game.RunStats;
-import unseen.game.Smoke;
-import unseen.game.SmokeSpawner;
-import unseen.game.TurnManager;
-import unseen.entities.Player;
 import unseen.entities.Enemy;
-import unseen.items.Item;
+import unseen.entities.Player;
+import unseen.game.*;
 import unseen.items.GrapplingHook;
+import unseen.items.Item;
 import unseen.items.Shuriken;
 import unseen.map.Map;
-import unseen.ui.gamepanel.GameRenderer;
-import unseen.ui.gamepanel.HudToast;
-import unseen.ui.gamepanel.LevelManager;
-import unseen.ui.gamepanel.ScreenShake;
-import unseen.ui.gamepanel.TileEffect;
-import unseen.ui.gamepanel.TutorialManager;
+import unseen.ui.gamepanel.*;
+import unseen.utils.Constants;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private static final String[] INTRO_NARRATION = {
@@ -1346,8 +1326,22 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     private void generateFloorRewardChoices() {
         floorRewardChoices.clear();
-        for (int i = 0; i < 3; i++) {
-            Item item = createRandomRewardItem();
+
+        java.util.List<Item> pool = new java.util.ArrayList<>();
+        pool.add(new unseen.items.NoiseMaker());
+        pool.add(new unseen.items.SmokeBomb());
+        pool.add(new unseen.items.Flare());
+        pool.add(new unseen.items.Shuriken());
+        pool.add(new unseen.items.GrapplingHook());
+
+        if (horrorMode) {
+            pool.add(new unseen.items.Cross());
+        }
+
+        java.util.Collections.shuffle(pool, rewardRandom);
+
+        for (int i = 0; i < 3 && i < pool.size(); i++) {
+            Item item = pool.get(i);
             floorRewardChoices.add(new RewardChoice(itemDisplayName(item), item));
         }
     }

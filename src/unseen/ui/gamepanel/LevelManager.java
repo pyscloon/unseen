@@ -7,25 +7,14 @@ import unseen.entities.*;
 import unseen.game.ActiveFlare;
 import unseen.game.Smoke;
 import unseen.game.SmokeSpawner;
-import unseen.items.Flare;
-import unseen.items.GrapplingHook;
-import unseen.items.NoiseMaker;
-import unseen.items.Shuriken;
-import unseen.items.SmokeBomb;
+import unseen.items.*;
 import unseen.map.ExitPlacer;
 import unseen.map.Map;
 import unseen.map.MapGenerator;
 import unseen.map.Tile;
 import unseen.utils.Constants;
-import unseen.entities.CrawlerEnemy;
 
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Owns all game-world state and handles level generation, floor progression,
@@ -492,7 +481,7 @@ public class LevelManager implements SmokeSpawner {
         // Keep generating until valid
         do {
             map = MapGenerator.generate(panel.isHorrorMode(), allowCampfire);
-            ExitPlacer.placeExit(map);
+            ExitPlacer.placeExit(map, floorNumber);
         } while (!validator.isValid(map));
 
         visible = new boolean[Constants.GRID_HEIGHT][Constants.GRID_WIDTH];
