@@ -355,12 +355,14 @@ class OverlayRenderer {
         if (panel.isTargetingGrapplingHook()) {
             g2.setStroke(new BasicStroke(1.5f));
             g2.setColor(new Color(120, 200, 255, 95));
-            int range = 6 * ts;
+            int range = unseen.items.GrapplingHook.RANGE * ts;
             g2.drawOval(playerCx - range, playerCy - range, range * 2, range * 2);
 
             for (int y = 0; y < Constants.GRID_HEIGHT; y++) {
                 for (int x = 0; x < Constants.GRID_WIDTH; x++) {
-                    if (Math.abs(x - player.getX()) > 6 || Math.abs(y - player.getY()) > 6) {
+                    int dx = x - player.getX();
+                    int dy = y - player.getY();
+                    if (dx * dx + dy * dy > unseen.items.GrapplingHook.RANGE * unseen.items.GrapplingHook.RANGE) {
                         continue;
                     }
                     if (levelManager.getMap().getTile(x, y) != unseen.map.Tile.WALL) {

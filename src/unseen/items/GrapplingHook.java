@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class GrapplingHook extends Item {
+    public static final int RANGE = 6;
 
     @Override
     public void use(Player player, Map map, List<Enemy> enemies) {
@@ -76,12 +77,12 @@ public class GrapplingHook extends Item {
             return false;
         }
 
-        int dx = Math.abs(x - player.getX());
-        int dy = Math.abs(y - player.getY());
+        int dx = x - player.getX();
+        int dy = y - player.getY();
         if (dx == 0 && dy == 0) return false;
 
-        // Range check: 6 tiles (square radius)
-        if (dx > 6 || dy > 6) {
+        // Range check: 6-tile circular radius to match the targeting overlay.
+        if (dx * dx + dy * dy > RANGE * RANGE) {
             return false;
         }
 
@@ -89,7 +90,7 @@ public class GrapplingHook extends Item {
                 map,
                 player.getX(), player.getY(),
                 x, y,
-                12); // Max Manhattan range to cover 6-tile square radius
+                RANGE * 2); // Max Manhattan range to cover the full circle diameter
     }
 
     private int[] findLandingSpotInternal(Player player, Map map, List<Enemy> enemies, int wallX, int wallY) {
