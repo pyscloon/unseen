@@ -10,10 +10,6 @@ import java.util.List;
 public class TurnManager {
     private static final double PUDDLE_HEARING_RADIUS = 6.0;
 
-    /**
-     * Result of a turn -- extends the simple state with damage metadata
-     * so the caller can trigger visual feedback (shake, vignette, toast).
-     */
     public static class TurnResult {
         public final GameState state;
         public final boolean playerHit;
@@ -35,7 +31,6 @@ public class TurnManager {
 
         boolean wasHit = false;
 
-        // 1. Identify all enemies in CHASE mode to assign flanking roles.
         List<Enemy> chasers = new ArrayList<>();
         for (Enemy e : enemies) {
             if (e.isAlive() && e.getState() == Enemy.State.CHASE) {
@@ -43,7 +38,6 @@ public class TurnManager {
             }
         }
 
-        // 2. Assign roles: closest stays direct, others flank.
         if (chasers.size() > 1) {
             Enemy closest = null;
             double minDist = Double.MAX_VALUE;
@@ -68,8 +62,11 @@ public class TurnManager {
                 continue;
             }
 
+            enemy.clearAttackedPlayerThisTurn();
+
             Enemy.State previousState = enemy.getState();
             enemy.takeTurn(map, player, smokes, enemies);
+            boolean attackedPlayer = enemy.consumeAttackedPlayerThisTurn();
 
             if (panel != null
                     && previousState != Enemy.State.CHASE
@@ -83,12 +80,13 @@ public class TurnManager {
             }
 
             if (enemy.isAlive()
-                    && enemy.getX() == player.getX()
-                    && enemy.getY() == player.getY()
-                    && !(enemy instanceof unseen.entities.StalkerEnemy)) {
+                    && !(enemy instanceof unseen.entities.StalkerEnemy)
+                    && (attackedPlayer
+                    || (enemy.getX() == player.getX() && enemy.getY() == player.getY()))) {
 
                 if (player.takeDamage()) {
                     wasHit = true;
+
                     int ex = enemy.getX();
                     int ey = enemy.getY();
                     int ax = ex;
@@ -110,6 +108,7 @@ public class TurnManager {
                                 break;
                         }
                     }
+
                     player.knockback(ax, ay, map);
 
                     if (player.isDead()) {
@@ -189,7 +188,6 @@ public class TurnManager {
             panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
         }
 
-        // Fake ladders must be checked before real exits.
         if (map.getTile(player.getX(), player.getY()) == unseen.map.Tile.FAKE_EXIT) {
             map.setTile(player.getX(), player.getY(), unseen.map.Tile.FLOOR);
             if (panel != null) {
@@ -209,7 +207,6 @@ public class TurnManager {
         return new TurnResult(GameState.PLAYING, wasHit, killsThisTurn);
     }
 
-    /** Legacy adapter -- existing callers that only check the GameState still compile. */
     public static GameState processTurn(
             unseen.ui.GamePanel panel,
             Player player,

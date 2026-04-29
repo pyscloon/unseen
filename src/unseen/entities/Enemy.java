@@ -39,6 +39,7 @@ public abstract class Enemy extends Entity {
     protected int searchTurns = 0;
     protected int distractedTurns = 0;
     protected boolean alive = true;
+    private boolean attackedPlayerThisTurn = false;
     protected boolean isFlanker = false;
 
     public void setFlanker(boolean flanker) { this.isFlanker = flanker; }
@@ -226,6 +227,30 @@ public abstract class Enemy extends Entity {
             return true;
         }
         return false;
+    }
+
+    public void clearAttackedPlayerThisTurn() {
+        attackedPlayerThisTurn = false;
+    }
+
+    public boolean consumeAttackedPlayerThisTurn() {
+        boolean attacked = attackedPlayerThisTurn;
+        attackedPlayerThisTurn = false;
+        return attacked;
+    }
+
+    protected boolean tryAttackPlayerAt(int nx, int ny, Player player) {
+        if (nx != player.getX() || ny != player.getY()) {
+            return false;
+        }
+
+        if (nx > x) setDirection(Direction.RIGHT);
+        else if (nx < x) setDirection(Direction.LEFT);
+        else if (ny > y) setDirection(Direction.DOWN);
+        else if (ny < y) setDirection(Direction.UP);
+
+        attackedPlayerThisTurn = true;
+        return true;
     }
 
     public boolean isAlive() {return alive;}
