@@ -219,8 +219,12 @@ public class InputHandler extends KeyAdapter {
             return;
         }
 
-        if (panel.getGameState() != GameState.PLAYING)
+        if (key == KeyEvent.VK_V && panel.getGameState() == GameState.PLAYING) {
+            panel.playUiClick();
+            panel.toggleRoundQuestHud();
             return;
+        }
+
 
         if (panel.isTargetingNoiseMaker() || panel.isTargetingFlare() || panel.isTargetingGrapplingHook()) {
             switch (key) {

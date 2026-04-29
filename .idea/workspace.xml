@@ -5,14 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="86345f1f-460e-4de8-8cf1-5f7444a6b5fe" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/unseen/game/QuestManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/unseen/game/RewardChoice.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/game/GameState.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/game/GameState.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/game/QuestManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/game/QuestManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/map/Tile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/map/Tile.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/MenuRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/MenuRenderer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/WorldRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/WorldRenderer.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,8 +132,14 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/unseen/ui/gamepanel/MenuRenderer.java</url>
-          <line>326</line>
+          <line>345</line>
           <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-field">
+          <url>file://$PROJECT_DIR$/src/unseen/utils/Constants.java</url>
+          <line>20</line>
+          <properties field="WINDOW_WIDTH" class="unseen.utils.Constants" />
+          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

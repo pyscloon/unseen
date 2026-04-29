@@ -86,6 +86,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private long questNotificationUntil = 0L;
     private boolean achievementsOpen = false;
 
+    private boolean roundQuestHudVisible = false;
+
+
     /** HUD toast queue -- most recent at the end. */
     private final List<HudToast> toasts = new ArrayList<>();
 
@@ -467,6 +470,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     /** Tears down the current run and returns to the main menu. */
     public void returnToMenu() {
         runStats.commitHighScore();
+        questManager.resetRun();
         levelManager.setupGame();
         floorRewardChoices.clear();
         questNotificationText = null;
@@ -479,6 +483,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         requestFocusInWindow();
         repaint();
     }
+
 
 
     public void restartGame() {
@@ -671,17 +676,21 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
         checkQuestCompletion(questManager.recordTurn());
         checkQuestCompletion(questManager.recordKills(result.killsThisTurn));
+        drainAchievementToasts();
 
         if (result.playerHit) {
             handlePlayerDamaged();
         }
 
         if (result.state == GameState.WIN) {
-            checkQuestCompletion(questManager.recordFloorCleared());
+            boolean clearedInHorror = horrorMode && !levelManager.isFloorPurified();
+            checkQuestCompletion(questManager.recordFloorCleared(levelManager.getFloorNumber(), clearedInHorror));
+            drainAchievementToasts();
             beginPostFloorRewards();
         } else {
             setGameState(result.state);
         }
+
 
         levelManager.updateSmoke();
     }
@@ -946,6 +955,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     }
 
     private void handlePlayerDamaged() {
+        questManager.recordHit();
         lastHitTime = System.currentTimeMillis();
         levelManager.addTileEffect(levelManager.getPlayer().getX(), levelManager.getPlayer().getY(),
                 TileEffect.Kind.DAMAGE);
@@ -1137,7 +1147,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             levelManager.addTileEffect(px, py, TileEffect.Kind.PICKUP);
         }
         checkQuestCompletion(questManager.recordPickup());
+        drainAchievementToasts();
         processTurnAndApply();
+
         levelManager.updateVisibility();
         return true;
     }
@@ -1390,6 +1402,35 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 return new unseen.items.Cross();
         }
     }
+
+    public void triggerFakeExit() {
+        questManager.recordFakeExit();
+        drainAchievementToasts();
+        showToast("It's a fake ladder!", new Color(255, 150, 70));
+        triggerShake(14, 5f);
+        levelManager.getPlayer().setTrapped(2);
+        levelManager.addTileEffect(levelManager.getPlayer().getX(), levelManager.getPlayer().getY(),
+                unseen.ui.gamepanel.TileEffect.Kind.ALERT);
+        unseen.utils.SoundManager.get().play("jumpscare", 0.55f);
+    }
+
+    private void drainAchievementToasts() {
+        for (String message : questManager.drainAchievementToasts()) {
+            showToast(message, new Color(255, 220, 120));
+        }
+    }
+
+
+    public boolean isRoundQuestHudVisible() {
+        return roundQuestHudVisible;
+    }
+
+    public void toggleRoundQuestHud() {
+        roundQuestHudVisible = !roundQuestHudVisible;
+        repaint();
+    }
+
+
 
 
 }

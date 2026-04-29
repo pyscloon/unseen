@@ -228,74 +228,93 @@ class MenuRenderer {
 
     private void drawAchievementsOverlay(Graphics2D g2, int w, int h) {
         QuestManager quests = panel.getQuestManager();
-        if (quests == null) return;
+        if (quests == null) {
+            return;
+        }
 
         g2.setColor(new Color(0, 0, 0, 214));
         g2.fillRect(0, 0, w, h);
         drawMenuMist(g2, w, h, System.currentTimeMillis());
 
-        int cardW = Math.min(720, w - 80);
-        int cardH = Math.min(540, h - 80);
+        int cardW = Math.min(760, w - 70);
+        int cardH = Math.min(560, h - 70);
         int x = (w - cardW) / 2;
         int y = (h - cardH) / 2;
 
-        g2.setPaint(new GradientPaint(x, y, new Color(22, 18, 17, 225),
-                x, y + cardH, new Color(8, 8, 10, 242)));
+        g2.setPaint(new GradientPaint(x, y, new Color(22, 18, 17, 230),
+                x, y + cardH, new Color(8, 8, 10, 244)));
         g2.fillRoundRect(x, y, cardW, cardH, 34, 34);
-        g2.setColor(new Color(205, 154, 72, 210));
+        g2.setColor(new Color(205, 154, 72, 215));
         g2.setStroke(new BasicStroke(2f));
         g2.drawRoundRect(x, y, cardW, cardH, 34, 34);
 
         g2.setFont(new Font("Serif", Font.BOLD, 32));
         g2.setColor(new Color(255, 230, 120));
         String title = "ACHIEVEMENTS";
-        g2.drawString(title, x + (cardW - g2.getFontMetrics().stringWidth(title)) / 2, y + 58);
+        g2.drawString(title, x + (cardW - g2.getFontMetrics().stringWidth(title)) / 2, y + 56);
 
-        int cy = y + 105;
+        int unlocked = quests.getCompletedAchievements().size();
+        int total = quests.getAchievements().size();
+        String count = unlocked + " / " + total + " unlocked";
+        g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+        g2.setColor(new Color(210, 195, 155));
+        g2.drawString(count, x + (cardW - g2.getFontMetrics().stringWidth(count)) / 2, y + 80);
 
-        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
-        g2.setColor(new Color(135, 230, 130));
-        g2.drawString("Completed", x + 42, cy);
-        cy += 24;
+        int leftX = x + 34;
+        int rightX = x + cardW / 2 + 14;
+        int rowY = y + 122;
+        int rowH = 52;
+        int colW = cardW / 2 - 50;
 
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        if (quests.getCompletedQuests().isEmpty()) {
-            g2.setColor(new Color(130, 125, 110));
-            g2.drawString("- none yet", x + 54, cy);
-            cy += 22;
-        } else {
-            for (QuestManager.Quest q : quests.getCompletedQuests()) {
-                if (cy > y + cardH - 150) break;
-                g2.setColor(new Color(190, 230, 170));
-                g2.drawString("[DONE] " + q.getName() + " - " + q.getDescription(), x + 54, cy);
-                cy += 22;
+        java.util.List<QuestManager.Achievement> all = quests.getAchievements();
+        for (int i = 0; i < all.size(); i++) {
+            QuestManager.Achievement achievement = all.get(i);
+            int colX = (i % 2 == 0) ? leftX : rightX;
+            int drawY = rowY + (i / 2) * rowH;
+            if (drawY + rowH > y + cardH - 48) {
+                break;
             }
-        }
-
-        cy += 18;
-        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
-        g2.setColor(new Color(230, 170, 90));
-        g2.drawString("Uncompleted", x + 42, cy);
-        cy += 24;
-
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        if (quests.getUncompletedQuests().isEmpty()) {
-            g2.setColor(new Color(190, 175, 140));
-            g2.drawString("- all known achievements cleared", x + 54, cy);
-        } else {
-            for (QuestManager.Quest q : quests.getUncompletedQuests()) {
-                if (cy > y + cardH - 45) break;
-                g2.setColor(new Color(190, 175, 140));
-                g2.drawString("[LOCKED] " + q.getName() + " - " + q.getDescription(), x + 54, cy);
-                cy += 22;
-            }
+            drawAchievementRow(g2, achievement, colX, drawY, colW, rowH - 8);
         }
 
         g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        String hint = "Click anywhere or press ESC to close";
+        String hint = "Click anywhere or press ESC/A to close";
         g2.setColor(new Color(150, 135, 100));
-        g2.drawString(hint, x + (cardW - g2.getFontMetrics().stringWidth(hint)) / 2, y + cardH - 26);
+        g2.drawString(hint, x + (cardW - g2.getFontMetrics().stringWidth(hint)) / 2, y + cardH - 24);
     }
+
+    private void drawAchievementRow(Graphics2D g2, QuestManager.Achievement achievement,
+                                    int x, int y, int w, int h) {
+        boolean unlocked = achievement.isUnlocked();
+
+        g2.setColor(unlocked ? new Color(48, 38, 22, 190) : new Color(20, 18, 16, 185));
+        g2.fillRoundRect(x, y, w, h, 12, 12);
+        g2.setColor(unlocked ? new Color(210, 170, 78, 170) : new Color(95, 80, 58, 130));
+        g2.setStroke(new BasicStroke(1.2f));
+        g2.drawRoundRect(x, y, w, h, 12, 12);
+
+        String icon = unlocked ? "*" : "o";
+        g2.setFont(new Font("DialogInput", Font.BOLD, 18));
+        g2.setColor(unlocked ? new Color(255, 226, 110) : new Color(130, 120, 105));
+        g2.drawString(icon, x + 12, y + 27);
+
+        g2.setFont(new Font("Serif", Font.BOLD, 16));
+        g2.setColor(unlocked ? new Color(245, 225, 175) : new Color(155, 145, 125));
+        g2.drawString(achievement.getName(), x + 36, y + 20);
+
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        g2.setColor(unlocked ? new Color(190, 178, 140) : new Color(110, 105, 95));
+        String desc = achievement.getDescription();
+        FontMetrics fm = g2.getFontMetrics();
+        while (desc.length() > 3 && fm.stringWidth(desc) > w - 48) {
+            desc = desc.substring(0, desc.length() - 1);
+        }
+        if (!desc.equals(achievement.getDescription())) {
+            desc += "...";
+        }
+        g2.drawString(desc, x + 36, y + 37);
+    }
+
 
     void drawMenuMist(Graphics2D g2, int w, int h, long now) {
         Graphics2D mist = (Graphics2D) g2.create();

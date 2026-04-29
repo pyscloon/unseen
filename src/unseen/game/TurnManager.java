@@ -3,6 +3,7 @@ package unseen.game;
 import unseen.entities.Enemy;
 import unseen.entities.Player;
 import unseen.map.Map;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,8 +16,8 @@ public class TurnManager {
      */
     public static class TurnResult {
         public final GameState state;
-        public final boolean  playerHit;   // true if the player took damage this turn
-        public final int      killsThisTurn;
+        public final boolean playerHit;
+        public final int killsThisTurn;
 
         public TurnResult(GameState state, boolean playerHit, int kills) {
             this.state = state;
@@ -34,7 +35,7 @@ public class TurnManager {
 
         boolean wasHit = false;
 
-        // 1. Identify all enemies in CHASE mode to assign flanking roles
+        // 1. Identify all enemies in CHASE mode to assign flanking roles.
         List<Enemy> chasers = new ArrayList<>();
         for (Enemy e : enemies) {
             if (e.isAlive() && e.getState() == Enemy.State.CHASE) {
@@ -42,7 +43,7 @@ public class TurnManager {
             }
         }
 
-        // 2. Assign roles: closest stays direct, others flank
+        // 2. Assign roles: closest stays direct, others flank.
         if (chasers.size() > 1) {
             Enemy closest = null;
             double minDist = Double.MAX_VALUE;
@@ -60,18 +61,14 @@ public class TurnManager {
             chasers.get(0).setFlanker(false);
         }
 
-        // Tick down invincibility from last turn
         player.decrementInvincible();
 
-        // Iterate over a copy so removing dead enemies mid-loop is safe
         for (Enemy enemy : new ArrayList<>(enemies)) {
-
-            // Skip enemies that were killed earlier this turn
-            if (!enemy.isAlive()) continue;
+            if (!enemy.isAlive()) {
+                continue;
+            }
 
             Enemy.State previousState = enemy.getState();
-
-            // Each enemy executes its logic based on current world state
             enemy.takeTurn(map, player, smokes, enemies);
 
             if (panel != null
@@ -81,12 +78,10 @@ public class TurnManager {
                         unseen.ui.gamepanel.TileEffect.Kind.ALERT);
             }
 
-            // If this enemy is a sentry, let it alert nearby enemies
             if (enemy instanceof unseen.entities.SentryEnemy) {
                 ((unseen.entities.SentryEnemy) enemy).handleAlerts(enemies, player);
             }
 
-            // Check for player contact -- damage + knockback instead of instant death
             if (enemy.isAlive()
                     && enemy.getX() == player.getX()
                     && enemy.getY() == player.getY()
@@ -99,19 +94,25 @@ public class TurnManager {
                     int ax = ex;
                     int ay = ey;
 
-                    // If enemy and player are on same tile, infer push from enemy direction
                     if (ex == player.getX() && ey == player.getY()) {
                         switch (enemy.getDirection()) {
-                            case UP:    ay++; break;
-                            case DOWN:  ay--; break;
-                            case LEFT:  ax++; break;
-                            case RIGHT: ax--; break;
+                            case UP:
+                                ay++;
+                                break;
+                            case DOWN:
+                                ay--;
+                                break;
+                            case LEFT:
+                                ax++;
+                                break;
+                            case RIGHT:
+                                ax--;
+                                break;
                         }
                     }
                     player.knockback(ax, ay, map);
 
                     if (player.isDead()) {
-                        // Count kills before returning
                         int preDeathKills = (int) enemies.stream().filter(e -> !e.isAlive()).count();
                         enemies.removeIf(e -> !e.isAlive());
                         return new TurnResult(GameState.LOSE, true, preDeathKills);
@@ -120,7 +121,6 @@ public class TurnManager {
             }
         }
 
-        // Remove all dead enemies from the live list
         int killsBefore = enemies.size();
         enemies.removeIf(e -> !e.isAlive());
         int killsThisTurn = killsBefore - enemies.size();
@@ -128,9 +128,8 @@ public class TurnManager {
         boolean steppedOntoTile = player.getLastX() != player.getX()
                 || player.getLastY() != player.getY();
 
-        // 0. Check for floor hazards (Puddles)
         if (steppedOntoTile && map.getDecal(player.getX(), player.getY()) == unseen.map.DecalType.PUDDLE) {
-            unseen.utils.SoundManager.get().play("splash", 1.0f); 
+            unseen.utils.SoundManager.get().play("splash", 1.0f);
             for (Enemy e : enemies) {
                 double distanceToPuddle = Math.hypot(e.getX() - player.getX(), e.getY() - player.getY());
                 if (distanceToPuddle <= PUDDLE_HEARING_RADIUS) {
@@ -142,12 +141,9 @@ public class TurnManager {
             }
         }
 
-        // 0.5 Check for Campfire (Healing Sanctuary)
         if (map.getTile(player.getX(), player.getY()) == unseen.map.Tile.CAMPFIRE) {
             int currentFloor = (panel != null) ? panel.getLevelManager().getFloorNumber() : 0;
             int lastRested = player.getLastRestedFloor();
-
-            // Only every other floor (e.g. if rested on floor 1, can't rest on floor 2, must wait for floor 3+)
             boolean canRestOnThisFloor = (lastRested == -1 || (currentFloor - lastRested) >= 2);
 
             if (!steppedOntoTile && canRestOnThisFloor) {
@@ -162,22 +158,19 @@ public class TurnManager {
                         if (panel != null) {
                             panel.showToast("Rested and Recovered! +1 HP", new java.awt.Color(255, 140, 40));
                         }
-                    } else {
-                        if (panel != null) {
-                            panel.showToast("Resting... (" + player.getCampfireTurns() + "/3)", new java.awt.Color(255, 180, 100));
-                        }
+                    } else if (panel != null) {
+                        panel.showToast("Resting... (" + player.getCampfireTurns() + "/3)",
+                                new java.awt.Color(255, 180, 100));
                     }
-                } else {
-                    if (panel != null && player.getCampfireTurns() == 0) {
-                        panel.showToast("You are already at full health.", java.awt.Color.WHITE);
-                        player.setCampfireTurns(-1); // Warned
-                    }
+                } else if (panel != null && player.getCampfireTurns() == 0) {
+                    panel.showToast("You are already at full health.", java.awt.Color.WHITE);
+                    player.setCampfireTurns(-1);
                 }
             } else if (!steppedOntoTile && !canRestOnThisFloor) {
-                 if (panel != null && player.getCampfireTurns() == 0) {
-                     panel.showToast("The fire is warm, but you've rested recently.", java.awt.Color.GRAY);
-                     player.setCampfireTurns(-1); // Mark as warned for this tile stay
-                 }
+                if (panel != null && player.getCampfireTurns() == 0) {
+                    panel.showToast("The fire is warm, but you've rested recently.", java.awt.Color.GRAY);
+                    player.setCampfireTurns(-1);
+                }
             } else if (steppedOntoTile) {
                 if (player.getCampfireTurns() != 0) {
                     player.setCampfireTurns(0);
@@ -186,20 +179,26 @@ public class TurnManager {
                     panel.showToast("Healing Sanctuary. Stand still to rest.", new java.awt.Color(100, 255, 100));
                 }
             }
-        } else {
-            // Reset turns if we leave the campfire
-            if (player.getCampfireTurns() != 0) {
-                player.setCampfireTurns(0);
-            }
+        } else if (player.getCampfireTurns() != 0) {
+            player.setCampfireTurns(0);
         }
 
         player.updateLastPosition();
 
+        if (panel != null) {
+            panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
+        }
 
-        panel.getLevelManager().checkNoteAt(player.getX(), player.getY());
+        // Fake ladders must be checked before real exits.
+        if (map.getTile(player.getX(), player.getY()) == unseen.map.Tile.FAKE_EXIT) {
+            map.setTile(player.getX(), player.getY(), unseen.map.Tile.FLOOR);
+            if (panel != null) {
+                panel.triggerFakeExit();
+            }
+            return new TurnResult(GameState.PLAYING, wasHit, killsThisTurn);
+        }
 
-        if (map.getTile(player.getX(), player.getY())
-                == unseen.map.Tile.EXIT) {
+        if (map.getTile(player.getX(), player.getY()) == unseen.map.Tile.EXIT) {
             if (panel != null) {
                 panel.addTileEffect(player.getX(), player.getY(),
                         unseen.ui.gamepanel.TileEffect.Kind.EXIT);

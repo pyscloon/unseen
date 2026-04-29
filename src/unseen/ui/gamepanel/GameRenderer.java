@@ -387,8 +387,18 @@ public class GameRenderer {
     }
 
     private void drawRoundQuestHud(Graphics g) {
-        unseen.game.QuestManager.Quest quest = panel.getQuestManager().getActiveQuest();
-        if (quest == null || panel.getGameState() != GameState.PLAYING) {
+        unseen.game.QuestManager quests = panel.getQuestManager();
+        if (quests == null || panel.getGameState() != GameState.PLAYING) {
+            return;
+        }
+
+        if (!panel.isRoundQuestHudVisible()) {
+            drawQuestHiddenHint(g);
+            return;
+        }
+
+        unseen.game.QuestManager.Quest active = quests.getActiveQuest();
+        if (active == null) {
             return;
         }
 
@@ -397,44 +407,54 @@ public class GameRenderer {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         int x = 12;
-        int y = 12;
-        int w = 270;
-        int h = 58;
+        int y = 112; // below the top inventory bar
+        int w = 245;
+        int h = 62;
 
-        g2.setColor(new Color(0, 0, 0, 150));
-        g2.fillRoundRect(x + 3, y + 4, w, h, 12, 12);
+        g2.setColor(new Color(0, 0, 0, 145));
+        g2.fillRoundRect(x + 3, y + 4, w, h, 14, 14);
+        g2.setPaint(new GradientPaint(x, y, new Color(36, 28, 18, 220),
+                x, y + h, new Color(12, 10, 8, 232)));
+        g2.fillRoundRect(x, y, w, h, 14, 14);
+        g2.setColor(new Color(210, 162, 68, 190));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(x, y, w, h, 14, 14);
 
-        g2.setPaint(new GradientPaint(
-                x, y, new Color(36, 24, 12, 220),
-                x, y + h, new Color(12, 10, 8, 230)));
-        g2.fillRoundRect(x, y, w, h, 12, 12);
-
-        g2.setColor(new Color(205, 154, 72, 190));
-        g2.setStroke(new BasicStroke(1.4f));
-        g2.drawRoundRect(x, y, w, h, 12, 12);
-
-        g2.setFont(new Font("Serif", Font.BOLD, 16));
+        g2.setFont(new Font("Serif", Font.BOLD, 17));
         g2.setColor(new Color(255, 224, 120));
-        g2.drawString("Round Quest", x + 14, y + 22);
+        g2.drawString("Round Quest", x + 12, y + 22);
 
-        String progress = quest.getName() + "  (" + quest.getProgress() + "/" + quest.getTarget() + ")";
-        g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        g2.setColor(new Color(220, 205, 165));
-        g2.drawString(progress, x + 14, y + 42);
+        String progress = active.getProgress() + "/" + active.getTarget();
+        g2.setFont(new Font("SansSerif", Font.BOLD, 12));
+        int progressW = g2.getFontMetrics().stringWidth(progress);
+        g2.setColor(new Color(235, 205, 130));
+        g2.drawString(progress, x + w - progressW - 12, y + 22);
 
-        int barX = x + 14;
-        int barY = y + 48;
-        int barW = w - 28;
+        g2.setFont(new Font("SansSerif", Font.BOLD, 13));
+        String name = active.getName();
+        if (g2.getFontMetrics().stringWidth(name) > w - 24) {
+            while (name.length() > 3 && g2.getFontMetrics().stringWidth(name + "...") > w - 24) {
+                name = name.substring(0, name.length() - 1);
+            }
+            name += "...";
+        }
+        g2.setColor(new Color(235, 220, 180));
+        g2.drawString(name, x + 12, y + 43);
+
+        int barX = x + 12;
+        int barY = y + 50;
+        int barW = w - 24;
         int barH = 5;
-        float pct = Math.min(1f, quest.getProgress() / (float) quest.getTarget());
-
+        float pct = active.getTarget() <= 0 ? 0f : active.getProgress() / (float) active.getTarget();
+        pct = Math.max(0f, Math.min(1f, pct));
         g2.setColor(new Color(0, 0, 0, 130));
         g2.fillRoundRect(barX, barY, barW, barH, 5, 5);
-        g2.setColor(new Color(255, 190, 70, 220));
-        g2.fillRoundRect(barX, barY, (int) (barW * pct), barH, 5, 5);
+        g2.setColor(new Color(255, 196, 75, 220));
+        g2.fillRoundRect(barX, barY, Math.round(barW * pct), barH, 5, 5);
 
         g2.dispose();
     }
+
 
 
     private void drawQuestNotification(Graphics g) {
@@ -449,28 +469,23 @@ public class GameRenderer {
 
         g2.setFont(new Font("Serif", Font.BOLD, 20));
         FontMetrics fm = g2.getFontMetrics();
-
-        int w = Math.min(panel.getWidth() - 80, fm.stringWidth(text) + 42);
-        int x = (panel.getWidth() - w) / 2;
+        int boxW = Math.min(panel.getWidth() - 80, fm.stringWidth(text) + 42);
+        int x = (panel.getWidth() - boxW) / 2;
         int y = panel.getHeight() - 118;
 
         g2.setColor(new Color(0, 0, 0, 170));
-        g2.fillRoundRect(x + 4, y + 5, w, 42, 18, 18);
-
-        g2.setPaint(new GradientPaint(
-                x, y, new Color(80, 50, 12, 238),
+        g2.fillRoundRect(x + 4, y + 5, boxW, 42, 18, 18);
+        g2.setPaint(new GradientPaint(x, y, new Color(80, 50, 12, 238),
                 x, y + 42, new Color(28, 18, 8, 242)));
-        g2.fillRoundRect(x, y, w, 42, 18, 18);
-
+        g2.fillRoundRect(x, y, boxW, 42, 18, 18);
         g2.setColor(new Color(255, 220, 100, 220));
         g2.setStroke(new BasicStroke(1.8f));
-        g2.drawRoundRect(x, y, w, 42, 18, 18);
-
+        g2.drawRoundRect(x, y, boxW, 42, 18, 18);
         g2.setColor(new Color(255, 238, 160));
-        g2.drawString(text, x + (w - fm.stringWidth(text)) / 2, y + 28);
-
+        g2.drawString(text, x + (boxW - fm.stringWidth(text)) / 2, y + 28);
         g2.dispose();
     }
+
 
 
     private void drawRewardChoiceOverlay(Graphics g) {
@@ -546,6 +561,31 @@ public class GameRenderer {
 
         g2.dispose();
     }
+
+    private void drawQuestHiddenHint(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        String text = "V - Quest";
+        g2.setFont(new Font("SansSerif", Font.BOLD, 12));
+        FontMetrics fm = g2.getFontMetrics();
+
+        int x = 12;
+        int y = 112;
+        int w = fm.stringWidth(text) + 20;
+        int h = 24;
+
+        g2.setColor(new Color(0, 0, 0, 130));
+        g2.fillRoundRect(x, y, w, h, 10, 10);
+        g2.setColor(new Color(210, 170, 80, 180));
+        g2.drawRoundRect(x, y, w, h, 10, 10);
+        g2.setColor(new Color(235, 215, 160));
+        g2.drawString(text, x + 10, y + 17);
+
+        g2.dispose();
+    }
+
 
 
 }

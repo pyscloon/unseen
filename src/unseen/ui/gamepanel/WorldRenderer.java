@@ -137,6 +137,7 @@ class WorldRenderer {
                                         Constants.TILE_SIZE, Constants.TILE_SIZE, null);
                         }
                         break;
+                    case FAKE_EXIT:
                     case EXIT:
                         if (AssetLoader.get().nextFloor != null)
                             g2.drawImage(AssetLoader.get().nextFloor, drawX, drawY,
@@ -146,6 +147,7 @@ class WorldRenderer {
                             g2.fillRect(drawX, drawY, Constants.TILE_SIZE, Constants.TILE_SIZE);
                         }
                         break;
+
                     default:
                         Image defFloor = AssetLoader.get().floor;
                         if (panel.isHorrorMode()) {
