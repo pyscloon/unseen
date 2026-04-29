@@ -6,11 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="86345f1f-460e-4de8-8cf1-5f7444a6b5fe" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/entities/CrawlerEnemy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/CrawlerEnemy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/entities/HunterEnemy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/HunterEnemy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/entities/PatrolEnemy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/PatrolEnemy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/game/TurnManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

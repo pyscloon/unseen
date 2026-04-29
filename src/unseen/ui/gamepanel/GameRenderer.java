@@ -407,9 +407,9 @@ public class GameRenderer {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         int x = 12;
-        int y = 112; // below the top inventory bar
-        int w = 245;
-        int h = 62;
+        int y = 112;
+        int w = 285;
+        int h = 92;
 
         g2.setColor(new Color(0, 0, 0, 145));
         g2.fillRoundRect(x + 3, y + 4, w, h, 14, 14);
@@ -431,22 +431,24 @@ public class GameRenderer {
         g2.drawString(progress, x + w - progressW - 12, y + 22);
 
         g2.setFont(new Font("SansSerif", Font.BOLD, 13));
-        String name = active.getName();
-        if (g2.getFontMetrics().stringWidth(name) > w - 24) {
-            while (name.length() > 3 && g2.getFontMetrics().stringWidth(name + "...") > w - 24) {
-                name = name.substring(0, name.length() - 1);
-            }
-            name += "...";
-        }
         g2.setColor(new Color(235, 220, 180));
-        g2.drawString(name, x + 12, y + 43);
+        g2.drawString(fitText(g2, active.getName(), w - 24), x + 12, y + 43);
+
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g2.setColor(new Color(185, 170, 135));
+        g2.drawString(fitText(g2, active.getDescription(), w - 24), x + 12, y + 60);
+
+        g2.setFont(new Font("SansSerif", Font.ITALIC, 11));
+        g2.setColor(new Color(150, 205, 150));
+        g2.drawString(fitText(g2, "Hint: " + questHint(active), w - 24), x + 12, y + 76);
 
         int barX = x + 12;
-        int barY = y + 50;
+        int barY = y + 83;
         int barW = w - 24;
         int barH = 5;
         float pct = active.getTarget() <= 0 ? 0f : active.getProgress() / (float) active.getTarget();
         pct = Math.max(0f, Math.min(1f, pct));
+
         g2.setColor(new Color(0, 0, 0, 130));
         g2.fillRoundRect(barX, barY, barW, barH, 5, 5);
         g2.setColor(new Color(255, 196, 75, 220));
@@ -454,6 +456,40 @@ public class GameRenderer {
 
         g2.dispose();
     }
+
+    private String questHint(unseen.game.QuestManager.Quest quest) {
+        switch (quest.getEvent()) {
+            case KILL:
+                return "Defeat enemies with shuriken or smart positioning.";
+            case PICKUP:
+                return "Stand on an item and press E.";
+            case TURN:
+                return "Move, wait, or use items to spend turns.";
+            case FLOOR_CLEAR:
+                return "Find and step onto the real ladder.";
+            default:
+                return "Complete the listed objective.";
+        }
+    }
+
+    private String fitText(Graphics2D g2, String text, int maxWidth) {
+        if (text == null) {
+            return "";
+        }
+
+        FontMetrics fm = g2.getFontMetrics();
+        if (fm.stringWidth(text) <= maxWidth) {
+            return text;
+        }
+
+        String clipped = text;
+        while (clipped.length() > 3 && fm.stringWidth(clipped + "...") > maxWidth) {
+            clipped = clipped.substring(0, clipped.length() - 1);
+        }
+
+        return clipped + "...";
+    }
+
 
 
 

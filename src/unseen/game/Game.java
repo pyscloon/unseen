@@ -1,7 +1,8 @@
 package unseen.game;
 
-import javax.swing.JFrame;
 import unseen.ui.GamePanel;
+
+import javax.swing.*;
 
 public class Game {
 
