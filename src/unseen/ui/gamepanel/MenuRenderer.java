@@ -1,5 +1,6 @@
 package unseen.ui.gamepanel;
 
+import unseen.game.QuestManager;
 import unseen.map.Tile;
 import unseen.ui.GamePanel;
 import unseen.utils.Constants;
@@ -18,20 +19,17 @@ class MenuRenderer {
         this.worldRenderer = worldRenderer;
     }
 
-private static final class MenuLayout {
-        final int cardX;
-        final int cardY;
-        final int cardW;
-        final int cardH;
-        final int titleY;
-        final int separatorY;
+    private static final class MenuLayout {
+        final int cardX, cardY, cardW, cardH, titleY, separatorY;
         final Rectangle startButton;
         final Rectangle tutorialButton;
+        final Rectangle achievementsButton;
         final Rectangle horrorButton;
         final Rectangle quitButton;
 
         MenuLayout(int cardX, int cardY, int cardW, int cardH, int titleY, int separatorY,
-                Rectangle startButton, Rectangle tutorialButton, Rectangle horrorButton, Rectangle quitButton) {
+                   Rectangle startButton, Rectangle tutorialButton, Rectangle achievementsButton,
+                   Rectangle horrorButton, Rectangle quitButton) {
             this.cardX = cardX;
             this.cardY = cardY;
             this.cardW = cardW;
@@ -40,16 +38,17 @@ private static final class MenuLayout {
             this.separatorY = separatorY;
             this.startButton = startButton;
             this.tutorialButton = tutorialButton;
+            this.achievementsButton = achievementsButton;
             this.horrorButton = horrorButton;
             this.quitButton = quitButton;
         }
     }
 
-
     void drawMainMenu(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
         int w = panel.getWidth();
         int h = panel.getHeight();
         long now = System.currentTimeMillis();
@@ -100,6 +99,7 @@ private static final class MenuLayout {
         float beatA = Math.max(0f, (float) Math.sin(now / 220.0));
         float beatB = Math.max(0f, (float) Math.sin((now - 150.0) / 220.0));
         float pulse = Math.min(1f, beatA * 0.9f + beatB * 0.55f);
+
         String title = "UNSEEN";
         Font titleFont = new Font("Serif", Font.BOLD, 68);
         g2.setFont(titleFont);
@@ -139,6 +139,7 @@ private static final class MenuLayout {
         g2.drawLine(layout.cardX + sepInset, sepY, layout.cardX + layout.cardW - sepInset, sepY);
         g2.setColor(new Color(240, 199, 94, 135));
         g2.drawLine(layout.cardX + sepInset, sepY - 2, layout.cardX + layout.cardW - sepInset, sepY - 2);
+
         int dx = w / 2, dy = sepY;
         int ds = 7;
         int[] dpx = { dx, dx + ds, dx, dx - ds };
@@ -149,9 +150,14 @@ private static final class MenuLayout {
         drawMenuPill(g2, layout.startButton, "SPACE", "Start Adventure",
                 new Color(94, 56, 15, hovered == GameRenderer.MenuAction.START ? 235 : 208),
                 new Color(255, 215, 120), hovered == GameRenderer.MenuAction.START, pulse);
+
         drawMenuPill(g2, layout.tutorialButton, "H", "How to Play",
                 new Color(56, 43, 28, hovered == GameRenderer.MenuAction.TUTORIAL ? 228 : 202),
                 new Color(220, 191, 126), hovered == GameRenderer.MenuAction.TUTORIAL, 0f);
+
+        drawMenuPill(g2, layout.achievementsButton, "A", "Achievements",
+                new Color(56, 43, 28, hovered == GameRenderer.MenuAction.ACHIEVEMENTS ? 228 : 202),
+                new Color(220, 191, 126), hovered == GameRenderer.MenuAction.ACHIEVEMENTS, 0f);
 
         String horrorLabel = panel.isHorrorMode() ? "HORROR MODE (ON)" : "HORROR MODE (OFF)";
         Color horrorFill = panel.isHorrorMode()
@@ -179,46 +185,117 @@ private static final class MenuLayout {
         g2.setColor(new Color(150, 135, 100));
         g2.drawString(version, w - vw - 12, h - 14);
 
+        if (panel.isAchievementsOpen()) {
+            drawAchievementsOverlay(g2, w, h);
+        }
+
         g2.dispose();
     }
 
-
-public GameRenderer.MenuAction getMenuActionAt(int mouseX, int mouseY, int panelW, int panelH) {
+    public GameRenderer.MenuAction getMenuActionAt(int mouseX, int mouseY, int panelW, int panelH) {
         MenuLayout layout = buildMenuLayout(panelW, panelH);
         Point point = new Point(mouseX, mouseY);
-        if (layout.startButton.contains(point))
-            return GameRenderer.MenuAction.START;
-        if (layout.tutorialButton.contains(point))
-            return GameRenderer.MenuAction.TUTORIAL;
-        if (layout.horrorButton.contains(point))
-            return GameRenderer.MenuAction.TOGGLE_HORROR;
-        if (layout.quitButton.contains(point))
-            return GameRenderer.MenuAction.QUIT;
+        if (layout.startButton.contains(point)) return GameRenderer.MenuAction.START;
+        if (layout.tutorialButton.contains(point)) return GameRenderer.MenuAction.TUTORIAL;
+        if (layout.achievementsButton.contains(point)) return GameRenderer.MenuAction.ACHIEVEMENTS;
+        if (layout.horrorButton.contains(point)) return GameRenderer.MenuAction.TOGGLE_HORROR;
+        if (layout.quitButton.contains(point)) return GameRenderer.MenuAction.QUIT;
         return GameRenderer.MenuAction.NONE;
     }
 
-
-private MenuLayout buildMenuLayout(int w, int h) {
+    private MenuLayout buildMenuLayout(int w, int h) {
         int cardW = Math.min(560, w - 120);
-        int cardH = Math.min(500, h - 150);
+        int cardH = Math.min(560, h - 120);
         int cardX = (w - cardW) / 2;
         int cardY = (h - cardH) / 2;
-        int titleY = cardY + 120;
-        int separatorY = titleY + 56;
+        int titleY = cardY + 112;
+        int separatorY = titleY + 52;
         int buttonW = Math.min(340, cardW - 120);
         int buttonH = 44;
         int buttonX = cardX + (cardW - buttonW) / 2;
-        int firstButtonY = separatorY + 38;
-        int gap = 16;
+        int firstButtonY = separatorY + 32;
+        int gap = 14;
 
         Rectangle startButton = new Rectangle(buttonX, firstButtonY, buttonW, buttonH);
-        Rectangle tutorialButton = new Rectangle(buttonX, firstButtonY + (buttonH + gap), buttonW, buttonH);
-        Rectangle horrorButton = new Rectangle(buttonX, firstButtonY + 2 * (buttonH + gap), buttonW, buttonH);
-        Rectangle quitButton = new Rectangle(buttonX, firstButtonY + 3 * (buttonH + gap), buttonW, buttonH);
+        Rectangle tutorialButton = new Rectangle(buttonX, firstButtonY + buttonH + gap, buttonW, buttonH);
+        Rectangle achievementsButton = new Rectangle(buttonX, firstButtonY + 2 * (buttonH + gap), buttonW, buttonH);
+        Rectangle horrorButton = new Rectangle(buttonX, firstButtonY + 3 * (buttonH + gap), buttonW, buttonH);
+        Rectangle quitButton = new Rectangle(buttonX, firstButtonY + 4 * (buttonH + gap), buttonW, buttonH);
+
         return new MenuLayout(cardX, cardY, cardW, cardH, titleY, separatorY,
-                startButton, tutorialButton, horrorButton, quitButton);
+                startButton, tutorialButton, achievementsButton, horrorButton, quitButton);
     }
 
+    private void drawAchievementsOverlay(Graphics2D g2, int w, int h) {
+        QuestManager quests = panel.getQuestManager();
+        if (quests == null) return;
+
+        g2.setColor(new Color(0, 0, 0, 214));
+        g2.fillRect(0, 0, w, h);
+        drawMenuMist(g2, w, h, System.currentTimeMillis());
+
+        int cardW = Math.min(720, w - 80);
+        int cardH = Math.min(540, h - 80);
+        int x = (w - cardW) / 2;
+        int y = (h - cardH) / 2;
+
+        g2.setPaint(new GradientPaint(x, y, new Color(22, 18, 17, 225),
+                x, y + cardH, new Color(8, 8, 10, 242)));
+        g2.fillRoundRect(x, y, cardW, cardH, 34, 34);
+        g2.setColor(new Color(205, 154, 72, 210));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawRoundRect(x, y, cardW, cardH, 34, 34);
+
+        g2.setFont(new Font("Serif", Font.BOLD, 32));
+        g2.setColor(new Color(255, 230, 120));
+        String title = "ACHIEVEMENTS";
+        g2.drawString(title, x + (cardW - g2.getFontMetrics().stringWidth(title)) / 2, y + 58);
+
+        int cy = y + 105;
+
+        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
+        g2.setColor(new Color(135, 230, 130));
+        g2.drawString("Completed", x + 42, cy);
+        cy += 24;
+
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        if (quests.getCompletedQuests().isEmpty()) {
+            g2.setColor(new Color(130, 125, 110));
+            g2.drawString("- none yet", x + 54, cy);
+            cy += 22;
+        } else {
+            for (QuestManager.Quest q : quests.getCompletedQuests()) {
+                if (cy > y + cardH - 150) break;
+                g2.setColor(new Color(190, 230, 170));
+                g2.drawString("[DONE] " + q.getName() + " - " + q.getDescription(), x + 54, cy);
+                cy += 22;
+            }
+        }
+
+        cy += 18;
+        g2.setFont(new Font("SansSerif", Font.BOLD, 15));
+        g2.setColor(new Color(230, 170, 90));
+        g2.drawString("Uncompleted", x + 42, cy);
+        cy += 24;
+
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        if (quests.getUncompletedQuests().isEmpty()) {
+            g2.setColor(new Color(190, 175, 140));
+            g2.drawString("- all known achievements cleared", x + 54, cy);
+        } else {
+            for (QuestManager.Quest q : quests.getUncompletedQuests()) {
+                if (cy > y + cardH - 45) break;
+                g2.setColor(new Color(190, 175, 140));
+                g2.drawString("[LOCKED] " + q.getName() + " - " + q.getDescription(), x + 54, cy);
+                cy += 22;
+            }
+        }
+
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        String hint = "Click anywhere or press ESC to close";
+        g2.setColor(new Color(150, 135, 100));
+        g2.drawString(hint, x + (cardW - g2.getFontMetrics().stringWidth(hint)) / 2, y + cardH - 26);
+    }
 
     void drawMenuMist(Graphics2D g2, int w, int h, long now) {
         Graphics2D mist = (Graphics2D) g2.create();
@@ -244,17 +321,15 @@ private MenuLayout buildMenuLayout(int w, int h) {
         mist.dispose();
     }
 
-
-private void drawMenuPill(Graphics2D g2, Rectangle bounds, String key, String label,
-            Color fill, Color textColor, boolean hovered, float pulse) {
+    private void drawMenuPill(Graphics2D g2, Rectangle bounds, String key, String label,
+                              Color fill, Color textColor, boolean hovered, float pulse) {
         Graphics2D pill = (Graphics2D) g2.create();
         pill.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         int arc = 24;
         pill.setColor(new Color(0, 0, 0, hovered ? 110 : 82));
         pill.fillRoundRect(bounds.x + 4, bounds.y + 5, bounds.width, bounds.height, arc, arc);
-        pill.setPaint(new GradientPaint(
-                bounds.x, bounds.y, brighten(fill, hovered ? 0.12f : 0.04f),
+        pill.setPaint(new GradientPaint(bounds.x, bounds.y, brighten(fill, hovered ? 0.12f : 0.04f),
                 bounds.x, bounds.y + bounds.height, darken(fill, 0.18f)));
         pill.fillRoundRect(bounds.x, bounds.y, bounds.width, bounds.height, arc, arc);
 
@@ -294,8 +369,7 @@ private void drawMenuPill(Graphics2D g2, Rectangle bounds, String key, String la
         pill.dispose();
     }
 
-
-private Color brighten(Color color, float amount) {
+    private Color brighten(Color color, float amount) {
         amount = Math.max(0f, Math.min(1f, amount));
         int r = color.getRed() + Math.round((255 - color.getRed()) * amount);
         int g = color.getGreen() + Math.round((255 - color.getGreen()) * amount);
@@ -303,15 +377,13 @@ private Color brighten(Color color, float amount) {
         return new Color(Math.min(255, r), Math.min(255, g), Math.min(255, b), color.getAlpha());
     }
 
-
-private Color darken(Color color, float amount) {
+    private Color darken(Color color, float amount) {
         amount = Math.max(0f, Math.min(1f, amount));
         int r = Math.round(color.getRed() * (1f - amount));
         int g = Math.round(color.getGreen() * (1f - amount));
         int b = Math.round(color.getBlue() * (1f - amount));
         return new Color(Math.max(0, r), Math.max(0, g), Math.max(0, b), color.getAlpha());
     }
-
 
     void drawMenuTorchFlicker(Graphics2D g2, long now) {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -342,6 +414,4 @@ private Color darken(Color color, float amount) {
             }
         }
     }
-
-
 }

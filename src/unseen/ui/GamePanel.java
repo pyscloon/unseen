@@ -12,6 +12,11 @@ import java.util.List;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+
+import java.util.Random;
+import unseen.game.QuestManager;
+import unseen.game.RewardChoice;
+
 import unseen.utils.Constants;
 import unseen.game.GameState;
 import unseen.game.RunStats;
@@ -74,6 +79,13 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     private final ScreenShake screenShake = new ScreenShake();
     private final RunStats runStats = new RunStats();
 
+    private final QuestManager questManager = new QuestManager();
+    private final Random rewardRandom = new Random();
+    private final List<RewardChoice> floorRewardChoices = new ArrayList<>();
+    private String questNotificationText = null;
+    private long questNotificationUntil = 0L;
+    private boolean achievementsOpen = false;
+
     /** HUD toast queue -- most recent at the end. */
     private final List<HudToast> toasts = new ArrayList<>();
 
@@ -132,6 +144,22 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         return toasts;
     }
 
+    public QuestManager getQuestManager() {
+        return questManager;
+    }
+
+    public List<RewardChoice> getFloorRewardChoices() {
+        return floorRewardChoices;
+    }
+
+    public String getQuestNotificationText() {
+        if (questNotificationText == null || System.currentTimeMillis() > questNotificationUntil) {
+            return null;
+        }
+        return questNotificationText;
+    }
+
+
     public long getLastHitTime() {
         return lastHitTime;
     }
@@ -166,6 +194,18 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                     requestFocusInWindow();
                     return;
                 }
+
+                if (state == GameState.REWARD_CHOICE) {
+                    int choice = getRewardChoiceAt(e.getX(), e.getY());
+                    if (choice >= 0) {
+                        playUiClick();
+                        chooseFloorReward(choice);
+                    }
+                    requestFocusInWindow();
+                    return;
+                }
+
+
                 // Tutorial click handling
                 if (tutorial.isActive()) {
                     boolean tutConsumed = tutorial.handleClick(e.getX(), e.getY(), getWidth(), getHeight());
@@ -180,8 +220,14 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                 }
 
                 if (state == GameState.MENU) {
-                    GameRenderer.MenuAction action = renderer.getMenuActionAt(e.getX(), e.getY(), getWidth(),
-                            getHeight());
+                    if (achievementsOpen) {
+                        playUiClick();
+                        closeAchievements();
+                        requestFocusInWindow();
+                        return;
+                    }
+
+                    GameRenderer.MenuAction action = renderer.getMenuActionAt(e.getX(), e.getY(), getWidth(), getHeight());
                     switch (action) {
                         case START:
                             playUiClick();
@@ -191,6 +237,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                             playUiClick();
                             tutorial.reset();
                             repaint();
+                            return;
+                        case ACHIEVEMENTS:
+                            playUiClick();
+                            openAchievements();
                             return;
                         case TOGGLE_HORROR:
                             playHorrorToggleClick(!isHorrorMode());
@@ -205,6 +255,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
                             break;
                     }
                 }
+
 
                 // Noise/Flare targeting clicks during gameplay
                 if (targetingNoiseMaker) {
@@ -223,6 +274,12 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         levelManager = new LevelManager();
         levelManager.setPanel(this);
         renderer = new GameRenderer(this, levelManager);
+
+        questManager.resetRun();
+        floorRewardChoices.clear();
+        questNotificationText = null;
+
+
         levelManager.setupGame();
         loadAndPlayBackgroundSound();
         resetIntro();
@@ -411,6 +468,9 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     public void returnToMenu() {
         runStats.commitHighScore();
         levelManager.setupGame();
+        floorRewardChoices.clear();
+        questNotificationText = null;
+        achievementsOpen = false;
         state = GameState.MENU;
         if (backgroundClip != null) {
             backgroundClip.setFramePosition(0);
@@ -420,9 +480,14 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         repaint();
     }
 
+
     public void restartGame() {
         runStats.commitHighScore();
         runStats.resetRun();
+        questManager.resetRun();
+        floorRewardChoices.clear();
+        questNotificationText = null;
+        achievementsOpen = false;
         levelManager.setupGame();
         levelManager.getPlayer().resetHealth();
         setGameState(GameState.PLAYING);
@@ -436,6 +501,10 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
 
     public void startFromMenu() {
         runStats.resetRun();
+        questManager.resetRun();
+        floorRewardChoices.clear();
+        questNotificationText = null;
+        achievementsOpen = false;
         levelManager.setupGame();
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
@@ -446,11 +515,14 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         unseen.utils.SoundManager.get().play("ladder");
         runStats.setFloorsCleared(levelManager.getFloorNumber());
         levelManager.nextFloor();
+        questManager.startQuestForFloor(levelManager.getFloorNumber());
+        floorRewardChoices.clear();
         loadAndPlayBackgroundSound(); // Restore horror music if applicable
         setGameState(GameState.PLAYING);
         requestFocusInWindow();
         repaint();
     }
+
 
     public void startGame() {
         gameThread = new Thread(this);
@@ -597,13 +669,23 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         runStats.incrementKills(result.killsThisTurn);
         runStats.setFloorsCleared(levelManager.getFloorNumber() - 1);
 
+        checkQuestCompletion(questManager.recordTurn());
+        checkQuestCompletion(questManager.recordKills(result.killsThisTurn));
+
         if (result.playerHit) {
             handlePlayerDamaged();
         }
 
-        setGameState(result.state);
+        if (result.state == GameState.WIN) {
+            checkQuestCompletion(questManager.recordFloorCleared());
+            beginPostFloorRewards();
+        } else {
+            setGameState(result.state);
+        }
+
         levelManager.updateSmoke();
     }
+
 
     // -------------------------------------------------------------------------
     // Targeting
@@ -1054,7 +1136,7 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
             showToast("Picked up " + itemDisplayName(it), new Color(120, 255, 160));
             levelManager.addTileEffect(px, py, TileEffect.Kind.PICKUP);
         }
-
+        checkQuestCompletion(questManager.recordPickup());
         processTurnAndApply();
         levelManager.updateVisibility();
         return true;
@@ -1091,6 +1173,22 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
     // -------------------------------------------------------------------------
     // Getters / setters
     // -------------------------------------------------------------------------
+
+
+
+    public boolean isAchievementsOpen() {
+        return achievementsOpen;
+    }
+
+    public void openAchievements() {
+        achievementsOpen = true;
+        repaint();
+    }
+
+    public void closeAchievements() {
+        achievementsOpen = false;
+        repaint();
+    }
 
     private boolean jumpscareActive = false;
 
@@ -1197,4 +1295,101 @@ public class GamePanel extends JPanel implements Runnable, SmokeSpawner {
         shurikenDy = dy;
         repaint();
     }
+
+    private void checkQuestCompletion(boolean completed) {
+        if (!completed) {
+            return;
+        }
+
+        QuestManager.Quest quest = questManager.getActiveQuest();
+        Item reward = createRandomRewardItem();
+        String rewardName = itemDisplayName(reward);
+        boolean granted = grantRewardItem(reward);
+
+        String questName = quest != null ? quest.getName() : "Quest";
+        String message = granted
+                ? "QUEST COMPLETE: " + questName + "  + " + rewardName
+                : "QUEST COMPLETE: " + questName + "  Inventory full";
+        showQuestNotification(message);
+
+        if (granted) {
+            showToast("Quest reward: " + rewardName, new Color(255, 220, 120));
+        } else {
+            showToast("Quest complete, but your pack is full.", new Color(255, 130, 90));
+        }
+    }
+
+    private void showQuestNotification(String message) {
+        questNotificationText = message;
+        questNotificationUntil = System.currentTimeMillis() + 3200L;
+        unseen.utils.SoundManager.get().play("item_pickup", 0.75f);
+    }
+
+    private void beginPostFloorRewards() {
+        generateFloorRewardChoices();
+        setGameState(GameState.REWARD_CHOICE);
+        requestFocusInWindow();
+        repaint();
+    }
+
+    private void generateFloorRewardChoices() {
+        floorRewardChoices.clear();
+        for (int i = 0; i < 3; i++) {
+            Item item = createRandomRewardItem();
+            floorRewardChoices.add(new RewardChoice(itemDisplayName(item), item));
+        }
+    }
+
+    public void chooseFloorReward(int index) {
+        if (index < 0 || index >= floorRewardChoices.size()) {
+            return;
+        }
+        RewardChoice choice = floorRewardChoices.get(index);
+        if (grantRewardItem(choice.getItem())) {
+            showToast("Reward claimed: " + choice.getName(), new Color(255, 220, 120));
+        } else {
+            showToast("Could not carry " + choice.getName() + ".", new Color(255, 130, 90));
+        }
+        nextFloor();
+    }
+
+    private int getRewardChoiceAt(int mouseX, int mouseY) {
+        int cardW = 180;
+        int cardH = 92;
+        int gap = 18;
+        int totalW = cardW * 3 + gap * 2;
+        int startX = (getWidth() - totalW) / 2;
+        int y = getHeight() / 2 + 34;
+        for (int i = 0; i < 3; i++) {
+            java.awt.Rectangle bounds = new java.awt.Rectangle(startX + i * (cardW + gap), y, cardW, cardH);
+            if (bounds.contains(mouseX, mouseY)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean grantRewardItem(Item item) {
+        return levelManager.getPlayer().addItem(item);
+    }
+
+    private Item createRandomRewardItem() {
+        int choices = horrorMode ? 6 : 5;
+        switch (rewardRandom.nextInt(choices)) {
+            case 0:
+                return new unseen.items.NoiseMaker();
+            case 1:
+                return new unseen.items.SmokeBomb();
+            case 2:
+                return new unseen.items.Flare();
+            case 3:
+                return new unseen.items.Shuriken();
+            case 4:
+                return new unseen.items.GrapplingHook();
+            default:
+                return new unseen.items.Cross();
+        }
+    }
+
+
 }

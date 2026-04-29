@@ -2,12 +2,7 @@ package unseen.ui;
 
 import unseen.entities.Player;
 import unseen.game.GameState;
-import unseen.game.TurnManager;
-import unseen.items.Item;
-import unseen.items.GrapplingHook;
-import unseen.items.NoiseMaker;
-import unseen.items.Shuriken;
-import unseen.items.SmokeBomb;
+import unseen.items.*;
 import unseen.map.Map;
 
 import java.awt.event.KeyAdapter;
@@ -59,6 +54,16 @@ public class InputHandler extends KeyAdapter {
 
         // Main menu controls
         if (panel.getGameState() == GameState.MENU) {
+            if (panel.isAchievementsOpen()) {
+                if (key == KeyEvent.VK_ESCAPE || key == KeyEvent.VK_A
+                        || key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
+                    panel.playUiClick();
+                    panel.closeAchievements();
+                    return;
+                }
+                return;
+            }
+
             if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
                 panel.playUiClick();
                 panel.startFromMenu();
@@ -75,6 +80,11 @@ public class InputHandler extends KeyAdapter {
                 panel.repaint();
                 return;
             }
+            if (key == KeyEvent.VK_A) {
+                panel.playUiClick();
+                panel.openAchievements();
+                return;
+            }
             if (key == KeyEvent.VK_X) {
                 panel.playHorrorToggleClick(!panel.isHorrorMode());
                 panel.setHorrorMode(!panel.isHorrorMode());
@@ -83,6 +93,7 @@ public class InputHandler extends KeyAdapter {
             }
             return;
         }
+
 
         // Retry after death
         if (panel.getGameState() == GameState.LOSE) {
@@ -98,6 +109,36 @@ public class InputHandler extends KeyAdapter {
             }
             return;
         }
+
+        if (panel.getGameState() == GameState.REWARD_CHOICE) {
+            if (key == KeyEvent.VK_ESCAPE) {
+                panel.playUiClick();
+                panel.returnToMenu();
+                return;
+            }
+            if (key == KeyEvent.VK_1 || key == KeyEvent.VK_NUMPAD1) {
+                panel.playUiClick();
+                panel.chooseFloorReward(0);
+                return;
+            }
+            if (key == KeyEvent.VK_2 || key == KeyEvent.VK_NUMPAD2) {
+                panel.playUiClick();
+                panel.chooseFloorReward(1);
+                return;
+            }
+            if (key == KeyEvent.VK_3 || key == KeyEvent.VK_NUMPAD3) {
+                panel.playUiClick();
+                panel.chooseFloorReward(2);
+                return;
+            }
+            if (key == KeyEvent.VK_ENTER || key == KeyEvent.VK_SPACE) {
+                panel.playUiClick();
+                panel.chooseFloorReward(0);
+                return;
+            }
+            return;
+        }
+
 
         // Win screen -- next floor or back to menu
         if (panel.getGameState() == GameState.WIN) {

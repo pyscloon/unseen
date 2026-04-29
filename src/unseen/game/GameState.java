@@ -7,5 +7,6 @@ public enum GameState {
     PAUSED,
     CONFIRM_QUIT,
     WIN,
+    REWARD_CHOICE,
     LOSE
 }

@@ -14,7 +14,7 @@ import java.util.Random;
 public class GameRenderer {
 
     public enum MenuAction {
-        NONE, START, TUTORIAL, TOGGLE_HORROR, QUIT
+        NONE, START, TUTORIAL,ACHIEVEMENTS, TOGGLE_HORROR, QUIT
     }
 
     private final GamePanel panel;
@@ -222,6 +222,13 @@ public class GameRenderer {
             g.drawString(line3, cx - w3 / 2, cy + 48);
         }
 
+        if (panel.getGameState() == GameState.REWARD_CHOICE) {
+            drawRewardChoiceOverlay(g);
+        }
+
+        drawQuestNotification(g);
+
+
         if (panel.getGameState() == GameState.LOSE) {
             g.setColor(new Color(0, 0, 0, 160));
             g.fillRect(0, 0, panel.getWidth(), panel.getHeight());
@@ -347,6 +354,7 @@ public class GameRenderer {
 
         // Floor number in top-right corner
         if (panel.getGameState() == GameState.PLAYING) {
+            drawRoundQuestHud(g);
             String floorLabel = "Floor " + levelManager.getFloorNumber();
             g.setFont(new Font("Arial", Font.BOLD, 18));
             int lw = g.getFontMetrics().stringWidth(floorLabel);
@@ -377,5 +385,167 @@ public class GameRenderer {
         }
         hudRenderer.drawLoreNote(g);
     }
+
+    private void drawRoundQuestHud(Graphics g) {
+        unseen.game.QuestManager.Quest quest = panel.getQuestManager().getActiveQuest();
+        if (quest == null || panel.getGameState() != GameState.PLAYING) {
+            return;
+        }
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        int x = 12;
+        int y = 12;
+        int w = 270;
+        int h = 58;
+
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.fillRoundRect(x + 3, y + 4, w, h, 12, 12);
+
+        g2.setPaint(new GradientPaint(
+                x, y, new Color(36, 24, 12, 220),
+                x, y + h, new Color(12, 10, 8, 230)));
+        g2.fillRoundRect(x, y, w, h, 12, 12);
+
+        g2.setColor(new Color(205, 154, 72, 190));
+        g2.setStroke(new BasicStroke(1.4f));
+        g2.drawRoundRect(x, y, w, h, 12, 12);
+
+        g2.setFont(new Font("Serif", Font.BOLD, 16));
+        g2.setColor(new Color(255, 224, 120));
+        g2.drawString("Round Quest", x + 14, y + 22);
+
+        String progress = quest.getName() + "  (" + quest.getProgress() + "/" + quest.getTarget() + ")";
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        g2.setColor(new Color(220, 205, 165));
+        g2.drawString(progress, x + 14, y + 42);
+
+        int barX = x + 14;
+        int barY = y + 48;
+        int barW = w - 28;
+        int barH = 5;
+        float pct = Math.min(1f, quest.getProgress() / (float) quest.getTarget());
+
+        g2.setColor(new Color(0, 0, 0, 130));
+        g2.fillRoundRect(barX, barY, barW, barH, 5, 5);
+        g2.setColor(new Color(255, 190, 70, 220));
+        g2.fillRoundRect(barX, barY, (int) (barW * pct), barH, 5, 5);
+
+        g2.dispose();
+    }
+
+
+    private void drawQuestNotification(Graphics g) {
+        String text = panel.getQuestNotificationText();
+        if (text == null || panel.getGameState() != GameState.PLAYING) {
+            return;
+        }
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        g2.setFont(new Font("Serif", Font.BOLD, 20));
+        FontMetrics fm = g2.getFontMetrics();
+
+        int w = Math.min(panel.getWidth() - 80, fm.stringWidth(text) + 42);
+        int x = (panel.getWidth() - w) / 2;
+        int y = panel.getHeight() - 118;
+
+        g2.setColor(new Color(0, 0, 0, 170));
+        g2.fillRoundRect(x + 4, y + 5, w, 42, 18, 18);
+
+        g2.setPaint(new GradientPaint(
+                x, y, new Color(80, 50, 12, 238),
+                x, y + 42, new Color(28, 18, 8, 242)));
+        g2.fillRoundRect(x, y, w, 42, 18, 18);
+
+        g2.setColor(new Color(255, 220, 100, 220));
+        g2.setStroke(new BasicStroke(1.8f));
+        g2.drawRoundRect(x, y, w, 42, 18, 18);
+
+        g2.setColor(new Color(255, 238, 160));
+        g2.drawString(text, x + (w - fm.stringWidth(text)) / 2, y + 28);
+
+        g2.dispose();
+    }
+
+
+    private void drawRewardChoiceOverlay(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        int w = panel.getWidth();
+        int h = panel.getHeight();
+        int cx = w / 2;
+        int cy = h / 2;
+
+        g2.setColor(new Color(0, 0, 0, 185));
+        g2.fillRect(0, 0, w, h);
+
+        String title = "Choose Your Floor Reward";
+        g2.setFont(new Font("Serif", Font.BOLD, 38));
+        FontMetrics titleFm = g2.getFontMetrics();
+        g2.setColor(new Color(255, 224, 120));
+        g2.drawString(title, cx - titleFm.stringWidth(title) / 2, cy - 96);
+
+        String subtitle = "Pick 1 of 3 relics before descending.";
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 17));
+        FontMetrics subFm = g2.getFontMetrics();
+        g2.setColor(new Color(210, 195, 160));
+        g2.drawString(subtitle, cx - subFm.stringWidth(subtitle) / 2, cy - 62);
+
+        java.util.List<unseen.game.RewardChoice> choices = panel.getFloorRewardChoices();
+        int cardW = 180;
+        int cardH = 92;
+        int gap = 18;
+        int totalW = cardW * 3 + gap * 2;
+        int startX = (w - totalW) / 2;
+        int cardY = cy + 34;
+
+        for (int i = 0; i < choices.size(); i++) {
+            unseen.game.RewardChoice choice = choices.get(i);
+            int x = startX + i * (cardW + gap);
+
+            g2.setColor(new Color(0, 0, 0, 100));
+            g2.fillRoundRect(x + 4, cardY + 5, cardW, cardH, 18, 18);
+            g2.setPaint(new GradientPaint(x, cardY, new Color(42, 32, 22, 236),
+                    x, cardY + cardH, new Color(16, 13, 10, 242)));
+            g2.fillRoundRect(x, cardY, cardW, cardH, 18, 18);
+            g2.setColor(new Color(215, 166, 72, 210));
+            g2.setStroke(new BasicStroke(1.7f));
+            g2.drawRoundRect(x, cardY, cardW, cardH, 18, 18);
+
+            String key = "[" + (i + 1) + "]";
+            g2.setFont(new Font("DialogInput", Font.BOLD, 14));
+            g2.setColor(new Color(255, 220, 110));
+            g2.drawString(key, x + 14, cardY + 25);
+
+            g2.setFont(new Font("Serif", Font.BOLD, 20));
+            FontMetrics nameFm = g2.getFontMetrics();
+            String name = choice.getName();
+            int nameX = x + (cardW - nameFm.stringWidth(name)) / 2;
+            g2.setColor(new Color(238, 220, 180));
+            g2.drawString(name, nameX, cardY + 58);
+
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            String hint = "Click or press " + (i + 1);
+            FontMetrics hintFm = g2.getFontMetrics();
+            g2.setColor(new Color(150, 135, 100));
+            g2.drawString(hint, x + (cardW - hintFm.stringWidth(hint)) / 2, cardY + 78);
+        }
+
+        String esc = "ESC  --  Return to Menu";
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        FontMetrics escFm = g2.getFontMetrics();
+        g2.setColor(new Color(170, 170, 170));
+        g2.drawString(esc, cx - escFm.stringWidth(esc) / 2, cardY + cardH + 38);
+
+        g2.dispose();
+    }
+
 
 }

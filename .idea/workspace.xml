@@ -5,15 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="86345f1f-460e-4de8-8cf1-5f7444a6b5fe" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/unseen/assets/crawler.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/unseen/entities/CrawlerEnemy.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/unseen/game/QuestManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/unseen/game/RewardChoice.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/entities/Enemy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/LevelManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/LevelManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/TutorialManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/TutorialManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/WorldRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/WorldRenderer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/utils/AssetLoader.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/utils/AssetLoader.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/unseen/utils/Constants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/utils/Constants.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/game/GameState.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/game/GameState.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/GamePanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/InputHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/GameRenderer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/unseen/ui/gamepanel/MenuRenderer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/unseen/ui/gamepanel/MenuRenderer.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -127,5 +126,16 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/unseen/ui/gamepanel/MenuRenderer.java</url>
+          <line>326</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
