@@ -10,7 +10,7 @@ javac -d out (Get-ChildItem -Recurse -Filter *.java src/unseen | ForEach-Object 
 
 ## 2. Copy Assets
 ```
-xcopy /E /I /Y src\unseen\assets out\unseen\assets
+    xcopy /E /I /Y src\unseen\assets out\unseen\assets
 or
 cp -r src/unseen/assets out/unseen/assets
 ```
